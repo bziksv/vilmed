@@ -1,0 +1,3 @@
+<?
+$MESS['ESOL_IX_PRICE_CURRENCY_RUB'] = "руб";
+?>

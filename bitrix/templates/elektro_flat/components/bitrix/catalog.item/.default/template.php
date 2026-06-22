@@ -123,9 +123,11 @@ if(isset($arResult['ITEM'])) {
 	$strAlt = (isset($arElement["IPROPERTY_VALUES"]["ELEMENT_PREVIEW_PICTURE_FILE_ALT"]) && $arElement["IPROPERTY_VALUES"]["ELEMENT_PREVIEW_PICTURE_FILE_ALT"] != "" ? $arElement["IPROPERTY_VALUES"]["ELEMENT_PREVIEW_PICTURE_FILE_ALT"] : $arElement["NAME"]);
 
 	//PREVIEW_PICTURE_TITLE//
-	$strTitle = (isset($arElement["IPROPERTY_VALUES"]["ELEMENT_PREVIEW_PICTURE_FILE_TITLE"]) && $arElement["IPROPERTY_VALUES"]["ELEMENT_PREVIEW_PICTURE_FILE_TITLE"] != "" ? $arElement["IPROPERTY_VALUES"]["ELEMENT_PREVIEW_PICTURE_FILE_TITLE"] : $arElement["NAME"]);?>
+	$strTitle = (isset($arElement["IPROPERTY_VALUES"]["ELEMENT_PREVIEW_PICTURE_FILE_TITLE"]) && $arElement["IPROPERTY_VALUES"]["ELEMENT_PREVIEW_PICTURE_FILE_TITLE"] != "" ? $arElement["IPROPERTY_VALUES"]["ELEMENT_PREVIEW_PICTURE_FILE_TITLE"] : $arElement["NAME"]);
+	
+	?>
 
-	<div class="catalog-item<?=($arResult['TYPE'] == 'table' || $arResult['TYPE'] == 'collections' ? '-card'.$class : '')?>" id="<?=$areaId?>" data-entity="item" itemscope itemtype="http://schema.org/Product">
+	<div class="catalog-item<?=($arResult['TYPE'] == 'table' || $arResult['TYPE'] == 'collections' ? '-card'.$class : '')?>" id="<?=$areaId?>" data-entity="item" itemscope itemtype="https://schema.org/Product">
 		<?$documentRoot = Main\Application::getDocumentRoot();
 		$templatePath = strtolower($arResult['TYPE']).'/template.php';
 		$file = new Main\IO\File($documentRoot.$templateFolder.'/'.$templatePath);

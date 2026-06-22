@@ -3,8 +3,19 @@
 $this->setFrameMode(true);
 
 if(count($arResult["SECTIONS"]) < 1)
-	return;?>
+	return;
+	
+	
+global $arSetting;
+$moveTextInAttr = false;
 
+if(isCatalogDir() && $arSetting["CATALOG_MOVE_TEXT_IN_ATTR_MOBILE"]["VALUE"] == "Y")
+	$moveTextInAttr = true;
+
+if(isProductDetail() && $arSetting["CATALOG_PRODUCT_MOVE_TEXT_IN_ATTR_MOBILE"]["VALUE"] == "Y")
+	$moveTextInAttr = true;
+?>
+	
 <ul class="section-vertical">
 	<li>
 		<a href="javascript:void(0)" class="showsection"><i class="fa fa-bars"></i><span><?=GetMessage("CATALOG")?></span></a>
@@ -14,7 +25,11 @@ if(count($arResult["SECTIONS"]) < 1)
 				<div class="catalog-section">
 					<?if($arSection["NAME"] && $arResult["SECTION"]["ID"] != $arSection["ID"]) {?>
 						<div class="catalog-section-title" style="<?=($bHasChildren ? 'margin:0px 0px 4px 0px;' : 'margin:0px 0px 2px 0px;');?>">
-							<a href="<?=$arSection['SECTION_PAGE_URL']?>"><?=$arSection["NAME"]?></a>
+							<? if($moveTextInAttr): ?>
+								<a href="<?=$arSection['SECTION_PAGE_URL']?>" data-text_script="<?=$arSection["NAME"]?>"></a>
+							<? else: ?>
+								<a href="<?=$arSection['SECTION_PAGE_URL']?>"><?=$arSection["NAME"]?></a>
+							<? endif; ?>
 							<?if($bHasChildren) {?>
 								<span class="showsectionchild"><i class="fa fa-minus"></i><i class="fa fa-plus"></i><i class="fa fa-minus-circle"></i><i class="fa fa-plus-circle"></i></span>
 							<?}?>

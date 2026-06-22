@@ -1,0 +1,116 @@
+/* NIGES.COOKIESACCEPT */
+
+.nca-cookiesaccept-line {
+    font-size: inherit;
+    font-family: inherit;
+    line-height: 1;
+    padding: 10px;
+}
+
+
+.nca-cookiesaccept-line.style-1 .nca-cookiesaccept-line-text,
+.nca-cookiesaccept-line.style-3 .nca-cookiesaccept-line-text,
+.nca-cookiesaccept-line.style-5 .nca-cookiesaccept-line-text,
+.nca-cookiesaccept-line.style-7 .nca-cookiesaccept-line-text {
+    color:#111;
+}
+.nca-cookiesaccept-line.style-2 .nca-cookiesaccept-line-text,
+.nca-cookiesaccept-line.style-4 .nca-cookiesaccept-line-text,
+.nca-cookiesaccept-line.style-6 .nca-cookiesaccept-line-text,
+.nca-cookiesaccept-line.style-8 .nca-cookiesaccept-line-text {
+    color:#eee;
+}
+
+.nca-cookiesaccept-line.style-1 {
+    /* background-position: center;
+    background-repeat: repeat-x;
+	background-image: url(/bitrix/components/niges/cookiesaccept/templates/.default/images/style-1-2.svg);
+    background-size: contain; */
+    background-color: rgb(61, 168, 255); 
+}
+
+.nca-cookiesaccept-line.style-2 {
+    background-color: rgb(13, 62, 102);
+}
+
+
+.nca-cookiesaccept-line.style-3 {
+    background-color: rgb(197, 197, 197);
+}
+
+.nca-cookiesaccept-line.style-4 {
+    background-color: rgb(71, 71, 71);
+}
+
+.nca-cookiesaccept-line.style-5 {
+    background-color: rgb(61, 255, 158);
+}
+
+.nca-cookiesaccept-line.style-6 {
+    background-color: rgb(9, 92, 50);
+}
+
+.nca-cookiesaccept-line.style-7 {
+    background-color: rgb(84, 255, 61);
+}
+
+.nca-cookiesaccept-line.style-8 {
+    background-color: rgb(92, 5, 5);
+}
+
+.nca-cookiesaccept-line.style-9 {
+    background-color: rgb(203, 255, 61);
+}
+
+.nca-cookiesaccept-line.style-10 {
+    background-color: rgb(70, 94, 4);
+}
+
+.nca-cookiesaccept-line.style-11 {
+    background-color: rgb(255, 148, 61);
+}
+
+.nca-cookiesaccept-line.style-12 {
+    background-color: rgb(138, 70, 14);
+}
+
+.nca-cookiesaccept-line.style-13 {
+    background-color: rgb(255, 61, 61);
+}
+
+.nca-cookiesaccept-line.style-14 {
+    background-color: rgb(119, 22, 22);
+}
+
+.nca-cookiesaccept-line.style-15 {
+    background-color: rgb(255, 61, 152);
+}
+
+.nca-cookiesaccept-line.style-16 {
+    background-color: rgb(85, 10, 45);
+}
+
+.nca-cookiesaccept-line.style-17 {
+    background-color: rgb(83, 129, 255);
+}
+
+.nca-cookiesaccept-line.style-18 {
+    background-color: rgb(6, 37, 122);
+}
+
+ 
+.nca-cookiesaccept-line.style-19 {
+    background-color: rgb(255, 255, 255);
+}
+
+.nca-cookiesaccept-line.style-20 {
+    background-color: rgb(0, 0, 0);
+}
+ 
+
+@media screen and (min-width:767.01px) {
+	.nca-hidden-pc {display: none !important;}
+}
+@media screen and (max-width:767px) {
+	.nca-hidden-mobile {display: none !important;}
+}

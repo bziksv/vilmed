@@ -1,0 +1,3 @@
+<?php
+
+$MESS['YANDEX_MARKET_UI_TRADING_MENU_COMPILER_OTHER'] = 'Другие магазины';

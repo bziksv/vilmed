@@ -215,7 +215,7 @@ $(function() {
 		let sectionItem = $(".item-hide-image").closest('.catalog-item-info');
 		sectionItem.find('a[itemprop="url"]').attr('href','#');
 	}
-
+	
 });
 
 function flyingCart(from, to, JCCatalogItem) {

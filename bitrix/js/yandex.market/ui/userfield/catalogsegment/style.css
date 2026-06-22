@@ -1,0 +1,35 @@
+.ym-catalog-segment {
+	max-width: 1200px;
+	padding: 10px 15px 15px;
+	border: 1px solid #cacfd8;
+	border-radius: 5px;
+	box-sizing: border-box;
+
+	position: relative;
+	margin: 0 0 30px;
+
+	background: #fefefe;
+}
+
+.ym-catalog-segment__legend {
+	padding: 5px 10px;
+	border-radius: 5px;
+	background: #fefefe;
+	box-shadow: 0 -1px 1px #cacfd8;
+}
+
+.ym-catalog-segment__enable {
+	position: absolute;
+	right: 10px;
+	top: 5px;
+}
+
+.ym-catalog-segment.is--disabled {
+	max-height: 150px;
+	overflow: hidden;
+}
+
+.ym-catalog-segment.is--disabled .ym-catalog-segment__body {
+	pointer-events: none;
+	opacity: .3;
+}

@@ -1,25 +1,20 @@
-<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+<?
+require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $CurPage = $APPLICATION->GetCurDir();
 if($CurPage=="/product/"){
 	LocalRedirect("/catalog/");
 }
 $APPLICATION->SetPageProperty("title", "Медицинское оборудование и товары заказать купить оптом и в розницу | Цены в каталоге | Доставка по всей России в любые населенные пункты | Интернет магазин VilMed");
 $APPLICATION->SetPageProperty("description", "Купить медицинское оборудование и медтехнику,скидки, выгодные цены, оптом, в розницу, прямая поставка.☎ +7 (499) 113-02-79");
-$APPLICATION->SetTitle("Каталог медицинского оборудования ");?>
-
-<?$APPLICATION->IncludeComponent(
+$APPLICATION->SetTitle("Каталог медицинского оборудования ");?><?$APPLICATION->IncludeComponent(
 	"bitrix:catalog",
 	".default",
-	array(
+	Array(
 		"1CB_FILE_FIELD_MAX_COUNT" => "5",
 		"1CB_FILE_FIELD_MULTIPLE" => "Y",
 		"1CB_FILE_FIELD_NAME" => "Реквизиты",
 		"1CB_FILE_FIELD_TYPE" => "doc, docx, txt, rtf",
-		"1CB_REQUIRED_FIELDS" => array(
-			0 => "NAME",
-			1 => "PHONE",
-			2 => "EMAIL",
-		),
+		"1CB_REQUIRED_FIELDS" => array(0=>"NAME",1=>"PHONE",2=>"EMAIL",),
 		"1CB_USE_FILE_FIELD" => "Y",
 		"ACTION_VARIABLE" => "",
 		"ADD_ELEMENT_CHAIN" => "N",
@@ -41,29 +36,13 @@ $APPLICATION->SetTitle("Каталог медицинского оборудов
 		"CACHE_TYPE" => "Y",
 		"COMPARE_ELEMENT_SORT_FIELD" => "",
 		"COMPARE_ELEMENT_SORT_ORDER" => "asc",
-		"COMPARE_FIELD_CODE" => array(
-			0 => "NAME",
-			1 => "PREVIEW_PICTURE",
-			2 => "DETAIL_PICTURE",
-			3 => "",
-		),
+		"COMPARE_FIELD_CODE" => array(0=>"NAME",1=>"PREVIEW_PICTURE",2=>"DETAIL_PICTURE",3=>"",),
 		"COMPARE_NAME" => "CATALOG_COMPARE_LIST",
-		"COMPARE_OFFERS_FIELD_CODE" => array(
-			0 => "",
-			1 => "",
-		),
-		"COMPARE_OFFERS_PROPERTY_CODE" => array(
-			0 => "PROP2",
-			1 => "",
-		),
-		"COMPARE_PROPERTY_CODE" => array(
-			0 => "NEWPRODUCT",
-			1 => "DISCOUNT",
-			2 => "CML2_ATTRIBUTES",
-			3 => "SALELEADER",
-			4 => "",
-		),
+		"COMPARE_OFFERS_FIELD_CODE" => array(0=>"",1=>"",),
+		"COMPARE_OFFERS_PROPERTY_CODE" => array(0=>"PROP2",1=>"",),
+		"COMPARE_PROPERTY_CODE" => array(0=>"NEWPRODUCT",1=>"DISCOUNT",2=>"CML2_ATTRIBUTES",3=>"SALELEADER",4=>"",),
 		"COMPATIBLE_MODE" => "Y",
+		"COMPONENT_TEMPLATE" => ".default",
 		"COMPOSITE_FRAME_MODE" => "A",
 		"COMPOSITE_FRAME_TYPE" => "AUTO",
 		"CONVERT_CURRENCY" => "N",
@@ -71,30 +50,13 @@ $APPLICATION->SetTitle("Каталог медицинского оборудов
 		"DETAIL_BACKGROUND_IMAGE" => "-",
 		"DETAIL_BROWSER_TITLE" => "-",
 		"DETAIL_CHECK_SECTION_ID_VARIABLE" => "N",
-		"DETAIL_MAIN_BLOCK_OFFERS_PROPERTY_CODE" => array(
-		),
-		"DETAIL_MAIN_BLOCK_PROPERTY_CODE" => array(
-		),
+		"DETAIL_MAIN_BLOCK_OFFERS_PROPERTY_CODE" => array(),
+		"DETAIL_MAIN_BLOCK_PROPERTY_CODE" => array(),
 		"DETAIL_META_DESCRIPTION" => "-",
 		"DETAIL_META_KEYWORDS" => "-",
-		"DETAIL_OFFERS_FIELD_CODE" => array(
-			0 => "",
-			1 => "",
-		),
-		"DETAIL_OFFERS_PROPERTY_CODE" => array(
-			0 => "COLOR",
-			1 => "PROP2",
-			2 => "PROP3",
-		),
-		"DETAIL_PROPERTY_CODE" => array(
-			0 => "ARTNUMBER",
-			1 => "MANUFACTURER",
-			2 => "COUNTRY",
-			3 => "CHASTOTA_H_H",
-			4 => "MAX_KR_MOM",
-			5 => "NAPRAJ_AKKUM",
-			6 => "VES_S_AKKUM",
-		),
+		"DETAIL_OFFERS_FIELD_CODE" => array(0=>"",1=>"",),
+		"DETAIL_OFFERS_PROPERTY_CODE" => array(0=>"COLOR",1=>"PROP2",2=>"PROP3",),
+		"DETAIL_PROPERTY_CODE" => array(0=>"ARTNUMBER",1=>"MANUFACTURER",2=>"COUNTRY",3=>"CHASTOTA_H_H",4=>"MAX_KR_MOM",5=>"NAPRAJ_AKKUM",6=>"VES_S_AKKUM",),
 		"DETAIL_SET_CANONICAL_URL" => "N",
 		"DETAIL_SET_VIEWED_IN_COMPONENT" => "N",
 		"DETAIL_STRICT_SECTION_CHECK" => "N",
@@ -113,25 +75,13 @@ $APPLICATION->SetTitle("Каталог медицинского оборудов
 		"ELEMENT_SORT_FIELD2" => "",
 		"ELEMENT_SORT_ORDER" => "asc",
 		"ELEMENT_SORT_ORDER2" => "",
-		"FIELDS" => array(
-			0 => "TITLE",
-			1 => "ADDRESS",
-			2 => "DESCRIPTION",
-			3 => "PHONE",
-			4 => "SCHEDULE",
-			5 => "EMAIL",
-			6 => "IMAGE_ID",
-			7 => "COORDINATES",
-			8 => "",
-		),
+		"FIELDS" => array(0=>"TITLE",1=>"ADDRESS",2=>"DESCRIPTION",3=>"PHONE",4=>"SCHEDULE",5=>"EMAIL",6=>"IMAGE_ID",7=>"COORDINATES",8=>"",),
 		"FILE_404" => "",
 		"FILTER_FIELD_CODE" => "",
 		"FILTER_NAME" => "arrFilter",
 		"FILTER_OFFERS_FIELD_CODE" => "",
 		"FILTER_OFFERS_PROPERTY_CODE" => "",
-		"FILTER_PRICE_CODE" => array(
-			0 => "BASE",
-		),
+		"FILTER_PRICE_CODE" => array(0=>"BASE",),
 		"FILTER_PROPERTY_CODE" => "",
 		"GIFTS_DETAIL_BLOCK_TITLE" => "Выберите один из подарков",
 		"GIFTS_DETAIL_HIDE_BLOCK_TITLE" => "N",
@@ -163,23 +113,11 @@ $APPLICATION->SetTitle("Каталог медицинского оборудов
 		"LIST_BROWSER_TITLE" => "-",
 		"LIST_META_DESCRIPTION" => "-",
 		"LIST_META_KEYWORDS" => "-",
-		"LIST_OFFERS_FIELD_CODE" => array(
-			0 => "",
-			1 => "",
-		),
+		"LIST_OFFERS_FIELD_CODE" => array(0=>"",1=>"",),
 		"LIST_OFFERS_LIMIT" => "",
-		"LIST_OFFERS_PROPERTY_CODE" => array(
-			0 => "COLOR",
-			1 => "PROP2",
-			2 => "PROP3",
-		),
+		"LIST_OFFERS_PROPERTY_CODE" => array(0=>"COLOR",1=>"PROP2",2=>"PROP3",),
 		"LIST_PRODUCT_ROW_VARIANTS" => "[{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false}]",
-		"LIST_PROPERTY_CODE" => array(
-			0 => "CHASTOTA_H_H",
-			1 => "MAX_KR_MOM",
-			2 => "NAPRAJ_AKKUM",
-			3 => "VES_S_AKKUM",
-		),
+		"LIST_PROPERTY_CODE" => array(0=>"CHASTOTA_H_H",1=>"MAX_KR_MOM",2=>"NAPRAJ_AKKUM",3=>"VES_S_AKKUM",),
 		"LOAD_ON_SCROLL" => "N",
 		"MAIN_TITLE" => "Наличие на складах",
 		"MESS_BTN_LAZY_LOAD" => "Показать ещё",
@@ -187,11 +125,7 @@ $APPLICATION->SetTitle("Каталог медицинского оборудов
 		"MESS_RELATIVE_QUANTITY_MANY" => "много",
 		"MESS_SHOW_MAX_QUANTITY" => "В наличии",
 		"NUMBER_ACCESSORIES" => "8",
-		"OFFERS_CART_PROPERTIES" => array(
-			0 => "COLOR",
-			1 => "PROP2",
-			2 => "PROP3",
-		),
+		"OFFERS_CART_PROPERTIES" => array(0=>"COLOR",1=>"PROP2",2=>"PROP3",),
 		"OFFERS_SORT_FIELD" => "PRICE",
 		"OFFERS_SORT_FIELD2" => "id",
 		"OFFERS_SORT_ORDER" => "desc",
@@ -206,20 +140,14 @@ $APPLICATION->SetTitle("Каталог медицинского оборудов
 		"PAGE_ELEMENT_COUNT" => "80",
 		"PARTIAL_PRODUCT_PROPERTIES" => "",
 		"PATH_TO_SHIPPING" => "/delivery/",
-		"PRICE_CODE" => array(
-			0 => "BASE",
-		),
+		"PRICE_CODE" => array(0=>"BASE",),
 		"PRICE_VAT_INCLUDE" => "Y",
 		"PRICE_VAT_SHOW_VALUE" => "N",
 		"PRODUCT_ID_VARIABLE" => "",
 		"PRODUCT_PROPERTIES" => "",
 		"PRODUCT_PROPS_VARIABLE" => "",
 		"PRODUCT_QUANTITY_VARIABLE" => "",
-		"PROPERTY_CODE_MOD" => array(
-			0 => "",
-			1 => "GUARANTEE",
-			2 => "",
-		),
+		"PROPERTY_CODE_MOD" => array(0=>"",1=>"GUARANTEE",2=>"",),
 		"RELATED_PRODUCTS_SHOW" => "Y",
 		"RELATIVE_QUANTITY_FACTOR" => "5",
 		"SEARCH_CHECK_DATES" => "Y",
@@ -233,6 +161,7 @@ $APPLICATION->SetTitle("Каталог медицинского оборудов
 		"SECTION_TOP_DEPTH" => "",
 		"SEF_FOLDER" => "/product/",
 		"SEF_MODE" => "Y",
+		"SEF_URL_TEMPLATES" => array("sections"=>"","section"=>"","element"=>"#ELEMENT_CODE#/","compare"=>"compare/","smart_filter"=>"#SECTION_CODE#/filter/#SMART_FILTER_PATH#/apply/",),
 		"SET_LAST_MODIFIED" => "N",
 		"SET_STATUS_404" => "Y",
 		"SET_TITLE" => "Y",
@@ -244,21 +173,13 @@ $APPLICATION->SetTitle("Каталог медицинского оборудов
 		"SHOW_MAX_QUANTITY" => "N",
 		"SHOW_PRICE_COUNT" => "1",
 		"SHOW_TOP_ELEMENTS" => "N",
-		"STORES" => array(
-			0 => "",
-			1 => "1",
-			2 => "2",
-			3 => "",
-		),
+		"STORES" => array(0=>"",1=>"1",2=>"2",3=>"",),
 		"STORE_PATH" => "/store/#store_id#",
 		"USER_CONSENT" => "N",
 		"USER_CONSENT_ID" => "0",
 		"USER_CONSENT_IS_CHECKED" => "Y",
 		"USER_CONSENT_IS_LOADED" => "N",
-		"USER_FIELDS" => array(
-			0 => "",
-			1 => "",
-		),
+		"USER_FIELDS" => array(0=>"",1=>"",),
 		"USE_ALSO_BUY" => "N",
 		"USE_BIG_DATA" => "Y",
 		"USE_COMPARE" => "N",
@@ -275,15 +196,6 @@ $APPLICATION->SetTitle("Каталог медицинского оборудов
 		"USE_PRICE_COUNT" => "Y",
 		"USE_PRODUCT_QUANTITY" => "",
 		"USE_REVIEW" => "N",
-		"USE_STORE" => "N",
-		"COMPONENT_TEMPLATE" => ".default",
-		"SEF_URL_TEMPLATES" => array(
-			"sections" => "",
-			"section" => "",
-			"element" => "#ELEMENT_CODE#/",
-			"compare" => "compare/",
-			"smart_filter" => "#SECTION_CODE#/filter/#SMART_FILTER_PATH#/apply/",
-		)
-	),
-	false
+		"USE_STORE" => "N"
+	)
 );?><?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>

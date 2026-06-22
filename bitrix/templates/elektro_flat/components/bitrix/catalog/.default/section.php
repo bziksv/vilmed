@@ -249,7 +249,7 @@ if(!empty($arCurSection)) {
 
     <? if($arCurSection["TAGS_LIST"] && !$arCurSection["TAGS_ACTIVE"]): ?>
     <? if($arCurSection["TAGS_TITLE"]): ?>
-    <div class="h1"><?=$arCurSection["TAGS_TITLE"]?></div>
+    <div class="h3"><?=$arCurSection["TAGS_TITLE"]?></div>
     <? endif; ?>
     <div class="subcategories">
         <ul class="tag-slider sub-links-2">
@@ -367,7 +367,7 @@ if($obCache->InitCache($arParams["CACHE_TIME"], $cache_id, $cache_dir)) {
 if(!$arCurSection["VIEW_COLLECTION"]) {
 	$arAvailableSort = array(
 		"default" => array($arParams["ELEMENT_SORT_FIELD"], $arParams["ELEMENT_SORT_ORDER"]),
-		"price" => array("PROPERTY_MINIMUM_PRICE", "asc"),
+		"price" => array("SCALED_PRICE_1", "asc"),
 		"rating" => array("PROPERTY_rating", "desc"),
 	);
 } else {
@@ -393,7 +393,7 @@ if($_REQUEST["sort"]) {
 	$APPLICATION->set_cookie("sort", $sort, false, "/", SITE_SERVER_NAME);
 }
 if($_REQUEST["sort"] == "price") {
-	$sort = "PROPERTY_MINIMUM_PRICE";
+	$sort = "SCALED_PRICE_1";
 	$APPLICATION->set_cookie("sort", $sort, false, "/", SITE_SERVER_NAME);
 }
 if($_REQUEST["sort"] == "rating") {
@@ -413,11 +413,11 @@ if($arParams["AJAX_MODE"] == "Y") {
 }
 
 if($_REQUEST["order"]) {
-	$sort_order = "asc";
+	$sort_order = "asc,nulls";
 	$APPLICATION->set_cookie("order", $sort_order, false, "/", SITE_SERVER_NAME);
 }
 if($_REQUEST["order"] == "desc") {
-	$sort_order = "desc";
+	$sort_order = "desc,nulls";
 	$APPLICATION->set_cookie("order", $sort_order, false, "/", SITE_SERVER_NAME);
 }?>
 
@@ -426,8 +426,8 @@ if($_REQUEST["order"] == "desc") {
 	<?foreach($arAvailableSort as $key => $val) {
 		$className = $sort == $val[0] ? "selected" : "";
 		if($className)
-			$className .= $sort_order == "asc" ? " asc" : " desc";
-		$newSort = $sort == $val[0] ? $sort_order == "desc" ? "asc" : "desc" : $arAvailableSort[$key][1];?>
+			$className .= $_REQUEST["order"] == "asc" ? " asc" : " desc";
+		$newSort = $sort == $val[0] ? $_REQUEST["order"] == "desc" ? "asc" : "desc" : $arAvailableSort[$key][1];?>
 		<a href="<?=$APPLICATION->GetCurPageParam("sort=".$key."&amp;order=".$newSort, array("sort", "order"))?>" class="<?=$className?>" rel="nofollow"><?=Loc::getMessage("SECT_SORT_".$key)?></a>
 	<?}?>
 </div>
@@ -585,6 +585,7 @@ if($arCurSection["DISABLE_ADDITIONAL_PRODUCT"] && $current_element_cnt < $Sectio
 }
 
 $arSectionParams = array(
+	"SECTION_USER_FIELDS" => ["UF_*"],
     "DELIMITER_ADDITIONAL_PRODUCT" => $firstAdditionalProduct,
     "BY_LINK" => $arParams["BY_LINK"],
     "IBLOCK_TYPE" => $arParams["IBLOCK_TYPE"],
@@ -877,6 +878,7 @@ if(ModuleManager::isModuleInstalled("sale") && (!isset($arParams["USE_BIG_DATA"]
 	$arRecomPrFilter = array(
 		"SECTION_GLOBAL_ACTIVE" => "Y"
 	);?>
+	
 	<?$APPLICATION->IncludeComponent("bitrix:catalog.section", "bigdata",
 		array(
 			"IBLOCK_TYPE" => $arParams["IBLOCK_TYPE"],

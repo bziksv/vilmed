@@ -266,7 +266,7 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 
 
 //CATALOG_DETAIL//?>
-<div id="<?=$arItemIDs['ID']?>" class="catalog-detail-element" itemscope itemtype="http://schema.org/Product">
+<div id="<?=$arItemIDs['ID']?>" class="catalog-detail-element" itemscope itemtype="https://schema.org/Product">
 	<meta content="<?=$arResult['NAME']?>" itemprop="name" />
 	<div class="catalog-detail">
 		<div class="column first<?=($arResult["COLLECTION"]["THIS"]) ? " colletion" : ""?>">
@@ -430,7 +430,7 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 							<?}?>
 						</div>
 						<?//DETAIL_RATING//?>
-						<div class="rating" itemprop="aggregateRating" itemscope itemtype="http://schema.org/AggregateRating">
+						<div class="rating" itemprop="aggregateRating" itemscope itemtype="https://schema.org/AggregateRating">
 							<?$frame = $this->createFrame("vote")->begin("");?>
 								<?$APPLICATION->IncludeComponent("bitrix:iblock.vote", "ajax",
 									Array(
@@ -578,7 +578,7 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 				}?>
 				<div class="column three<?=($arResult["COLLECTION"]["THIS"]) ? " colletion" : ""?>">
 
-					<div class="price_buy_detail" itemprop="offers" itemscope itemtype="http://schema.org/Offer">
+					<div class="price_buy_detail" itemprop="offers" itemscope itemtype="https://schema.org/Offer">
 						<?//OFFERS_DETAIL_PRICE//?>
 						<div class="catalog-detail-price" id="<?=$arItemIDs['PRICE'];?>">
 							<?//OFFERS_PRICE//
@@ -1525,7 +1525,7 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 		<div class="column-collection">
 			<div class="column first">
 				<?//DETAIL_RATING//?>
-				<div class="rating" itemprop="aggregateRating" itemscope itemtype="http://schema.org/AggregateRating">
+				<div class="rating" itemprop="aggregateRating" itemscope itemtype="https://schema.org/AggregateRating">
 					<?$frame = $this->createFrame("vote")->begin("");?>
 						<?$APPLICATION->IncludeComponent("bitrix:iblock.vote", "ajax",
 							Array(
@@ -2116,7 +2116,7 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 				<?$i++;
 			}?>
 			<li class="tabs__tab<?=(!$arResult["COLLECTION"]["THIS"]) ? " current" : ""?>">
-				<a href="<?=($arParams["AJAX_OPTION_HISTORY"] !== "Y") ? "#tab".$i : "javascript:void(0)"?>"><span><?=GetMessage("CATALOG_ELEMENT_FULL_DESCRIPTION")?></span></a>
+				<a href="<?=($arParams["AJAX_OPTION_HISTORY"] !== "Y") ? "#tab".$i : "javascript:void(0)"?>"><span><?=GetMessage("CATALOG_ELEMENT_FULL_DESCRIPTION")?> </span></a>
 			</li>
 			<?$i++;
 			$strMainOffersProps = false;
@@ -2134,9 +2134,17 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 				</li>
 				<?$i++;
 			}
+			?>
+			<?
 			if(!empty($arResult["PROPERTIES"]["FREE_TAB"]["VALUE"])) {?>
 				<li class="tabs__tab">
 					<a href="<?=($arParams["AJAX_OPTION_HISTORY"] !== "Y") ? "#tab".$i : "javascript:void(0)"?>"><span><?=$arResult["PROPERTIES"]["FREE_TAB"]["NAME"]?></span></a>
+				</li>
+				<?$i++;
+			}
+			if(!empty($arResult["PROPERTIES"]["CML2_COMPLECT"]["VALUE"])) {?>
+				<li class="tabs__tab">
+					<a href="<?=($arParams["AJAX_OPTION_HISTORY"] !== "Y") ? "#tab".$i : "javascript:void(0)"?>"><span><?=$arResult["PROPERTIES"]["CML2_COMPLECT"]["NAME"]?></span></a>
 				</li>
 				<?$i++;
 			}
@@ -2338,6 +2346,13 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 			<div class="tabs__box">
 				<div class="tabs__box-content">
 					<?=$arResult["PROPERTIES"]["FREE_TAB"]["~VALUE"]["TEXT"];?>
+				</div>
+			</div>
+		<?}
+		if(!empty($arResult["PROPERTIES"]["CML2_COMPLECT"]["VALUE"])) {?>
+			<div class="tabs__box">
+				<div class="tabs__box-content">
+					<?=$arResult["PROPERTIES"]["CML2_COMPLECT"]["~VALUE"]["TEXT"];?>
 				</div>
 			</div>
 		<?}

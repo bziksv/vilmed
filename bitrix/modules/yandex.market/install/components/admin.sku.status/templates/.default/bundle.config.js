@@ -1,0 +1,11 @@
+// noinspection JSUnresolvedVariable
+module.exports = {
+	input: './src/index.js',
+	output: {
+		js: './bundle.js',
+	},
+	namespace: 'BX.YandexMarket.Admin',
+	adjustConfigPhp: false,
+	browserslist: false,
+	minification: true,
+};

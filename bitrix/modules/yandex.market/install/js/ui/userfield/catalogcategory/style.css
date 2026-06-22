@@ -1,0 +1,143 @@
+.ym-section-category-margin {
+	margin-top: 30px;
+}
+
+.ym-section-category {
+	max-width: 1000px;
+	border-radius: 5px;
+	background: #fefefe;
+	border: 1px solid #cacfd8 !important;
+}
+
+.ym-section-category__header {
+	display: flex;
+	padding: 10px 0;
+	background: #e0e8ea;
+	color: #4b6267;
+
+	text-align: left;
+	font-weight: bold;
+	border-bottom: 1px solid #ccc;
+}
+
+.ym-section-category__row {
+	display: flex;
+	border-top: 1px solid #ccc;
+	padding: 16px 0;
+}
+
+.ym-section-category__row[hidden] {
+	display: none;
+}
+
+.ym-section-category__row:first-child {
+	border-top: 0;
+	padding-top: 12px;
+}
+
+.ym-section-category__cell {
+	flex: auto 1 1;
+    padding: 0 15px;
+}
+
+.ym-section-category__cell.for--local {
+	display: flex;
+	width: 40%
+}
+
+.ym-section-category__cell.for--external {
+	width: 60%;
+	flex-shrink: 0;
+}
+
+.ym-section-category__heading:first-child {
+	border-top-left-radius: 5px;
+}
+
+.ym-section-category__heading:last-child {
+	border-top-right-radius: 5px;
+}
+
+.ym-section-category__local {
+	vertical-align: top;
+    padding: 20px 15px 16px;
+	line-height: 18px;
+	white-space: nowrap;
+}
+
+.ym-section-category__indent {
+	display: inline-block;
+	flex: auto 0 0;
+	width: 4px;
+
+	margin: 0 4px 0 0;
+}
+
+.ym-section-category__indent:before {
+	content: '';
+	display: inline-block;
+	vertical-align: middle;
+	width: 100%;
+	height: 4px;
+	border-radius: 50%;
+
+	margin-top: -1px;
+
+	background: #c2cbce;
+}
+
+.ym-section-category__cell.depth--2 {
+    padding-left: 23px;
+}
+
+.ym-section-category__cell.depth--3 {
+    padding-left: 39px;
+}
+
+.ym-section-category__cell.depth--4 {
+    padding-left: 63px;
+}
+
+.ym-section-category__title {
+	white-space: normal;
+	flex: auto 1 1;
+}
+
+.ym-section-category__parent {
+	display: inline-flex;
+	flex: auto 1 1;
+	flex-direction: column;
+	height: 100%;
+
+	white-space: normal;
+}
+
+.ym-section-category__expand {
+	overflow: visible;
+    padding: 0;
+    border: 0;
+    margin: auto 0 0;
+    background: transparent;
+    cursor: pointer;
+	color: #1c53a2;
+	text-align: left;
+}
+
+.ym-section-category__expand-text {
+	font-style: italic;
+	border-bottom: 1px dashed;
+}
+
+.ym-section-category__expand:hover > .ym-section-category__expand-text,
+.ym-section-category__expand:focus > .ym-section-category__expand-text {
+	border-bottom-color: transparent;
+}
+
+.ym-section-category__expand:before {
+	content: '\2193 ';
+	margin-right: 4px;
+}
+
+.ym-section-category__expand.is--active:before {
+	content: '\2191 ';
+}

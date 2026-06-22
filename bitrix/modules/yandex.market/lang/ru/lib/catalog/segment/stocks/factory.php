@@ -1,0 +1,3 @@
+<?php
+
+$MESS['YANDEX_MARKET_CATALOG_SEGMENT_STOCKS_FACTORY_GROUP'] = 'Группа &laquo;#NAME#&raquo;';

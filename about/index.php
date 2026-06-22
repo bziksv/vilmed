@@ -1,6 +1,6 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetPageProperty("description", "О нашей компании, с кем мы работали, наши направления");
-$APPLICATION->SetPageProperty("title", "О Компании Vilmed");
+$APPLICATION->SetPageProperty("title", "О Компании Вилмед");
 $APPLICATION->SetTitle("О Компании");?><p>
 	 Наша компания является одним из крупнейших поставщиков медицинской техники, инструментов и расходных материалов в России. Нашими клиентами являются более пятисот крупнейших мед. учреждений и частных мед. кабинетов. Мы работаем напрямую с наиболее известными производителями, которые зарекомендовали себя с наилучшей стороны. Мы получаем доставки из Америки, Германии, Англии, Японии и других стран. Таким образом Вы можете приобрести интересующий Вас товар по ценам производителя.
 </p>
@@ -18,10 +18,10 @@ $APPLICATION->SetTitle("О Компании");?><p>
 </p>
 <div style="display: flex; justify-content: space-around; flex-wrap: wrap;">
 	<div style="width: 190px; margin-bottom: 10px;">
- <img alt="товар-1.png" src="/upload/medialibrary/0dd/0dd22276d6431e1c056c9c4ece7a0712.jpg" style=" padding: 7px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; width: 172px; height: 172px;">
+ <img width="172px" alt="плокаты.png" src="/upload/medialibrary/80d/zpeau2nqbnzeghcbzplreyv1o4rbg8tq.png" height="172px" style=" padding: 7px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; width: 172px; height: 172px;" title="plakaty.png">
 	</div>
 	<div style="width: 190px; margin-bottom: 10px;">
- <img alt="товар-1.png" src="/upload/medialibrary/0dd/0dd22276d6431e1c056c9c4ece7a0712.jpg" style=" padding: 7px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; width:172px; height: 172px;">
+ <img width="700" alt="plakaty2.png" src="/upload/medialibrary/35d/yx8kkua07r0puilvl7qk22ncvujv3a6d.png" height="700" style=" padding: 7px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; width:172px; height: 172px;" title="plakaty2.png">
 	</div>
 	<div style="width: 190px; margin-bottom: 10px;">
  <img alt="товар-2.png" src="/upload/medialibrary/717/71701755bf88f358ea487cf8dfcbca28.jpg" style=" padding: 7px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; width: 172px; height: 172px;">
@@ -30,7 +30,6 @@ $APPLICATION->SetTitle("О Компании");?><p>
  <img alt="товар-3.png" src="/upload/medialibrary/7f0/7f06d37872229e312f7cb79364fa716e.jpg" style=" padding: 7px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; width: 172px; height: 172px; ">
 	</div>
 </div>
- 
 <p style="float: left; ">
 	 Вся поставляемая продукция имеет соответствующие РУ, проходит проверки качества и сопровождается соответствующим пакетом разрешительной документации. Дополнительно, каждый экземпляр продукции проходит более 160 поверок качества, работоспособности и пр. Мы заботимся о наших клиентов, и если будет обнаружено хотя бы мельчайшее нарушение, то товар не будет отправлен клиенту, а отправиться обратно.
 </p>
@@ -67,4 +66,4 @@ $APPLICATION->SetTitle("О Компании");?><p>
 		</p>
 	</div>
 </div>
-  <br><?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>
+ <br><?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>

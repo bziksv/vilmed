@@ -1,0 +1,3 @@
+<?php
+
+$MESS['YANDEX_MARKET_API_CAMPAIGNS_FACADE_UNKNOWN_CAMPAIGN_FOR_TOKEN'] = 'Магазин #CAMPAIGN_ID# не найден в аккаунте';

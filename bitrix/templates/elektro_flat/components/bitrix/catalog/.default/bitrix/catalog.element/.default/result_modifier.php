@@ -1499,6 +1499,18 @@ if($arResult['SECTION']['ID']){
 	}
 }
 
+//CML2_COMPLECT
+
+if(is_array($arResult["PROPERTIES"]["CML2_COMPLECT_2"]["VALUE"]))
+{
+	if(isset($arResult["PROPERTIES"]["CML2_COMPLECT_2"]["VALUE"]["TEXT"]) && strlen($arResult["PROPERTIES"]["CML2_COMPLECT_2"]["VALUE"]["TEXT"]) > 0){
+		$arResult["PROPERTIES"]["CML2_COMPLECT"]["~VALUE"] = $arResult["PROPERTIES"]["CML2_COMPLECT_2"]["~VALUE"];
+		$arResult["PROPERTIES"]["CML2_COMPLECT"]["VALUE"] = $arResult["PROPERTIES"]["CML2_COMPLECT_2"]["VALUE"];
+	}
+}
+
+$arResult["PROPERTY_ROBOTS_NOINDEX"] = $arResult["PROPERTIES"]["ROBOTS_NOINDEX"]["VALUE"];
+
 //CACHE_KEYS//
 $this->__component->SetResultCacheKeys(
 	array(
@@ -1508,8 +1520,10 @@ $this->__component->SetResultCacheKeys(
 		"NAME",
 		"PREVIEW_TEXT",
 		"DETAIL_PICTURE",
+		"DETAIL_TEXT",
 		"MORE_PHOTO",
 		"PROPERTY_ACCESSORIES_ID",
+		"PROPERTY_ROBOTS_NOINDEX",
 		"BACKGROUND_YOUTUBE",
 		"MIN_PRICE",
 		"CAN_BUY",

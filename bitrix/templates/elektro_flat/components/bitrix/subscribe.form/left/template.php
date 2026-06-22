@@ -10,10 +10,8 @@ $this->setFrameMode(true);?>
 	<button type="submit" name="submit" class="btn_buy ppp" value="<?=GetMessage('SUBSCRIBE_LEFT_SUBMIT')?>"><?=GetMessage('SUBSCRIBE_LEFT_SUBMIT')?></button>
 </form>
 <div class="label">
-				При отправке данной формы Вы подтверждаете свою согласие на 
-<a href="/upload/compliance.pdf" target="_blank">обработку персональных данных</a> 
-и согласие с
-<a href="/upload/politics.pdf" target="_blank">политикой конфиденциальности</a>.
+				При отправке данной формы Вы подтверждаете свое согласие с <a href="/upload/politics-vilmed.png" target="_blank">
+политикой обработки персональных данных.</a>
 			</div>
 
 

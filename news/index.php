@@ -1,9 +1,12 @@
-<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+<?php 
+require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetPageProperty("description", "Новости про медицинское оборудование и медицинскую сферу, понятно и доступно");
-$APPLICATION->SetPageProperty("title", "Новости по медицинскому оборудованию от компании Vilmed");
-$APPLICATION->SetTitle("Новости");?>
+$APPLICATION->SetPageProperty("title", "Новости по медицинскому оборудованию от компании Вилмед");
+$APPLICATION->SetTitle("Новости");
+?>
 
-<?$APPLICATION->IncludeComponent("bitrix:news", ".default",
+<?php 
+$APPLICATION->IncludeComponent("bitrix:news", ".default",
 	array(
 		"IBLOCK_TYPE" => "content",
 		"IBLOCK_ID" => "19",

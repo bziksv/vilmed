@@ -1,0 +1,50 @@
+<?php
+namespace Yandex\Market\Ui\Iblock\CategoryForm;
+
+use Yandex\Market\Reference\Concerns;
+use Yandex\Market\Ui\Iblock\CategoryProvider;
+use Yandex\Market\Ui\Iblock\CategoryValue;
+
+class SectionGrid implements Form
+{
+	use Concerns\HasMessage;
+
+	private $userField;
+	private $sectionId;
+
+	public function __construct(array $field, $sectionId)
+	{
+		$this->userField = $field;
+		$this->sectionId = $sectionId;
+	}
+
+	public function type()
+	{
+		return Factory::SECTION_GRID;
+	}
+
+	public function payload()
+	{
+		return [
+			'sectionId' => $this->sectionId,
+		];
+	}
+
+	public function fields()
+	{
+		return [];
+	}
+
+	public function theme()
+	{
+		return CategoryProvider::THEME_GRID;
+	}
+
+	public function parentValue(array $fields = null)
+	{
+		$iblockId = CategoryValue\FieldRepository::iblockId($this->userField['ENTITY_ID']);
+
+		return CategoryValue\MemoPool::get(new CategoryValue\SectionValue($iblockId, $this->sectionId, $this->userField['FIELD_NAME']))
+            ->parent();
+	}
+}

@@ -1,6 +1,6 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
-$APPLICATION->SetPageProperty("description", "Контакты компании Vilmed: номера, адреса, e-mail ящики");
-$APPLICATION->SetPageProperty("title", "Контакты компании Vilmed");
+$APPLICATION->SetPageProperty("description", "Контакты компании Вилмед: номера, адреса, ящики электронной почты");
+$APPLICATION->SetPageProperty("title", "Контакты компании Вилмед");
 $APPLICATION->SetTitle("Контакты");?><p>
 	 Мы осуществляем доставку по всей России, в крупных городах возможна адресная доставка "до двери". Подробнее об этом в <a href="/delivery/">Доставка</a>.&nbsp;
 </p>
@@ -8,12 +8,13 @@ $APPLICATION->SetTitle("Контакты");?><p>
 </p>
  <br>
 <h2 style="text-align: center;">
-МИНИМАЛЬНАЯ СУММА ОТГРУЗКИ - 5 000 руб. на оборудование, 10 000 руб. - на инструментарий и расходные материалы. </h2>
+МИНИМАЛЬНАЯ СУММА ОТГРУЗКИ - 5 000 ₽ на оборудование, <br>
+ если заказ содержит инструментарий и/или расходные материалы, то минимальная сумма от 10 000 ₽</h2>
 <p>
 </p>
 <div style="align: center; border: 3px solid #00b5cb; padding: 6%; border-radius: 10px;">
 	<p>
-		 E-mail для заказов и справки: <a href="mailto:info@vilmed.ru" class="roi_visit">info@vilmed.ru</a>
+		 Электронная почта (E-mail) для заказов и справки: <a href="mailto:info@vilmed.ru" class="roi_visit">info@vilmed.ru</a>
 	</p>
 	<p>
 		 Телефон: +7 (499) 113-02-70

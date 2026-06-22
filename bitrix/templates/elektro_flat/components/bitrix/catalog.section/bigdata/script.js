@@ -43,15 +43,17 @@
 					shownIds: this.bigData.shownIds
 				});
 			}, this);
-
-			BX.ajax({
+			
+			onReady(null);
+			
+			/* BX.ajax({
 				method: 'GET',
 				dataType: 'json',
 				url: url,
 				timeout: 3,
 				onsuccess: onReady,
 				onfailure: onReady
-			});
+			}); */
 		},
 		
 		sendRequest: function(data) {

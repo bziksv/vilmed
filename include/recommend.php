@@ -23,7 +23,7 @@ $arRecomPrFilter = array(
 		"SET_LAST_MODIFIED" => "N",
 		"INCLUDE_SUBSECTIONS" => "Y",
 		"SHOW_ALL_WO_SECTION" => "Y",
-		"CUSTOM_FILTER" => "{\"CLASS_ID\":\"CondGroup\",\"DATA\":{\"All\":\"AND\",\"True\":\"True\"},\"CHILDREN\":[{\"CLASS_ID\":\"CondIBProp:15:54\",\"DATA\":{\"logic\":\"Not\",\"value\":11}}]}",
+		"CUSTOM_FILTER" => "{\"CLASS_ID\":\"CondGroup\",\"DATA\":{\"All\":\"AND\",\"True\":\"True\"},\"CHILDREN\":[]}",
 		"BASKET_URL" => "/personal/cart/",
 		"ACTION_VARIABLE" => "action",
 		"PRODUCT_ID_VARIABLE" => "id",
@@ -41,7 +41,7 @@ $arRecomPrFilter = array(
 		"SHOW_404" => "N",
 		"FILE_404" => "",
 		"DISPLAY_COMPARE" => "Y",
-		"PAGE_ELEMENT_COUNT" => "0",
+		"PAGE_ELEMENT_COUNT" => "4",
 		"LINE_ELEMENT_COUNT" => "4",
 		"PRICE_CODE" => array(
 			0 => "BASE",
@@ -96,7 +96,7 @@ $arRecomPrFilter = array(
 		"COMPARE_PATH" => "/catalog/compare/",
 		"BACKGROUND_IMAGE" => "",
 		"DISABLE_INIT_JS_IN_COMPONENT" => "N",
-		"PRODUCT_ROW_VARIANTS" => "[{'VARIANT':'3','BIG_DATA':true},{'VARIANT':'3','BIG_DATA':true}]",
+		"PRODUCT_ROW_VARIANTS" => "",
 		"DISPLAY_IMG_WIDTH" => "178",
 		"DISPLAY_IMG_HEIGHT" => "178",
 		"PROPERTY_CODE_MOD" => array(
@@ -104,7 +104,7 @@ $arRecomPrFilter = array(
 			1 => "GUARANTEE",
 			2 => "",
 		),
-		"BIG_DATA_RCM_TYPE" => "any",
+		"BIG_DATA_RCM_TYPE" => "bestsell",
 		"BIG_DATA_TITLE" => "N",
 		"SHOW_MAX_QUANTITY" => "N",
 		"MESS_SHOW_MAX_QUANTITY" => "В наличии",
@@ -127,7 +127,8 @@ $arRecomPrFilter = array(
 		"META_DESCRIPTION" => "-",
 		"COMPATIBLE_MODE" => "Y",
 		"COMPOSITE_FRAME_MODE" => "A",
-		"COMPOSITE_FRAME_TYPE" => "AUTO"
+		"COMPOSITE_FRAME_TYPE" => "AUTO",
+		"USE_COMPARE_LIST" => "N"
 	),
 	false
 );?>

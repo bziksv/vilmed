@@ -559,7 +559,23 @@ if(count($vendorIds) > 0) {
 			$arResult["ITEMS"][$key]["PROPERTIES"]["MANUFACTURER"]["PREVIEW_PICTURE"] = $arVendor[$vendorId]["PREVIEW_PICTURE"];
 		}
 		unset($vendorId);
+		
+		
 	}
 	unset($key, $arElement, $arVendor);
 }
 unset($vendorIds);
+
+global $arSetting;
+
+if(empty($arResult["UF_BUY_BTN_NOINDEX"]))
+	$arResult["UF_BUY_BTN_NOINDEX"] = $arSetting["CATALOG_BUY_BTN_NOINDEX"]["VALUE"];
+	
+if(empty($arResult["UF_ARTICUL_STRING_NOINDEX"]))
+	$arResult["UF_ARTICUL_STRING_NOINDEX"] = $arSetting["CATALOG_ARTICUL_STRING_NOINDEX"]["VALUE"];
+
+if(empty($arResult["UF_OTHER_BTN_NOINDEX"]))
+	$arResult["UF_OTHER_BTN_NOINDEX"] = $arSetting["CATALOG_OTHER_BTN_NOINDEX"]["VALUE"];
+
+
+

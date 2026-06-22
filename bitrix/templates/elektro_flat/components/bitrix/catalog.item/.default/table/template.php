@@ -1,16 +1,6 @@
 <?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
 
 use \Bitrix\Main\Localization\Loc;
-$config = \Bitrix\Main\Config\Configuration::getInstance();
-
-global $kn;
-$kn++;
-
-global $inc_a;
-$inc_a++;
-
-global $inc_p;
-
 
 $arElement['DETAIL_PAGE_URL'] = "/product/".$arElement['CODE']."/";
 ?>
@@ -61,11 +51,14 @@ $arElement['DETAIL_PAGE_URL'] = "/product/".$arElement['CODE']."/";
 		<div class="article_rating">
 			<?//ARTICLE//
 			if($inArticle) {?>
-				<?if($inc_a <= $config->get("js_index")['article']):?>
-				<div class="article" data-text_script="<?=Loc::getMessage("CT_BCS_ELEMENT_ARTNUMBER")?><?=!empty($arElement["PROPERTIES"]["ARTNUMBER"]["VALUE"]) ? $arElement["PROPERTIES"]["ARTNUMBER"]["VALUE"] : $arElement["PROPERTIES"]["CML2_ARTICLE"]["VALUE"];?>"></div>
-				<?else: ?>
-				<div class="article"><?=Loc::getMessage("CT_BCS_ELEMENT_ARTNUMBER")?><?=!empty($arElement["PROPERTIES"]["ARTNUMBER"]["VALUE"]) ? $arElement["PROPERTIES"]["ARTNUMBER"]["VALUE"] : $arElement["PROPERTIES"]["CML2_ARTICLE"]["VALUE"];?></div>
-				<?endif;?>
+				<? if($arElement["SHOW_ARTICUL"]): ?>
+					<div class="article">
+						<?=Loc::getMessage("CT_BCS_ELEMENT_ARTNUMBER")?>
+						<?=!empty($arElement["PROPERTIES"]["ARTNUMBER"]["VALUE"]) ? $arElement["PROPERTIES"]["ARTNUMBER"]["VALUE"] : $arElement["PROPERTIES"]["CML2_ARTICLE"]["VALUE"];?>
+					</div>
+				<? else: ?>
+					<div class="article" data-text_script="<?=Loc::getMessage("CT_BCS_ELEMENT_ARTNUMBER")?><?=!empty($arElement["PROPERTIES"]["ARTNUMBER"]["VALUE"]) ? $arElement["PROPERTIES"]["ARTNUMBER"]["VALUE"] : $arElement["PROPERTIES"]["CML2_ARTICLE"]["VALUE"];?>"></div>
+				<? endif; ?>
 			<?}
 			//RATING//
 			if($inRating) {?>
@@ -95,7 +88,7 @@ $arElement['DETAIL_PAGE_URL'] = "/product/".$arElement['CODE']."/";
 		</div>
 	<?}
 	//TOTAL_OFFERS_ITEM_PRICE//?>
-	<div class="item-price-cont<?=(!$inOldPrice && !$inPercentPrice ? ' one' : '').(($inOldPrice && !$inPercentPrice) || (!$inOldPrice && $inPercentPrice) ? ' two' : '').($arSetting["REFERENCE_PRICE"]["VALUE"] == "Y" && !empty($arSetting["REFERENCE_PRICE_COEF"]["VALUE"]) ? ' reference' : '');?>" itemprop="offers" itemscope itemtype="http://schema.org/Offer">
+	<div class="item-price-cont<?=(!$inOldPrice && !$inPercentPrice ? ' one' : '').(($inOldPrice && !$inPercentPrice) || (!$inOldPrice && $inPercentPrice) ? ' two' : '').($arSetting["REFERENCE_PRICE"]["VALUE"] == "Y" && !empty($arSetting["REFERENCE_PRICE_COEF"]["VALUE"]) ? ' reference' : '');?>" itemprop="offers" itemscope itemtype="https://schema.org/Offer">
 		<?//TOTAL_OFFERS_PRICE//
 		if($haveOffers) {
 			if($arElement["TOTAL_OFFERS"]["MIN_PRICE"]["RATIO_PRICE"] <= 0) {?>
@@ -358,10 +351,8 @@ $arElement['DETAIL_PAGE_URL'] = "/product/".$arElement['CODE']."/";
 					<input type="text" id="quantity_<?=$itemIds['ID']?>" name="quantity" class="quantity" value="<?=($arElement['TOTAL_OFFERS']['MIN_PRICE']["QUANTITY_FROM"]>0?$arElement['TOTAL_OFFERS']['MIN_PRICE']["QUANTITY_FROM"]:$arElement['TOTAL_OFFERS']['MIN_PRICE']['MIN_QUANTITY'])?>"/>
 					<a href="javascript:void(0)" class="plus" id="quantity_plus_<?=$itemIds['ID']?>"><span>+</span></a>
 					<button type="button" id="<?=$itemIds['PROPS_BTN']?>" class="btn_buy" name="add2basket"><i class="fa fa-shopping-cart"></i>
-						<span data-text_script="<?=($arSetting["NAME_BUTTON_TO_CART"] ? $arSetting["NAME_BUTTON_TO_CART"] : Loc::getMessage("CT_BCS_ELEMENT_ADD_TO_CART"))?>">
-							<?if($kn < 21){?>
-								<?=($arSetting["NAME_BUTTON_TO_CART"] ? $arSetting["NAME_BUTTON_TO_CART"] : Loc::getMessage("CT_BCS_ELEMENT_ADD_TO_CART"))?>
-							<?}?>
+						<span>
+							<?=($arSetting["NAME_BUTTON_TO_CART"] ? $arSetting["NAME_BUTTON_TO_CART"] : Loc::getMessage("CT_BCS_ELEMENT_ADD_TO_CART"))?>
                         </span>
 					</button>
 				</form>
@@ -399,37 +390,28 @@ $arElement['DETAIL_PAGE_URL'] = "/product/".$arElement['CODE']."/";
 			<div class="add2basket_block">
                 <? if($arElement["PROPERTIES"]["NOT_STOCK"]["VALUE_XML_ID"] == "Y"): ?>
                     <a id="<?=$itemIds['POPUP_BTN']?>" class="btn_buy apuo" href="javascript:void(0)" rel="nofollow" data-action="ask_analog">
-                        <span class="full" data-text_script="<?=Loc::getMessage("CT_BCS_ELEMENT_ASK_ANALOG_FULL")?>">
-                            <?if($kn<21){?><?=Loc::getMessage("CT_BCS_ELEMENT_ASK_ANALOG_FULL")?><?}?>
+                        <span class="full">
+                            <?=Loc::getMessage("CT_BCS_ELEMENT_ASK_ANALOG_FULL")?>
                         </span>
-                        <span class="short" data-text_script="<?=Loc::getMessage("CT_BCS_ELEMENT_ASK_ANALOG_SHORT")?>">
-                            <?if($kn<21){?><?=Loc::getMessage("CT_BCS_ELEMENT_ASK_ANALOG_SHORT")?><?}?>
+                        <span class="short">
+                            <?=Loc::getMessage("CT_BCS_ELEMENT_ASK_ANALOG_SHORT")?>
                         </span>
                     </a>
                 <? else: ?>
                     <?
                     if($arElement["CAN_BUY"]) {
                     if($arElement["MIN_PRICE"]["RATIO_PRICE"] <= 0) {
-						$inc_p++;
                         //ITEM_ASK_PRICE//?>
-						<? if($inc_p <= $config->get("js_index")['ask_price']): ?>
 						<a id="<?=$itemIds['POPUP_BTN']?>" class="btn_buy apuo" href="javascript:void(0)" rel="nofollow" data-action="ask_price">
 							<i class="fa fa-comment-o"></i>
-							<span class="full" data-text_script="<?=Loc::getMessage("CT_BCS_ELEMENT_ASK_PRICE_FULL")?>"></span>
-							<span class="short" data-text_script="<?=Loc::getMessage("CT_BCS_ELEMENT_ASK_PRICE_SHORT")?>"></span>
+							<? if($arElement["SHOW_OTHER_BTN"]): ?>
+								<span class="full"><?=Loc::getMessage("CT_BCS_ELEMENT_ASK_PRICE_FULL")?></span>
+								<span class="short"><?=Loc::getMessage("CT_BCS_ELEMENT_ASK_PRICE_SHORT")?></span>
+							<? else: ?>
+								<span class="full" data-text_script="<?=Loc::getMessage("CT_BCS_ELEMENT_ASK_PRICE_FULL")?>"></span>
+								<span class="short" data-text_script="<?=Loc::getMessage("CT_BCS_ELEMENT_ASK_PRICE_SHORT")?>"></span>
+							<? endif; ?>
 						</a>
-						<? else:?>
-						<a id="<?=$itemIds['POPUP_BTN']?>" class="btn_buy apuo" href="javascript:void(0)" rel="nofollow" data-action="ask_price">
-							<i class="fa fa-comment-o"></i>
-							<span class="full">
-									<?=Loc::getMessage("CT_BCS_ELEMENT_ASK_PRICE_FULL")?>
-							</span>
-							<span class="short">
-									<?=Loc::getMessage("CT_BCS_ELEMENT_ASK_PRICE_SHORT")?>
-							</span>
-						</a>
-						<? endif; ?>
-
                     <?} else {
                     if(isset($arElement["SELECT_PROPS"]) && !empty($arElement["SELECT_PROPS"])) {?>
                     <form action="javascript:void(0)" class="add2basket_form">
@@ -457,13 +439,26 @@ $arElement['DETAIL_PAGE_URL'] = "/product/".$arElement['CODE']."/";
                             }?>
                             <a href="javascript:void(0)" id="<?=(isset($arElement['SELECT_PROPS']) && !empty($arElement['SELECT_PROPS']) ? $itemIds['PROPS_BTN'] : $itemIds['BTN_BUY']);?>" class="btn_buy btn_href" name="add2basket">
                                 <i class="fa fa-shopping-cart"></i>
-                                <span data-text_script="<?=($arSetting["NAME_BUTTON_TO_CART"] ? $arSetting["NAME_BUTTON_TO_CART"] : Loc::getMessage("CT_BCS_ELEMENT_ADD_TO_CART"))?>"><?if($kn<21){?><?=($arSetting["NAME_BUTTON_TO_CART"] ? $arSetting["NAME_BUTTON_TO_CART"] : Loc::getMessage("CT_BCS_ELEMENT_ADD_TO_CART"))?><?}?></span>
+                                <? if($arElement["SHOW_BUY_BTN"]): ?>
+									<span><?=($arSetting["NAME_BUTTON_TO_CART"] ? $arSetting["NAME_BUTTON_TO_CART"] : Loc::getMessage("CT_BCS_ELEMENT_ADD_TO_CART"))?></span>
+								<? else: ?>
+									<span data-text_script="<?=($arSetting["NAME_BUTTON_TO_CART"] ? $arSetting["NAME_BUTTON_TO_CART"] : Loc::getMessage("CT_BCS_ELEMENT_ADD_TO_CART"))?>"></span>
+								<? endif; ?>
                             </a>
                         </form>
                         <?}
                         } elseif(!$arElement["CAN_BUY"]) {
                             //ITEM_UNDER_ORDER//?>
-                            <a id="<?=$itemIds['POPUP_BTN']?>" class="btn_buy apuo" href="javascript:void(0)" rel="nofollow" data-action="ask_price"><i class="fa fa-comment-o"></i><span class="full" data-text_script="<?=Loc::getMessage("CT_BCS_ELEMENT_ASK_PRICE_FULL")?>"><?if($kn<21){?><?=Loc::getMessage("CT_BCS_ELEMENT_ASK_PRICE_FULL")?><?}?></span><span class="short" data-text_script="<?=Loc::getMessage("CT_BCS_ELEMENT_ASK_PRICE_SHORT")?>"><?if($kn<21){?><?=Loc::getMessage("CT_BCS_ELEMENT_ASK_PRICE_SHORT")?><?}?></span></a>
+                            <a id="<?=$itemIds['POPUP_BTN']?>" class="btn_buy apuo" href="javascript:void(0)" rel="nofollow" data-action="ask_price">
+								<i class="fa fa-comment-o"></i>
+								<span class="full">
+									<?=Loc::getMessage("CT_BCS_ELEMENT_ASK_PRICE_FULL")?>
+								</span>
+								
+								<span class="short">
+									<?=Loc::getMessage("CT_BCS_ELEMENT_ASK_PRICE_SHORT")?>
+								</span>
+							</a>
                     <?}?>
                 <? endif; ?>
 			</div>

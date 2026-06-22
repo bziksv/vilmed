@@ -1,0 +1,5 @@
+<?php
+
+$MESS['YANDEX_MARKET_TRADING_CONNECT_TITLE'] = 'Подключение к Маркету';
+$MESS['YANDEX_MARKET_TRADING_CONNECT_TAB_COMMON'] = 'Общие настройки';
+$MESS['YANDEX_MARKET_TRADING_CONNECT_SAVE'] = 'Продолжить';

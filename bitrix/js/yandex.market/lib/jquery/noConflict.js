@@ -1,0 +1,1 @@
+(window.jQuery != null) && (window.YMarketJQuery = window.jQuery);

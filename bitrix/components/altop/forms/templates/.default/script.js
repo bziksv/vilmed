@@ -35,6 +35,7 @@ if(!window.BX.PopupFormSubmit) {
 				if(!!data.success) {
 					if(!!alert)
 						BX.adjust(alert, {html: "<span class='alertMsg good'><i class='fa fa-check'></i><span class='text'>" + data.success.text + "</span></span>"});
+					ym(55225453, 'reachGoal', 'ZaprositCenuAnalog2109231355', {}, () => { console.log("Target ZaprositCenuAnalog sended!") });
 					BX.adjust(target, {props: {disabled: true}});
 				} else if(!!data.error) {
 					if(!!alert)

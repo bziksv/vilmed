@@ -1,0 +1,3 @@
+<?php
+
+$MESS['YANDEX_MARKET_CATALOG_ENDPOINT_OFFER_SUBMITTED'] = 'Информация о товаре #KEYS#';

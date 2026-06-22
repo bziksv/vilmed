@@ -1,6 +1,6 @@
 <?$APPLICATION->IncludeComponent(
 	"altop:search.title", 
-	".default", 
+	"search", 
 	array(
 		"SHOW_INPUT" => "Y",
 		"INPUT_ID" => "title-search-input",
@@ -11,18 +11,19 @@
 		"NUM_CATEGORIES" => "1",
 		"TOP_COUNT" => "7",
 		"ORDER" => "rank",
-		"USE_LANGUAGE_GUESS" => "N",
-		"CHECK_DATES" => "N",
+		"USE_LANGUAGE_GUESS" => "Y",
+		"CHECK_DATES" => "Y",
 		"PROPERTY_CODE_MOD" => array(
 			0 => "",
-			1 => "GUARANTEE",
-			2 => "",
+			1 => "",
 		),
-		"OFFERS_FIELD_CODE" => "",
+		"OFFERS_FIELD_CODE" => array(
+			0 => "",
+			1 => "",
+		),
 		"OFFERS_PROPERTY_CODE" => array(
-			0 => "COLOR",
-			1 => "PROP2",
-			2 => "PROP3",
+			0 => "",
+			1 => "",
 		),
 		"OFFERS_SORT_FIELD" => "sort",
 		"OFFERS_SORT_ORDER" => "asc",
@@ -31,7 +32,6 @@
 		"OFFERS_LIMIT" => "",
 		"SHOW_PRICE" => "Y",
 		"PRICE_CODE" => array(
-			0 => "BASE",
 		),
 		"PRICE_VAT_INCLUDE" => "Y",
 		"SHOW_ADD_TO_CART" => "Y",
@@ -46,15 +46,15 @@
 		"CONVERT_CURRENCY" => "N",
 		"CURRENCY_ID" => "",
 		"OFFERS_CART_PROPERTIES" => array(
-			0 => "COLOR",
-			1 => "PROP2",
-			2 => "PROP3",
+			0 => "PROP2",
 		),
-		"HIDE_NOT_AVAILABLE" => "N",
-		"HIDE_NOT_AVAILABLE_OFFERS" => "N",
-		"COMPONENT_TEMPLATE" => ".default",
-		"SEARCH_SECTION_ACTIVE" => "N",
-		"SHOW_MAX_QUANTITY" => "N"
+		"HIDE_NOT_AVAILABLE" => "Y",
+		"HIDE_NOT_AVAILABLE_OFFERS" => "Y",
+		"COMPONENT_TEMPLATE" => "search",
+		"SEARCH_SECTION_ACTIVE" => "Y",
+		"SHOW_MAX_QUANTITY" => "N",
+		"COMPOSITE_FRAME_MODE" => "A",
+		"COMPOSITE_FRAME_TYPE" => "AUTO"
 	),
 	false
 );?> 

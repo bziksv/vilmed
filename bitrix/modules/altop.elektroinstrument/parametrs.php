@@ -91,11 +91,53 @@ $moduleClass::$arParametrsList = array(
 				"TITLE" => GetMessage("CATALOG_VIEW"),
 				"TYPE" => "selectbox",
 				"LIST" => array(
+					"ONE_LEVELS" => GetMessage("CATALOG_VIEW_ONE_LEVELS"),
 					"TWO_LEVELS" => GetMessage("CATALOG_VIEW_TWO_LEVELS"),
 					"THREE_LEVELS" => GetMessage("CATALOG_VIEW_THREE_LEVELS"),
 					"FOUR_LEVELS" => GetMessage("CATALOG_VIEW_FOUR_LEVELS")
 				),
 				"DEFAULT" => "TWO_LEVELS",
+				"IN_SETTINGS_PANEL" => "Y"
+			),
+			"CATALOG_VIEW_PRODUCT" => array(
+				"TITLE" => GetMessage("CATALOG_VIEW_PRODUCT"),
+				"TYPE" => "selectbox",
+				"LIST" => array(
+					"ONE_LEVELS" => GetMessage("CATALOG_VIEW_ONE_LEVELS"),
+					"TWO_LEVELS" => GetMessage("CATALOG_VIEW_TWO_LEVELS"),
+					"THREE_LEVELS" => GetMessage("CATALOG_VIEW_THREE_LEVELS"),
+					"FOUR_LEVELS" => GetMessage("CATALOG_VIEW_FOUR_LEVELS")
+				),
+				"DEFAULT" => "TWO_LEVELS",
+				"IN_SETTINGS_PANEL" => "Y"
+			),
+			"MOVE_TEXT_IN_ATTR" => array(
+				"TITLE" => GetMessage("MOVE_TEXT_IN_ATTR"),
+				"TYPE" => "checkbox",
+				"DEFAULT" => "N",
+				"IN_SETTINGS_PANEL" => "N"
+			),
+			"CATALOG_MOVE_TEXT_IN_ATTR_MOBILE" => array(
+				"TITLE" => GetMessage("CATALOG_MOVE_TEXT_IN_ATTR_MOBILE"),
+				"TYPE" => "checkbox",
+				"DEFAULT" => "N",
+				"IN_SETTINGS_PANEL" => "N"
+			),
+			"CATALOG_PRODUCT_MOVE_TEXT_IN_ATTR_MOBILE" => array(
+				"TITLE" => GetMessage("CATALOG_PRODUCT_MOVE_TEXT_IN_ATTR_MOBILE"),
+				"TYPE" => "checkbox",
+				"DEFAULT" => "N",
+				"IN_SETTINGS_PANEL" => "N"
+			),
+			"BREADCRUMB_VIEW" => array(
+				"TITLE" => GetMessage("BREADCRUMB_VIEW"),
+				"TYPE" => "selectbox",
+				"LIST" => array(
+					".DEFAULT" => GetMessage("BREADCRUMB_VIEW_DEFAULT"),
+					"DROPDOWN" => GetMessage("BREADCRUMB_VIEW_DROPDOWN"),
+					"DROPDOWN.DETAIL" => GetMessage("BREADCRUMB_VIEW_DROPDOWN_DETAIL"),
+				),
+				"DEFAULT" => ".DEFAULT",
 				"IN_SETTINGS_PANEL" => "Y"
 			),
 			"CART_LOCATION" => array(
@@ -357,5 +399,34 @@ $moduleClass::$arParametrsList = array(
 				"IN_SETTINGS_PANEL" => "N"
 			),
 		)
-	)
+	),
+	"PAGES_NOINDEX" => array(
+		"TITLE" => GetMessage("PAGES_NOINDEX"),
+		"OPTIONS" => array(
+			"DETAIL_ROBOTS_NOINDEX" => array(
+				"TITLE" => GetMessage("DETAIL_ROBOTS_NOINDEX"),
+				"TYPE" => "number",
+				"DEFAULT" => "300",
+				"IN_SETTINGS_PANEL" => "N"
+			),
+			"CATALOG_BUY_BTN_NOINDEX" => array(
+				"TITLE" => GetMessage("CATALOG_BUY_BTN_NOINDEX"),
+				"TYPE" => "number",
+				"DEFAULT" => "5",
+				"IN_SETTINGS_PANEL" => "N"
+			),
+			"CATALOG_ARTICUL_STRING_NOINDEX" => array(
+				"TITLE" => GetMessage("CATALOG_ARTICUL_STRING_NOINDEX"),
+				"TYPE" => "number",
+				"DEFAULT" => "5",
+				"IN_SETTINGS_PANEL" => "N"
+			),
+			"CATALOG_OTHER_BTN_NOINDEX" => array(
+				"TITLE" => GetMessage("CATALOG_OTHER_BTN_NOINDEX"),
+				"TYPE" => "number",
+				"DEFAULT" => "5",
+				"IN_SETTINGS_PANEL" => "N"
+			),
+		)
+	),
 );?>

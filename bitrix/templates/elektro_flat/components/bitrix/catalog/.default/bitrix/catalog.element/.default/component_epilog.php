@@ -545,38 +545,44 @@ if($CurPageAr[1]=="catalog"){
 	LocalRedirect("/product/".$arParams["ELEMENT_CODE"]."/");
 }
 
+$parentSectionIterator = SectionTable::getList([
+	'order' => ['SECTION_SECTION.LEFT_MARGIN' => 'ASC'],
+	'select' => [
+		'NAME' => 'SECTION_SECTION.NAME',
+		'CODE' => 'SECTION_SECTION.CODE',
+		'SECTION_ID' => 'SECTION_SECTION.ID',
+		'IBLOCK_SECTION_ID' => 'SECTION_SECTION.IBLOCK_SECTION_ID',
+		'DEPTH_LEVEL' => 'SECTION_SECTION.DEPTH_LEVEL',
+	],
+	'filter' => [
+		'=ID' => $arResult['IBLOCK_SECTION_ID'],
+	],
+	'runtime' => [
+		'SECTION_SECTION' => [
+			'data_type' => '\Bitrix\Iblock\SectionTable',
+			'reference' => [
+				'=this.IBLOCK_ID' => 'ref.IBLOCK_ID',
+				'>=this.LEFT_MARGIN' => 'ref.LEFT_MARGIN',
+				'<=this.RIGHT_MARGIN' => 'ref.RIGHT_MARGIN',
+			],
+			'join_type' => 'inner'
+		],
+	],
+]);
 
+$setRobotsNoindex = false;
+while ($parentSection = $parentSectionIterator->fetch()) 
+{
+	if($parentSection["CODE"])
+		$APPLICATION->AddChainItem($parentSection["NAME"], "/catalog/".$parentSection["CODE"]."/", true);
+		
+	$db_list = CIBlockSection::GetList([], ['IBLOCK_ID' => $arResult["IBLOCK_ID"], '=ID' => $parentSection["SECTION_ID"]], false, ["ID", "NAME", "UF_ROBOTS_NOINDEX"]);
+	if($ar_result = $db_list->GetNext()){
+		if($ar_result["UF_ROBOTS_NOINDEX"] && $setRobotsNoindex === false && strlen($arResult["DETAIL_TEXT"]) < $arSetting["DETAIL_ROBOTS_NOINDEX"]["VALUE"])
+			$setRobotsNoindex = true;	
+	}
+}
+$APPLICATION->AddChainItem(str_replace(['&amp;', 'amp;', 'quot;'], '', html_entity_decode($arResult["NAME"])), "", true);
 
-    $parentSections = [];
-
-    $parentSectionIterator = SectionTable::getList([
-        'order' => ['SECTION_SECTION.LEFT_MARGIN' => 'ASC'],
-        'select' => [
-        	'NAME' => 'SECTION_SECTION.NAME',
-        	'CODE' => 'SECTION_SECTION.CODE',
-            'SECTION_ID' => 'SECTION_SECTION.ID',
-            'IBLOCK_SECTION_ID' => 'SECTION_SECTION.IBLOCK_SECTION_ID',
-            'DEPTH_LEVEL' => 'SECTION_SECTION.DEPTH_LEVEL',
-        ],
-        'filter' => [
-            '=ID' => $arResult['IBLOCK_SECTION_ID'],
-        ],
-        'runtime' => [
-            'SECTION_SECTION' => [
-                'data_type' => '\Bitrix\Iblock\SectionTable',
-                'reference' => [
-                    '=this.IBLOCK_ID' => 'ref.IBLOCK_ID',
-                    '>=this.LEFT_MARGIN' => 'ref.LEFT_MARGIN',
-                    '<=this.RIGHT_MARGIN' => 'ref.RIGHT_MARGIN',
-                ],
-                'join_type' => 'inner'
-            ],
-        ],
-    ]);
-
-    while ($parentSection = $parentSectionIterator->fetch()) {
-        if($parentSection["CODE"]){
-        	$APPLICATION->AddChainItem($parentSection["NAME"], "/catalog/".$parentSection["CODE"]."/", true);
-        }
-    }
- 	$APPLICATION->AddChainItem(str_replace(['&amp;', 'amp;', 'quot;'], '', html_entity_decode($arResult["NAME"])), "", true);
+if($setRobotsNoindex || $arResult["PROPERTY_ROBOTS_NOINDEX"])
+	$APPLICATION->SetPageProperty("robots", "noindex, nofollow");

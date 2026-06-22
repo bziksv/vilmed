@@ -1,0 +1,6 @@
+<?php
+
+$MESS['YANDEX_MARKET_TRADING_ADD_TITLE'] = 'Подключение магазина';
+$MESS['YANDEX_MARKET_TRADING_ADD_BTN_ADD'] = 'Продолжить';
+$MESS['YANDEX_MARKET_TRADING_ADD_CONTEXT_MENU_LIST'] = 'Все магазины';
+$MESS['YANDEX_MARKET_TRADING_ADD_TAB_COMMON'] = 'Общие настройки';

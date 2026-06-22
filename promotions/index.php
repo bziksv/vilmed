@@ -1,6 +1,6 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
-$APPLICATION->SetPageProperty("description", "Наши актуальные акции и скидки на товары от магазина Vilmed");
-$APPLICATION->SetPageProperty("title", "Акции и скидки от компании Vilmed");
+$APPLICATION->SetPageProperty("description", "Наши актуальные акции и скидки на товары от магазина Вилмед");
+$APPLICATION->SetPageProperty("title", "Акции и скидки от компании Вилмед");
 $APPLICATION->SetTitle("Акции и скидки");?>
 
 <?$APPLICATION->IncludeComponent("bitrix:news", "promotions",

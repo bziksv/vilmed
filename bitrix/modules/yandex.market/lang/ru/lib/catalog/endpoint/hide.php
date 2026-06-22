@@ -1,0 +1,4 @@
+<?php
+
+$MESS['YANDEX_MARKET_CATALOG_ENDPOINT_HIDE_HIDDEN'] = 'Скрыт в магазине';
+$MESS['YANDEX_MARKET_CATALOG_ENDPOINT_HIDE_SHOWN'] = 'Возобновлен показ';

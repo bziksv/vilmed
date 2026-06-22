@@ -1,4 +1,0 @@
-<?php
-$MESS["LANDING_STORE_V3_LINK_BACK_CONTAINER"] = "Elemente";
-$MESS["LANDING_STORE_V3_LINK_BACK_NAME_2"] = "Link zur vorherigen Seiten";
-$MESS["LANDING_STORE_V3_LINK_BACK_TITLE"] = "Link";

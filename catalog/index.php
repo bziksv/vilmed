@@ -1,6 +1,6 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
-$APPLICATION->SetPageProperty("title", "Медицинское оборудование и товары заказать купить оптом и в розницу | Цены в каталоге | Доставка по всей России в любые населенные пункты | Интернет магазин VilMed");
-$APPLICATION->SetPageProperty("description", "Купить медицинское оборудование и медтехнику,скидки, выгодные цены, оптом, в розницу, прямая поставка.☎ +7 (499) 113-02-79");
+$APPLICATION->SetPageProperty("title", "Медицинское оборудование и товары заказать купить оптом и в розницу | Цены в каталоге | Доставка по всей России в любые населенные пункты | Интернет магазин Вилмед");
+$APPLICATION->SetPageProperty("description", "Купить медицинское оборудование и медтехнику, скидки, выгодные цены, оптом, в розницу, прямая поставка.☎ +7 (499) 113-02-79");
 $APPLICATION->SetTitle("Каталог медицинского оборудования ");?>
 
 <?
@@ -41,7 +41,7 @@ $APPLICATION->IncludeComponent(
 		"AJAX_OPTION_JUMP" => "N",
 		"AJAX_OPTION_STYLE" => "N",
 		"BASKET_URL" => "/personal/cart/",
-		"BIG_DATA_RCM_TYPE" => "personal",
+		"BIG_DATA_RCM_TYPE" => "similar",
 		"BUTTON_CREDIT_HREF" => "/credit/",
 		"BUTTON_DELIVERY_HREF" => "/delivery/",
 		"BUTTON_PAYMENTS_HREF" => "/payments/",
@@ -123,7 +123,7 @@ $APPLICATION->IncludeComponent(
 		"ELEMENT_SORT_FIELD" => "sort",
 		"ELEMENT_SORT_FIELD2" => "id",
 		"ELEMENT_SORT_ORDER" => "asc",
-		"ELEMENT_SORT_ORDER2" => "desc",
+		"ELEMENT_SORT_ORDER2" => "asc",
 		"FIELDS" => array(
 			0 => "TITLE",
 			1 => "ADDRESS",
@@ -184,7 +184,7 @@ $APPLICATION->IncludeComponent(
 			1 => "PROP2",
 			2 => "PROP3",
 		),
-		"LIST_PRODUCT_ROW_VARIANTS" => "[{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false},{'VARIANT':'3','BIG_DATA':false}]",
+		"LIST_PRODUCT_ROW_VARIANTS" => "",
 		"LIST_PROPERTY_CODE" => array(
 			0 => "CHASTOTA_H_H",
 			1 => "MAX_KR_MOM",

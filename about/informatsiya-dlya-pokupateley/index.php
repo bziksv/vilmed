@@ -1,7 +1,7 @@
 <?
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetPageProperty("description", "Информация для покупателя и Часто задаваемые вопросы (FAQ)");
-$APPLICATION->SetPageProperty("title", "Информация для покупателя от компании Vilmed");
+$APPLICATION->SetPageProperty("title", "Информация для покупателя от компании Вилмед");
 $APPLICATION->SetTitle("Информация для покупателя");
 ?><ul>
 	<li><a href="https://vilmed.ru/about/">О компании</a></li>

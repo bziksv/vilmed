@@ -1,0 +1,3 @@
+<?php
+
+$MESS['YANDEX_MARKET_COMPONENT_TRADING_CONNECT_EDIT_FORM_ALREADY_EXISTS'] = 'Бизнес #NAME# <a href="#URL#">уже добавлен</a>';

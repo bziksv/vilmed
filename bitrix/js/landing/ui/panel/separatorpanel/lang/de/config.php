@@ -1,5 +1,0 @@
-<?php
-$MESS["LANDING_SEPARATOR_HEADER"] = "Textüberschrift";
-$MESS["LANDING_SEPARATOR_PAGE"] = "Formularseite";
-$MESS["LANDING_SEPARATOR_PANEL_TITLE"] = "Trennzeichen";
-$MESS["LANDING_SEPARATOR_SOLID_LINE"] = "Linie";

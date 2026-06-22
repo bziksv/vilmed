@@ -8,7 +8,7 @@ $arUrlRewrite=array (
     'PATH' => '/bitrix/services/mobileapp/jn.php',
     'SORT' => 100,
   ),
-  2 => 
+  1 => 
   array (
     'CONDITION' => '#^/bitrix/services/ymarket/#',
     'RULE' => '',
@@ -16,7 +16,7 @@ $arUrlRewrite=array (
     'PATH' => '/bitrix/services/ymarket/index.php',
     'SORT' => 100,
   ),
-  28 => 
+  11 => 
   array (
     'CONDITION' => '#^/promotions/#',
     'RULE' => '',
@@ -24,7 +24,7 @@ $arUrlRewrite=array (
     'PATH' => '/promotions/index.php',
     'SORT' => 100,
   ),
-  5 => 
+  3 => 
   array (
     'CONDITION' => '#^/personal/#',
     'RULE' => '',
@@ -32,31 +32,7 @@ $arUrlRewrite=array (
     'PATH' => '/personal/index.php',
     'SORT' => 100,
   ),
-  16 => 
-  array (
-    'CONDITION' => '#^/vendors/#',
-    'RULE' => '',
-    'ID' => 'bitrix:news',
-    'PATH' => '/vendors/index.php',
-    'SORT' => 100,
-  ),
-  26 => 
-  array (
-    'CONDITION' => '#^/reviews/#',
-    'RULE' => '',
-    'ID' => 'bitrix:news',
-    'PATH' => '/reviews/index.php',
-    'SORT' => 100,
-  ),
-  29 => 
-  array (
-    'CONDITION' => '#^/catalog/#',
-    'RULE' => '',
-    'ID' => 'bitrix:catalog',
-    'PATH' => '/catalog/index.php',
-    'SORT' => 100,
-  ),
-  30 => 
+  4 => 
   array (
     'CONDITION' => '#^/product/#',
     'RULE' => '',
@@ -64,7 +40,31 @@ $arUrlRewrite=array (
     'PATH' => '/product/index.php',
     'SORT' => 100,
   ),
-  1 => 
+  10 => 
+  array (
+    'CONDITION' => '#^/vendors/#',
+    'RULE' => '',
+    'ID' => 'bitrix:news',
+    'PATH' => '/vendors/index.php',
+    'SORT' => 100,
+  ),
+  12 => 
+  array (
+    'CONDITION' => '#^/catalog/#',
+    'RULE' => '',
+    'ID' => 'bitrix:catalog',
+    'PATH' => '/catalog/index.php',
+    'SORT' => 100,
+  ),
+  13 => 
+  array (
+    'CONDITION' => '#^/reviews/#',
+    'RULE' => '',
+    'ID' => 'bitrix:news',
+    'PATH' => '/reviews/index.php',
+    'SORT' => 100,
+  ),
+  8 => 
   array (
     'CONDITION' => '#^/rest/#',
     'RULE' => '',
@@ -72,7 +72,7 @@ $arUrlRewrite=array (
     'PATH' => '/bitrix/services/rest/index.php',
     'SORT' => 100,
   ),
-  27 => 
+  9 => 
   array (
     'CONDITION' => '#^/news/#',
     'RULE' => '',

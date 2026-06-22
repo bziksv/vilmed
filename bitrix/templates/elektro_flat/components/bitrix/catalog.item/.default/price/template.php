@@ -88,7 +88,7 @@ use \Bitrix\Main\Localization\Loc;?>
 		}
 	}
 	//TOTAL_OFFERS_ITEM_PRICE//?>
-	<div class="item-price<?=$class?>" itemprop="offers" itemscope itemtype="http://schema.org/Offer">
+	<div class="item-price<?=$class?>" itemprop="offers" itemscope itemtype="https://schema.org/Offer">
 		<?//TOTAL_OFFERS_PRICE//
 		if($haveOffers) {
 			if($arElement["TOTAL_OFFERS"]["MIN_PRICE"]["RATIO_PRICE"] <= 0) {?>

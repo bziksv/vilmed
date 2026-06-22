@@ -5,6 +5,18 @@ global $arSetting;
 use Bitrix\Sale\DiscountCouponsManager;?>
 
 <div class="cart-items" id="id-cart-list">
+	
+	<!-- ИНФОРМАЦИОННЫЙ БЛОК О ЦЕНАХ -->
+	<?if(count($arResult["ITEMS"]["AnDelCanBuy"]) > 0):?>
+	<div class="alertMsg info" style="margin: 0 0 20px 0; background: #fff9e6; border-left: 4px solid #ff9800; border-radius: 8px;">
+		<i class="fa fa-info-circle" style="color: #ff9800;"></i>
+		<span class="text">
+			<strong>Внимание!</strong> Все цены, указанные в корзине, являются предварительными и справочными. 
+			После оформления заказа менеджер вышлет актуализирует информацию и вышлет актуальное коммерческое предложение/счет.
+		</span>
+	</div>
+	<?endif;?>
+	
 	<div class="sort-clear">
 		<div class="sort">
 			<div class="sorttext"><?=GetMessage("SALE_PRD_IN_BASKET")?></div>

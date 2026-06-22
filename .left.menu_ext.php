@@ -4,12 +4,19 @@ if(!CModule::IncludeModule("iblock"))
 	return;
 
 global $arSetting;
+
+if (isProductDetail()) {
+	$arSetting["CATALOG_VIEW"] = $arSetting["CATALOG_VIEW_PRODUCT"];
+}
+	
 if($arSetting["CATALOG_VIEW"]["VALUE"] == "FOUR_LEVELS"){
 	$arParams["DEPTH_LEVEL"] = "4";
 }elseif ($arSetting["CATALOG_VIEW"]["VALUE"] == "THREE_LEVELS"){
 	$arParams["DEPTH_LEVEL"] = "3";
-}else{
+}elseif ($arSetting["CATALOG_VIEW"]["VALUE"] == "TWO_LEVELS"){
 	$arParams["DEPTH_LEVEL"] = "2";
+}else{
+	$arParams["DEPTH_LEVEL"] = "1";
 }
 
 $arParams["IBLOCK_ID"] = "24";

@@ -1,5 +1,6 @@
 <?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
-$APPLICATION->SetTitle(GetMessage("CMP_TITLE").": ".$_REQUEST['q']);?>
+$APPLICATION->SetTitle(GetMessage("CMP_TITLE").": ".$_REQUEST['q']);
+?>
 
 <?$APPLICATION->IncludeComponent("bitrix:catalog.search", "",
 	array(

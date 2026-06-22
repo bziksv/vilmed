@@ -1,0 +1,3 @@
+<?php
+
+$MESS['YANDEX_MARKET_CATALOG_RUN_STEPS_SUBMITTER_SUBMIT_EXECUTOR_NOT_SUBMITTED'] = 'Отсутствует результат отправки';

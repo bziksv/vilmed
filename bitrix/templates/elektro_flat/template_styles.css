@@ -8571,6 +8571,12 @@ table.compare-grid .delay .catalog-item-delayed i:nth-child(2){
 	padding:10px 0px;
 }
 
+.h3 {
+	font-size: 18px;
+    font-weight: 600;
+    color: #575b71;
+}
+
 /***PERSONAL***/
 /***CATALOG_SUBSCRIBER***/
 /***SALE_PROFILE_DETAIL***/

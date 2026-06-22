@@ -8,7 +8,7 @@ if(!$USER->IsAdmin())
 	$APPLICATION->AuthForm(GetMessage("ACCESS_DENIED"));
 
 if(!isset($INTERVAL))
-	$INTERVAL = 30;
+	$INTERVAL = 10;
 else
 	$INTERVAL = intval($INTERVAL);
 
@@ -74,6 +74,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && $_REQUEST["Import"]=="Y")
 			);
 
 			$obXMLFile->DropTemporaryTables();
+			
 			if(CIBlockCMLImport::CheckIfFileIsCML($ABS_FILE_NAME))
 				$NS["STEP"]++;
 			else
@@ -85,6 +86,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && $_REQUEST["Import"]=="Y")
 				$NS["STEP"]++;
 			else
 				$arErrors[] = GetMessage("IBLOCK_CML2_TABLE_CREATE_ERROR");
+			
 		}
 		elseif($NS["STEP"] < 3)
 		{
@@ -93,6 +95,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && $_REQUEST["Import"]=="Y")
 				if($obXMLFile->ReadXMLToDatabase($fp, $NS, $INTERVAL))
 					$NS["STEP"]++;
 				fclose($fp);
+				
 			}
 			else
 			{
@@ -117,7 +120,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && $_REQUEST["Import"]=="Y")
 				if($result === true)
 					$obCatalog->DeactivateSections("A");
 			}
-
+			
 			if($result === true)
 				$NS["STEP"]++;
 			else
@@ -131,12 +134,13 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && $_REQUEST["Import"]=="Y")
 				$ar = $rs->Fetch();
 				$NS["DONE"]["ALL"] = $ar["C"];
 			}
-
+			
 			$obCatalog = new CIBlockCMLImport;
 			$obCatalog->Init($NS, $WORK_DIR_NAME, true, $NS["PREVIEW"], false, true);
+			
 			$obCatalog->ReadCatalogData($_SESSION["BX_CML2_IMPORT"]["SECTION_MAP"], $_SESSION["BX_CML2_IMPORT"]["PRICES_MAP"]);
 			$result = $obCatalog->ImportElements($start_time, $INTERVAL);
-
+			
 			$counter = 0;
 			foreach($result as $key=>$value)
 			{
@@ -152,7 +156,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && $_REQUEST["Import"]=="Y")
 			$obCatalog = new CIBlockCMLImport;
 			$obCatalog->Init($NS, $WORK_DIR_NAME, true, $NS["PREVIEW"], false, true);
 			$result = $obCatalog->DeactivateElement($NS["ACTION"], $start_time, $INTERVAL);
-
+			
 			$counter = 0;
 			foreach($result as $key=>$value)
 			{

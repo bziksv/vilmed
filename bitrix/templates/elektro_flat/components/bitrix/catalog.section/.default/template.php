@@ -42,8 +42,31 @@ $containerName = "container-".$navParams["NavNum"];
 				$this->AddDeleteAction($uniqueId, $item["DELETE_LINK"], $elementDelete, $elementDeleteParams);
 			}?>
 			<!-- items-container -->
-			<?foreach($arResult["ITEMS"] as $id => $item) {
-
+			<?
+			$askPriceCounter = $buyBtnCounter = 0;
+			foreach($arResult["ITEMS"] as $id => $item) {
+				
+				$item["SHOW_ARTICUL"] = false;
+				if($arResult["UF_ARTICUL_STRING_NOINDEX"] > $id)
+					$item["SHOW_ARTICUL"] = true;
+					
+				$item["SHOW_BUY_BTN"] = false;
+				$item["SHOW_OTHER_BTN"] = false;
+				
+				if($item["CAN_BUY"]){
+					if($item["MIN_PRICE"]["RATIO_PRICE"] <= 0){
+						if($arResult["UF_OTHER_BTN_NOINDEX"] > $askPriceCounter)
+							$item["SHOW_OTHER_BTN"] = true;
+						
+						$askPriceCounter += 1;
+					}else{
+						if($arResult["UF_BUY_BTN_NOINDEX"] > $buyBtnCounter)
+							$item["SHOW_BUY_BTN"] = true;
+						
+						$buyBtnCounter += 1;
+					}
+				}
+				
                 if($arParams['DELIMITER_ADDITIONAL_PRODUCT'] === $item['ID']){
                 ?>
                     </div>

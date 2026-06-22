@@ -1,7 +1,8 @@
 <?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
 use Bitrix\Main\Localization\Loc;
 use Bitrix\Main\Page\Asset;
-Loc::loadMessages(__FILE__);?>
+Loc::loadMessages(__FILE__);
+?>
 <!DOCTYPE html>
 <html lang="<?=LANGUAGE_ID?>">
 <head>
@@ -12,7 +13,7 @@ Loc::loadMessages(__FILE__);?>
 	<meta property="og:title" content="<?=$APPLICATION->ShowTitle();?>"/>
     <meta property="og:description" content="<?=$APPLICATION->ShowProperty("description");?>"/>
     <meta property="og:type" content="<?=$APPLICATION->ShowProperty("ogtype");?>"/>
-    <meta property="og:url" content= "<?=(CMain::IsHTTPS()? 'https' : 'http')."://".SITE_SERVER_NAME.$APPLICATION->GetCurPage();?>" />
+    <meta property="og:url" content= "<?=(CMain::IsHTTPS() ? 'https' : 'http' ) . "://" . SITE_SERVER_NAME . $APPLICATION->GetCurPage();?>" />
     <meta property="og:image" content="<?=$APPLICATION->ShowProperty("ogimage");?>">
 	<meta property='og:image:width' content="<?=$APPLICATION->ShowProperty("ogimagewidth");?>" />
 	<meta property='og:image:height' content="<?=$APPLICATION->ShowProperty("ogimageheight");?>" />
@@ -21,9 +22,10 @@ Loc::loadMessages(__FILE__);?>
 	$APPLICATION->ShowProperty('google_prev_next');
 	$APPLICATION->SetPageProperty("ogimagewidth", "144");
 	$APPLICATION->SetPageProperty("ogimageheight", "144");
-	Asset::getInstance()->addCss("https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css");
+	Asset::getInstance()->addCss(SITE_TEMPLATE_PATH."/css/font-awesome.min.css");
 	if(!CModule::IncludeModule("altop.elastofont"))
-		Asset::getInstance()->addCss("https://d1azc1qln24ryf.cloudfront.net/130672/ELASTOFONT/style-cf.css?xk463o");
+/*		Asset::getInstance()->addCss("https://d1azc1qln24ryf.cloudfront.net/130672/ELASTOFONT/style-cf.css?xk463o");
+*/
 	Asset::getInstance()->addCss("https://fonts.googleapis.com/css?family=Open+Sans:400,300,600,700&subset=latin,cyrillic-ext");
 	Asset::getInstance()->addCss(SITE_TEMPLATE_PATH."/colors.css");
 
@@ -31,7 +33,7 @@ Loc::loadMessages(__FILE__);?>
 	Asset::getInstance()->addCss(SITE_TEMPLATE_PATH."/js/custom-forms/custom-forms.css");
 	Asset::getInstance()->addCss(SITE_TEMPLATE_PATH."/js/fancybox/jquery.fancybox-1.3.1.css");
 	Asset::getInstance()->addCss(SITE_TEMPLATE_PATH."/js/spectrum/spectrum.css");
-	Asset::getInstance()->addCss("//cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.css");
+	Asset::getInstance()->addCss(SITE_TEMPLATE_PATH."/css/slick.css");
 	CJSCore::Init(array("jquery", "popup"));
 	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/jquery.cookie.js");
 	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/moremenu.js");
@@ -68,7 +70,7 @@ Loc::loadMessages(__FILE__);?>
 		</script>
 	");
 
-	Asset::getInstance()->addJs("//cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js");
+	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/slick.min.js");
 	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/main.js");
 	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/script.js");
 	$APPLICATION->ShowHead();?>
@@ -77,8 +79,14 @@ Loc::loadMessages(__FILE__);?>
 	    CElektroinstrument::getBackground(SITE_ID);
         CElektroinstrument::SetCannonicalURL($APPLICATION->GetCurPageParam());
     }?>
-   <script type="text/javascript" src="https://incut.prime-ltd.su/incut/incut.js" async></script>
-    <link rel="stylesheet" href="https://incut.prime-ltd.su/incut/incut.css">
+	<?
+	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/incut.js");
+	Asset::getInstance()->addCss(SITE_TEMPLATE_PATH."/css/incut.css");
+	?>
+
+<script type="text/javascript">window._ab_id_=163177</script>
+<script src="https://cdn.botfaqtor.ru/one.js"></script>
+
 </head>
 <body  <?=$APPLICATION->ShowProperty("bgClass")?><?=$APPLICATION->ShowProperty("backgroundColor")?><?=$APPLICATION->ShowProperty("backgroundImage")?>>
 	<?global $arSetting;?>
@@ -139,7 +147,11 @@ Loc::loadMessages(__FILE__);?>
 			<?elseif($arSetting["CATALOG_LOCATION"]["VALUE"] == "HEADER"):?>
 				<div class="top-catalog">
 					<div class="center<?=($arSetting['SITE_BACKGROUND']['VALUE'] == 'Y' ? ' inner' : '');?>">
-						<? $APPLICATION->IncludeComponent("bitrix:menu", ($arSetting["CATALOG_VIEW"]["VALUE"] == "FOUR_LEVELS" || $arSetting["CATALOG_VIEW"]["VALUE"] == "THREE_LEVELS") ? "tree" : "sections",
+						<?
+						if(isProductDetail())
+							$arSetting["CATALOG_VIEW"] = $arSetting["CATALOG_VIEW_PRODUCT"];
+
+						$APPLICATION->IncludeComponent("bitrix:menu", ($arSetting["CATALOG_VIEW"]["VALUE"] == "FOUR_LEVELS" || $arSetting["CATALOG_VIEW"]["VALUE"] == "THREE_LEVELS") ? "tree" : "sections",
 							array(
 								"ROOT_MENU_TYPE" => "left",
 								"MENU_CACHE_TYPE" => "A",
@@ -243,9 +255,9 @@ Loc::loadMessages(__FILE__);?>
                                             "tree",
                                             array(
                                                 "ROOT_MENU_TYPE" => "left",
-                                                "MENU_CACHE_TYPE" => "A",
+                                                "MENU_CACHE_TYPE" => "N",
                                                 "MENU_CACHE_TIME" => "36000000",
-                                                "MENU_CACHE_USE_GROUPS" => "Y",
+                                                "MENU_CACHE_USE_GROUPS" => "N",
                                                 "MENU_CACHE_GET_VARS" => array(
                                                 ),
                                                 "MAX_LEVEL" => "4",
@@ -568,10 +580,9 @@ Loc::loadMessages(__FILE__);?>
 							endif;?>
 							<div class="body_text" style="<?=($APPLICATION->GetCurPage(true) == SITE_DIR.'index.php') ? 'padding:0px 15px;' : 'padding:0px;';?>">
 								<?if($APPLICATION->GetCurPage(true)!= SITE_DIR."index.php"):?>
-
 									<div class="breadcrumb-share">
 										<div id="navigation" class="breadcrumb">
-											<?$APPLICATION->IncludeComponent("bitrix:breadcrumb", ".default",
+											<? $APPLICATION->IncludeComponent("bitrix:breadcrumb", strtolower($arSetting["BREADCRUMB_VIEW"]["VALUE"]),
 												array(
 													"START_FROM" => "0",
 													"PATH" => "",

@@ -1,0 +1,3 @@
+<?php
+
+$MESS['YANDEX_MARKET_CATALOG_RUN_STEPS_SUBMITTER_PREPARE_CATEGORY_NOT_PREPARED'] = 'Отсутствует результат подготовки';

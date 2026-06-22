@@ -1,0 +1,1 @@
+top.BX.YandexMarket.Ui.AssetsLoader.delay = 100;

@@ -1,0 +1,146 @@
+/* initial */
+
+.ym-sku-status {
+	margin-top: 10px;
+}
+
+.ym-sku-status.is--alone {
+	margin-top: 0;
+}
+
+.ym-sku-status[data-theme="form"] > .ym-status-rating {
+	margin-bottom: 1em;
+}
+
+.ym-sku-status[data-theme="grid"] {
+	font-size: small;
+}
+
+.ym-sku-status[data-theme="form"] {
+	margin-top: 0;
+	margin-bottom: 20px;
+}
+
+/* loader */
+
+.ym-sku-status-loader {
+	white-space: nowrap;
+}
+
+.ym-sku-status-loader:before,
+.ym-sku-status-loader:after {
+	content: '.';
+}
+
+.ym-sku-status-loader__dot,
+.ym-sku-status-loader:after {
+	opacity: 0;
+}
+
+.ym-sku-status-loader.is--active > .ym-sku-status-loader__dot,
+.ym-sku-status-loader.is--active:after {
+	animation: ym-sku-status-loader-second 2s ease-in-out infinite;
+}
+
+.ym-sku-status-loader.is--active:after {
+	animation-name: ym-sku-status-loader-third;
+}
+
+@keyframes ym-sku-status-loader-second {
+	0% { opacity: 0; }
+	50% { opacity: 1; }
+	100% { opacity: 1; }
+}
+
+@keyframes ym-sku-status-loader-third {
+	0% { opacity: 0; }
+	50% { opacity: 0; }
+	100% { opacity: 1; }
+}
+
+/* rating */
+
+.ym-sku-status-rating,
+.bx-core-adm-dialog .ym-sku-status-rating {
+	font-weight: bold;
+	white-space: nowrap;
+}
+
+.ym-sku-status-rating.level--unknown {
+	color: #bdbdbd;
+}
+
+.ym-sku-status-rating.level--error {
+	color: #f73e47;
+}
+
+.ym-sku-status-rating.level--warning {
+	color: #ffb026;
+}
+
+.ym-sku-status-rating.level--ready {
+	color: #72ad35;
+}
+
+/* business */
+
+.ym-sku-status-business {
+	margin-top: 20px;
+}
+
+.ym-sku-status-business:first-child {
+	margin-top: 0;
+}
+
+.ym-sku-status-business__title,
+.bx-core-adm-dialog .ym-sku-status-business__title {
+	font-weight: bold;
+}
+
+/* offer */
+
+.ym-sku-status-offer {
+	margin-top: 10px;
+}
+
+.ym-sku-status-offer:first-child {
+	margin-top: 0;
+}
+
+.ym-sku-status-offer__title,
+.bx-core-adm-dialog .ym-sku-status-offer__title {
+	font-weight: bold;
+}
+
+a.ym-sku-status-offer__siblings {
+	color: inherit;
+}
+
+a.ym-sku-status-offer__more {
+	color: #272b31 !important;
+}
+
+.ym-sku-status-offers-additional {
+	margin-top: 10px;
+}
+
+/* messages */
+
+.bx-core-adm-dialog .ym-sku-status-messages-group {
+	font-weight: bold;
+	margin-bottom: 10px;
+	font-size: 1.07em;
+}
+
+.bx-core-adm-dialog .ym-sku-status-messages {
+	margin-top: 0;
+	margin-bottom: 20px;
+}
+
+.bx-core-adm-dialog .ym-sku-status-message {
+	margin-bottom: 5px;
+}
+
+.bx-core-adm-dialog .ym-sku-status-message__title {
+	font-weight: bold;
+}

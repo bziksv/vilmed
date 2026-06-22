@@ -1,0 +1,3 @@
+<?php
+
+$MESS['YANDEX_MARKET_CATALOG_CARD_TAG_NAME_ATTRIBUTE_OFFER_PROPERTY_ID'] = 'Название группы вариантов';

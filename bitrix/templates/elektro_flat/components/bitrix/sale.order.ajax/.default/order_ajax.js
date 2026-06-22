@@ -7426,7 +7426,7 @@ BX.namespace('BX.Sale.OrderAjaxComponent');
 			deliveryError = curDelivery && curDelivery.CALCULATE_ERRORS && curDelivery.CALCULATE_ERRORS.length;
 			deliveryValue = deliveryError ? BX.message('SOA_NOT_CALCULATED') : total.DELIVERY_PRICE_FORMATED;
 
-			if (parseFloat(total.DELIVERY_PRICE) >= 0 && this.result.DELIVERY.length)
+			if (parseFloat(total.DELIVERY_PRICE) > 0 && this.result.DELIVERY.length)
 				this.totalInfoBlockNode.appendChild(this.createTotalUnit(BX.message('SOA_SUM_DELIVERY'), deliveryValue, {error: deliveryError}));
 
 			if (this.options.showPayedFromInnerBudget)

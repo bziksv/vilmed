@@ -1,0 +1,8 @@
+<?php
+
+$MESS['YANDEX_MARKET_LOGGER_LEVEL_EMERGENCY'] = 'Отключить';
+$MESS['YANDEX_MARKET_LOGGER_LEVEL_ERROR'] = 'Только ошибки';
+$MESS['YANDEX_MARKET_LOGGER_LEVEL_WARNING'] = 'Ошибки и предупреждения';
+$MESS['YANDEX_MARKET_LOGGER_LEVEL_INFO'] = 'Информация';
+$MESS['YANDEX_MARKET_LOGGER_LEVEL_NOTICE'] = 'Технические уведомления';
+$MESS['YANDEX_MARKET_LOGGER_LEVEL_DEBUG'] = 'Отладка';

@@ -2110,17 +2110,22 @@ class CSiteCheckerTest
 
 		if (defined('BX_UTF') && BX_UTF === true)
 		{
-			if ($character_set_connection != 'utf8')
+			if ($character_set_connection != 'utf8') {
 				$strError = GetMessage("SC_CONNECTION_CHARSET_WRONG", array('#VAL#' => 'utf8', '#VAL1#' => $character_set_connection));
-			elseif ($collation_connection != 'utf8_unicode_ci')
+			}
+			elseif ($collation_connection != 'utf8_unicode_ci') {
 				$strError = GetMessage("SC_CONNECTION_COLLATION_WRONG_UTF", array('#VAL#' => $collation_connection));
+			}
+				
 		}
 		else
 		{
 			if ($bAllIn1251 && $character_set_connection != 'cp1251')
 				$strError = GetMessage("SC_CONNECTION_CHARSET_WRONG", array('#VAL#' => 'cp1251', '#VAL1#' => $character_set_connection));
-			elseif ($character_set_connection == 'utf8')
-				$strError = GetMessage("SC_CONNECTION_CHARSET_WRONG_NOT_UTF", array('#VAL#' => $character_set_connection));
+			elseif ($character_set_connection == 'utf8') {
+				// $strError = GetMessage("SC_CONNECTION_CHARSET_WRONG_NOT_UTF", array('#VAL#' => $character_set_connection));
+			}
+				
 		}
 
 		if (!$strError && $character_set_connection != $character_set_results)

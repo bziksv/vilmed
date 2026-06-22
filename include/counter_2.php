@@ -15,8 +15,7 @@ style="width:88px; height:31px; border:0;" alt="Яндекс.Метрика" tit
    ym(55225453, "init", {
         clickmap:true,
         trackLinks:true,
-        accurateTrackBounce:true,
-        webvisor:true
+        accurateTrackBounce:true
    });
 </script>
 <noscript><div><img src="https://mc.yandex.ru/watch/55225453" style="position:absolute; left:-9999px;" alt="" /></div></noscript>

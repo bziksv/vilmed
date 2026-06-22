@@ -4,11 +4,30 @@ $this->setFrameMode(true);
 
 if(count($arResult) < 1)
 	return;
-
+	
+$moveTextInAttr = false;
+	
 global $arSetting;
+
+if(isProductDetail()){
+	$arSetting["CATALOG_VIEW"] = $arSetting["CATALOG_VIEW_PRODUCT"];
+	$moveTextInAttr = ($arSetting["MOVE_TEXT_IN_ATTR"]["VALUE"] == "Y") ? true : false;
+}
 
 $JS_HIDE = explode("\r\n", str_replace([' ', '.'], '', $arResult['PROPERTIES']['UF_DELETE_INDEX']));
 ?>
+
+<style>
+<? foreach($arResult as &$arItem): ?>
+	<? if(in_array($arItem["PARAMS"]["ID"], $JS_HIDE) || $moveTextInAttr): ?>
+	<? $arItem["CODE"] = explode('/',$arItem["LINK"])[2]; ?>
+	
+		.show_<?=$arItem["CODE"]?>:before{
+					content:'<?=$arItem["TEXT"]?>';
+		}
+	<? endif; ?>
+<? endforeach; ?>
+</style>
 
 <ul class="left-menu">
 	<?$previousLevel = 0;
@@ -24,8 +43,11 @@ $JS_HIDE = explode("\r\n", str_replace([' ', '.'], '', $arResult['PROPERTIES']['
                     <span class="more" onclick="$(this).toggleClass('open'); $(this).closest('.parent').find('.submenu').toggleClass('show');"></span>
                 <? endif; ?>
 
-                <? if(in_array($arItem["PARAMS"]["ID"], $JS_HIDE)): ?>
-                    <a href="<?=$arItem['LINK']?>" data-text_script='<?=$arItem["TEXT"]?><?if($arSetting["CATALOG_LOCATION"]["VALUE"] == "LEFT"):?><span class="arrow"></span><?endif;?>'></a>
+                <? if(in_array($arItem["PARAMS"]["ID"], $JS_HIDE) || $moveTextInAttr): ?>
+                    <a href="<?=$arItem['LINK']?>">
+						<span class="show_<?=$arItem["CODE"]?>"></span>
+						<?if($arSetting["CATALOG_LOCATION"]["VALUE"] == "LEFT"):?><span class="arrow"></span><?endif;?>
+					</a>
                 <? else: ?>
                     <a href="<?=$arItem['LINK']?>"><?=$arItem["TEXT"]?><?if($arSetting["CATALOG_LOCATION"]["VALUE"] == "LEFT"):?><span class="arrow"></span><?endif;?></a>
                 <? endif; ?>
@@ -35,8 +57,8 @@ $JS_HIDE = explode("\r\n", str_replace([' ', '.'], '', $arResult['PROPERTIES']['
 		<?else:
 			if($arItem["PERMISSION"] > "D"):?>
 				<li<?if($arItem["SELECTED"]):?> class="selected"<?endif?>>
-                    <? if(in_array($arItem["PARAMS"]["ID"], $JS_HIDE)): ?>
-                        <a href="<?=$arItem['LINK']?>" data-text_script="<?=$arItem["TEXT"]?>"></a>
+                    <? if(in_array($arItem["PARAMS"]["ID"], $JS_HIDE) || $moveTextInAttr): ?>
+                        <a href="<?=$arItem['LINK']?>" class="show_<?=$arItem["CODE"]?>"></a>
                     <? else: ?>
                         <a href="<?=$arItem['LINK']?>"><?=$arItem["TEXT"]?></a>
                     <? endif; ?>

@@ -67,7 +67,7 @@ if(!$_REQUEST["PAGEN_1"] || empty($_REQUEST["PAGEN_1"]) || $_REQUEST["PAGEN_1"] 
 
     <? if($arCurVendor["DETAIL_PICTURE"]["SRC"]): ?>
         <div>
-            <img src="<?=$arCurVendor["DETAIL_PICTURE"]["SRC"]?>" alt="<?=$arCurVendor["DETAIL_PICTURE"]["DESCRIPTION"]?>">
+            <img src="<?=$arCurVendor["DETAIL_PICTURE"]["SRC"]?>" alt="<?=$APPLICATION->ShowTitle(false);?>">
         </div>
     <? endif; ?>
     <div class="catalog_description">

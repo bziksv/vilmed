@@ -1,5 +1,6 @@
-© 2019-<?=date('Y');?> <a href="/upload/politics.pdf" target="_blank" class="footer__link">VilMed интернет-магазин медтехники</a>,<br>
- Доставляем по всей России. Работаем с физическими и юридическими лицами. <br>
- Вся информация на сайте представлена для ознакомления и не является публичной офертой. <br>
- <a href="/upload/politics.pdf" target="_blank" class="footer__link">Политика конфиденциальности </a><br>
- <a href="/upload/compliance.pdf" target="_blank" class="footer__link">Согласие на обработку персональных данных</a>
+© 2019-<?=date('Y');?> <a href="https://vilmed.ru/" target="_blank" class="footer__link">ВИЛМЕД интернет-магазин медтехники</a><br>
+ Доставляем по всей России. Работаем с физическими и юридическими лицами.<br>
+ Вся информация на сайте представлена для ознакомления и не является публичной офертой.<br>
+ <noindex>Мы используем файлы <a target="_blank" href="/upload/cookies-vilmed.png">cookie</a> для улучшения работы сайта, персонализации рекламы и анализа посещаемости сайта. Продолжая пользоваться сайтом, вы подтверждаете согласие с <a target="_blank" href="/upload/politics-vilmed.png">политикой обработки персональных данных</a> и правилами применения <a target="_blank" href="/upload/rules-recommendation-vilmed.png">рекомендательных технологий</a>. Вы можете отказаться, отключив сохранение cookies в настройках вашего браузера.</noindex>
+<!--<a href="/upload/politics.pdf" target="_blank" class="footer__link">Политика конфиденциальности </a><br>
+<a href="/upload/compliance.pdf" target="_blank" class="footer__link">Согласие на обработку персональных данных</a>-->

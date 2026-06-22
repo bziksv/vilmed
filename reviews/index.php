@@ -1,6 +1,6 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
-$APPLICATION->SetPageProperty("description", "Полезные обзоры оборудования, которые подготовили специалисты компании Vilmed");
-$APPLICATION->SetPageProperty("title", "Обзоры медицинского оборудования от компании Vilmed");
+$APPLICATION->SetPageProperty("description", "Полезные обзоры оборудования, которые подготовили специалисты компании Вилмед");
+$APPLICATION->SetPageProperty("title", "Обзоры медицинского оборудования от компании Вилмед");
 $APPLICATION->SetTitle("Обзоры и советы");?>
 
 <?$APPLICATION->IncludeComponent("bitrix:news", "stati", 

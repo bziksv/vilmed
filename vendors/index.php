@@ -1,6 +1,6 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetPageProperty("title", "Производители медицинского оборудования");
-$APPLICATION->SetPageProperty("description", "Vilmed поставляет медтехнику более чем от 300 производителей со всего мира! Реализуем оборудование и товары лучших российских и импортных брендов! Звоните +7 (499) 113-02-79");
+$APPLICATION->SetPageProperty("description", "Вилмед поставляет медтехнику более чем от 300 производителей со всего мира! Реализуем оборудование и товары лучших российских и импортных брендов! Звоните +7 (499) 113-02-79");
 $APPLICATION->SetTitle("Производители медицинского оборудования и товаров");?><?$APPLICATION->IncludeComponent(
 	"bitrix:news", 
 	"vendors", 

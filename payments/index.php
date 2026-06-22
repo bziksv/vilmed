@@ -1,9 +1,10 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetPageProperty("description", "МИНИМАЛЬНАЯ СУММА ОТГРУЗКИ: на оборудование - 5 000₽ на инструментарий и расходные материалы - 10 000₽");
-$APPLICATION->SetPageProperty("title", "Способы оплаты в интернет-магазине Vilmed");
-$APPLICATION->SetTitle("Способы оплаты");?><h2 style="text-align: center;">МИНИМАЛЬНАЯ СУММА ОТГРУЗКИ:</h2>
-<h2 style="text-align: center;">на оборудование - 5 000₽</h2>
-<h2 style="text-align: center;">на инструментарий и расходные материалы - 10 000₽</h2>
+$APPLICATION->SetPageProperty("title", "Способы оплаты в интернет-магазине Вилмед");
+$APPLICATION->SetTitle("Способы оплаты");?><h2 style="text-align: center;">МИНИМАЛЬНАЯ СУММА ОТГРУЗКИ 10 000₽</h2>
+<br>
+<!--<h2 style="text-align: center;">на оборудование - 5 000₽</h2>
+<h2 style="text-align: center;">на инструментарий и расходные материалы - 10 000₽</h2-->
  <?$APPLICATION->IncludeComponent(
 	"bitrix:catalog.section.list",
 	"payments",

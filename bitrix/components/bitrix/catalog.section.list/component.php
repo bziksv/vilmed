@@ -165,7 +165,7 @@ if ($this->startResultCache(
 		unset($field);
 	}
 	$arSelect = array_unique($arSelect);
-
+	
 	$arResult["SECTION"] = false;
 	$intSectionDepth = 0;
 	if($arParams["SECTION_ID"]>0)
@@ -182,7 +182,7 @@ if ($this->startResultCache(
 		$rsSections->SetUrlTemplates("", $arParams["SECTION_URL"]);
 		$arResult["SECTION"] = $rsSections->GetNext();
 	}
-
+	
 	if (is_array($arResult["SECTION"]))
 	{
 		$arResult["SECTION"]["~ELEMENT_CNT"] = null;
