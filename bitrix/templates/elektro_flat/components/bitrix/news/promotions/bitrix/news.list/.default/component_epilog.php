@@ -16,7 +16,8 @@ Loc::loadMessages(__FILE__);?>
 		endif;?>
 		<a class="promotions__item<?=($arCompareDates <= 0 ? ' completed' : '');?>" href="<?=$arItem["DETAIL_PAGE_URL"]?>">
 			<span class="promotions__item-image-wrap">
-				<span class="promotions__item-image lazy-fadein" data-src="<?=(is_array($arItem["PREVIEW_PICTURE"]) ? $arItem["PREVIEW_PICTURE"]["SRC"] : "");?>"></span>
+				<?php $promoImgSrc = is_array($arItem["PREVIEW_PICTURE"]) ? $arItem["PREVIEW_PICTURE"]["SRC"] : ""; ?>
+				<span class="promotions__item-image"<?=($promoImgSrc ? ' data-was-processed="true" style="background-image:url('.htmlspecialcharsbx($promoImgSrc).');"' : '')?>></span>
 				<?if($arItem["PROPERTIES"]["TIMER"]["VALUE"] != false && !empty($arItem["ACTIVE_TO"])):
 					$new_date = ParseDateTime($arItem["ACTIVE_TO"], FORMAT_DATETIME);
 					if(!$new_date["HH"])
