@@ -2,176 +2,128 @@
 define("NEED_AUTH", true);
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 
-$APPLICATION->SetTitle("Поиск разделов");
+$APPLICATION->SetTitle("Поиск разделов каталога");
 ?>
-<link rel="stylesheet" href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.2.2/css/buttons.dataTables.css">
+<div class="categoryfinder-admin"
+     data-list-url="/category-finder/scripts/server.php"
+     data-update-url="/category-finder/scripts/update.php">
 
-<style>
-	div.dt-processing {
-		position: fixed;
-	}
-	.filter-form {
-		display: flex;
-		justify-content: flex-start;
-		gap: 10px;
-	}
-	.filter-group {
-		display: flex;
-		flex-direction: column;
-		justify-content: end;
-		align-items: start;
-		flex-grow: 1;
-	}
-	
-	select {
-		width: 100%;
-	}
-	
-	th {
-		white-space: nowrap;
-	}
-</style>
+    <p class="hint categoryfinder-admin__intro">
+        Поиск разделов по уровню вложенности и количеству товаров. Поле «Свои» — элементы, привязанные напрямую к разделу; на витрине каталог также показывает товары из подразделов (<code>INCLUDE_SUBSECTIONS=Y</code>).
+    </p>
 
-<div class="filter-form">
-	<div class="filter-group">
-		<label>ИнфоБлок ID</label>
-		<input type="number" placeholder="ИнфоБлок" id="filter_iblock" value="24">
-	</div>
-	<div class="filter-group">
-		<label data-tippy-content="Уровень вложенности, с которого происходит поиск. Категории уровнем выше не будут входить в результат поиска.">Уровень (?)</label>
-		<input type="number" min="1" placeholder="Уровень" id="filter_level" value="1">
-	</div>
-	<div class="filter-group">
-		<label>Кол-во элементов</label>
-		<input type="number" placeholder="Количество элементов" id="filter_cnt" value="0">		
-	</div>
-	<div class="filter-group">
-		<label>Активность</label>
-		<select id="filter_active">
-			<option value="">Все</option>
-			<option value="1" selected>Да</option>
-			<option value="0">Нет</option>
-		</select>
-	</div>
-	<div class="filter-group">
-		<label>Без редиректа</label>
-		<select id="filter_redirect">
-			<option value="">Все</option>
-			<option value="1" selected>Да</option>
-			<option value="0">Нет</option>
-		</select>
-	</div>
-	<div class="filter-group">
-		<label id="without-prod-hide" data-tippy-content="Ставится галочка и показывается список категорий, который мы считаем корректным, чаще всего это родительские категории, которые выводят в себе товары с подкатегорий.">Без товаров (?)</label>
-		<select id="filter_without_prod">
-			<option value="">Все</option>
-			<option value="1">Да</option>
-			<option value="0">Нет</option>
-		</select>
-	</div>
-	<div class="filter-group">
-		<input type="submit" id="filter_btn" value="Отправить">
-	</div>
+    <div class="categoryfinder-filters">
+        <div class="categoryfinder-filter">
+            <label for="cf-filter-iblock">
+                ИнфоБлок ID
+                <span class="cf-tip" tabindex="0" data-tip="ID инфоблока каталога. По умолчанию 24 — основной каталог vilmed.ru.">(?)</span>
+            </label>
+            <input type="number" min="1" id="cf-filter-iblock" value="24">
+        </div>
+        <div class="categoryfinder-filter">
+            <label for="cf-filter-level">
+                Уровень
+                <span class="cf-tip" tabindex="0" data-tip="Уровень вложенности, с которого начинается поиск. Разделы с меньшим уровнем не попадут в результат.">(?)</span>
+            </label>
+            <input type="number" min="1" id="cf-filter-level" value="1">
+        </div>
+        <div class="categoryfinder-filter">
+            <label for="cf-filter-cnt">
+                Свои товары
+                <span class="cf-tip" tabindex="0" data-tip="Число элементов, напрямую привязанных к разделу. Не учитывает товары подразделов, даже если они выводятся на витрине.">(?)</span>
+            </label>
+            <input type="number" min="0" id="cf-filter-cnt" value="0">
+        </div>
+        <div class="categoryfinder-filter">
+            <label for="cf-filter-storefront">
+                На витрине
+                <span class="cf-tip" tabindex="0" data-tip="Как раздел выглядит для покупателя. «Из подкат.» — своих товаров 0, но в поддереве есть товары. «Пусто» — на странице раздела товаров не будет.">(?)</span>
+            </label>
+            <select id="cf-filter-storefront">
+                <option value="">Все</option>
+                <option value="empty">Пусто</option>
+                <option value="from_sub">Из подкат.</option>
+                <option value="own">Есть свои</option>
+                <option value="any">Есть товары</option>
+            </select>
+        </div>
+        <div class="categoryfinder-filter categoryfinder-filter--name">
+            <label for="cf-filter-name">
+                Название
+                <span class="cf-tip" tabindex="0" data-tip="Поиск по части названия раздела. Регистр не важен.">(?)</span>
+            </label>
+            <input type="text" id="cf-filter-name" value="" placeholder="Часть названия…">
+        </div>
+        <div class="categoryfinder-filter">
+            <label for="cf-filter-active">
+                Активность
+                <span class="cf-tip" tabindex="0" data-tip="Да — только активные разделы. Нет — только неактивные.">(?)</span>
+            </label>
+            <select id="cf-filter-active">
+                <option value="">Все</option>
+                <option value="1" selected>Да</option>
+                <option value="0">Нет</option>
+            </select>
+        </div>
+        <div class="categoryfinder-filter">
+            <label for="cf-filter-redirect">
+                Без редиректа
+                <span class="cf-tip" tabindex="0" data-tip="Да — исключить разделы-редиректы (CODE заканчивается на «-r»). Нет — показать только редиректы.">(?)</span>
+            </label>
+            <select id="cf-filter-redirect">
+                <option value="">Все</option>
+                <option value="1" selected>Да</option>
+                <option value="0">Нет</option>
+            </select>
+        </div>
+        <div class="categoryfinder-filter">
+            <label for="cf-filter-without-prod">
+                Без товаров
+                <span class="cf-tip" tabindex="0" data-tip="Фильтр по отметке UF_WITHOUT_PROD. Так помечают родительские разделы, где товары выводятся из подкатегорий.">(?)</span>
+            </label>
+            <select id="cf-filter-without-prod">
+                <option value="">Все</option>
+                <option value="1">Да</option>
+                <option value="0">Нет</option>
+            </select>
+        </div>
+        <div class="categoryfinder-filter">
+            <label for="cf-filter-duplicate">
+                Дубликаты
+                <span class="cf-tip" tabindex="0" data-tip="По названию — одинаковые названия. По URL — схожие символьные коды (ЧПУ). Совместный — совпадает и название, и схожий CODE.">(?)</span>
+            </label>
+            <select id="cf-filter-duplicate">
+                <option value="">Нет</option>
+                <option value="name">По названию</option>
+                <option value="url">По URL</option>
+                <option value="both">Совместный</option>
+            </select>
+        </div>
+        <div class="categoryfinder-filter categoryfinder-filter--similarity">
+            <label for="cf-filter-duplicate-similarity">
+                Схожесть URL, %
+                <span class="cf-tip" tabindex="0" data-tip="Порог схожести символьного кода для режимов «По URL» и «Совместный». 100 — только полное совпадение slug.">(?)</span>
+            </label>
+            <input type="number" min="50" max="100" id="cf-filter-duplicate-similarity" value="85">
+        </div>
+        <div class="categoryfinder-filter categoryfinder-filter--action">
+            <div class="categoryfinder-filter__actions">
+                <button type="button" class="btn btn-primary" id="cf-filter-btn">Найти</button>
+                <button type="button" class="btn btn-default" id="cf-filter-reset-btn">По умолчанию</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="categoryfinder-status" id="cf-status" aria-live="polite" hidden></div>
+
+    <div class="categoryfinder-dup-legend" id="cf-dup-legend" hidden></div>
+
+    <div class="categoryfinder-table-wrap">
+        <table id="cf-category-table" class="display compact" style="width:100%"></table>
+    </div>
 </div>
 
-<hr>
-
-<table id="example" class="display compact" style="width:100%">
-    <thead>
-    <tr>
-        <th>#</th>
-        <th>Уровень</th>
-        <th>ID</th>
-        <th>Кол-во</th>
-        <th>Акт.</th>
-        <th>Название</th>
-        <th>Ссылка</th>
-		<th>Без товаров</th>
-    </tr>
-    </thead>
-</table>
-
-
-<script src="https://cdn.datatables.net/2.2.2/js/dataTables.js"></script>
-<script src="https://cdn.datatables.net/buttons/3.2.2/js/dataTables.buttons.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/3.2.2/js/buttons.html5.min.js"></script>
-
-<script src="https://unpkg.com/@popperjs/core@2"></script>
-<script src="https://unpkg.com/tippy.js@6"></script>
-
-<script>
-    let table = $('#example').DataTable({
-        "processing": true,
-        "serverSide": true,
-		language: {
-			"info": "",
-			"infoEmpty": "",
-			"infoFiltered": "Всего записей: _MAX_",
-		},
-        ajax: {
-            url: 'scripts/server.php',
-            type: 'POST',
-            data: function (d) {
-                d.filter_iblock = $('#filter_iblock').val();
-                d.filter_cnt = $('#filter_cnt').val();
-                d.filter_level = $('#filter_level').val();
-                d.filter_active = $('#filter_active').val();
-                d.filter_redirect = $('#filter_redirect').val();
-                d.filter_without_prod = $('#filter_without_prod').val();
-            }
-        },
-        paging: false,
-        ordering: false,
-        searching: false,
-        autoWidth: false,
-        "dom": 'Bifrt',
-        "buttons": [
-            {
-                extend: 'excelHtml5',
-                text: 'Скачать Excel',
-            }
-        ],
-		columnDefs: [
-			{
-				render: function (data) {
-					
-					let checkbox = $("<input />", {
-						class: 'without-prod-check',
-						type: 'checkbox',
-						value: '1',
-					});
-					
-					checkbox.attr('checked', data);
-					
-					return checkbox[0].outerHTML;
-				},
-				targets: -1,
-			},
-		],
-    });
-
-    $('#filter_btn').on('click', function () {
-        table.draw();
-    });
-	
-	$('#example tbody').on('click', '.without-prod-check', function () {
-		let self = $(this);
-		let data = table.row(self.parents('tr')).data();
-		let ID = data[2];
-		let state = self.prop('checked');
-					
-		$.ajax({
-			url: '/category-finder/scripts/update.php',
-			type: 'post',
-			dataType: 'html',
-			data: { ID: ID, WITHOUT_PROD: state }
-		});
-	});
-	
-	tippy('[data-tippy-content]');
-	
-</script>
+<link rel="stylesheet" href="/category-finder/css/admin.css?v=4">
+<script src="/category-finder/js/admin.js?v=4"></script>
 
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>

@@ -212,7 +212,8 @@ Loc::loadMessages(__FILE__);
 				<div class="center<?=($arSetting['SITE_BACKGROUND']['VALUE'] == 'Y' ? ' inner' : '');?>">
 					<div class="content">
 						<?$inOrderPage = CSite::InDir("/personal/order/make/");
-						if(!$inOrderPage):?>
+						$hideLeftColumn = $inOrderPage || $APPLICATION->GetDirProperty("HIDE_LEFT_COLUMN") == "Y";
+						if(!$hideLeftColumn):?>
 							<div class="left-column">
 								<?if($APPLICATION->GetDirProperty("PERSONAL_SECTION")):?>
 									<div class="h3"><?=Loc::getMessage("PERSONAL_HEADER");?></div>
@@ -443,7 +444,7 @@ Loc::loadMessages(__FILE__);
                                 <?}?>
 							</div>
 						<?endif;?>
-						<div class="workarea<?=($inOrderPage ? ' workarea-order' : '');?>">
+						<div class="workarea<?=($hideLeftColumn ? ' workarea-order' : '');?>">
 							<?if($APPLICATION->GetCurPage(true)== SITE_DIR."index.php"):
 								if(in_array("SLIDER", $arSetting["HOME_PAGE"]["VALUE"])):?>
 									<?$APPLICATION->IncludeComponent("bitrix:main.include", "",

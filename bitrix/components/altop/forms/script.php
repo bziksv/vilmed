@@ -1,11 +1,13 @@
 <?define("NOT_CHECK_PERMISSIONS", true);
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_before.php");
+require_once($_SERVER["DOCUMENT_ROOT"]."/include/altop_ajax_safe.php");
 
 use Bitrix\Main\Loader,
 	Bitrix\Main\Localization\Loc,
 	Bitrix\Main\Application,
 	Bitrix\Main\Config\Option,
-	Bitrix\Main\Mail\Event;
+	Bitrix\Main\Mail\Event,
+	Bitrix\Main\Web\Json;
 
 if(!Loader::IncludeModule("iblock"))
 	return;
@@ -15,33 +17,59 @@ Loc::loadMessages(__FILE__);
 global $APPLICATION;
 
 $request = Application::getInstance()->getContext()->getRequest();
+$error = "";
 
-$paramsString = $request->getPost("PARAMS_STRING");
-if(!empty($paramsString))
-	$params = unserialize(base64_decode(strtr($paramsString, "-_,", "+/=")));
+if (!check_bitrix_sessid()) {
+	$error .= Loc::getMessage("ERROR_MESSAGE") ? Loc::getMessage("ERROR_MESSAGE")."<br />" : "Session check failed.<br />";
+}
 
-$iblockString = $request->getPost("IBLOCK_STRING");
-if(!empty($iblockString))
-	$iblock = unserialize(base64_decode(strtr($iblockString, "-_,", "+/=")));
+$params = altopAjaxSafeDecode($request->getPost("PARAMS_STRING"));
+$iblockClient = altopAjaxSafeDecode($request->getPost("IBLOCK_STRING"));
+
+if ($error === "" && (!is_array($params) || !is_array($iblockClient))) {
+	$error .= Loc::getMessage("ERROR_MESSAGE") ? Loc::getMessage("ERROR_MESSAGE")."<br />" : "Invalid request data.<br />";
+}
+
+$iblock = null;
+if ($error === "") {
+	$iblockId = (int)($iblockClient["ID"] ?? 0);
+	if ($iblockId <= 0) {
+		$error .= Loc::getMessage("ERROR_MESSAGE") ? Loc::getMessage("ERROR_MESSAGE")."<br />" : "Invalid iblock.<br />";
+	} else {
+		$iblock = altopAjaxLoadIblockFormData($iblockId);
+		if (!$iblock) {
+			$error .= Loc::getMessage("ERROR_MESSAGE") ? Loc::getMessage("ERROR_MESSAGE")."<br />" : "IBlock not found.<br />";
+		}
+	}
+}
+
+if ($error === "" && is_array($params)) {
+	$params["VALIDATE_PHONE_MASK"] = altopAjaxGetPhoneValidateMask();
+	$params["ELEMENT_NAME"] = mb_substr(strip_tags((string)($params["ELEMENT_NAME"] ?? "")), 0, 500);
+	$params["ELEMENT_PRICE"] = mb_substr(strip_tags((string)($params["ELEMENT_PRICE"] ?? "")), 0, 100);
+}
 
 $captchaWord = $request->getPost("CAPTCHA_WORD");
 $captchaSid = $request->getPost("CAPTCHA_SID");
 
 //REQUARED//
-foreach($iblock["PROPERTIES"] as $arProp) {
-	if($arProp["CODE"] != "PRODUCT" && $arProp["CODE"] != "PRODUCT_PRICE") {
-		if($arProp["IS_REQUIRED"] == "Y") {
-			$requared[] = array(
-				"CODE" => $arProp["CODE"],
-				"NAME" => $arProp["NAME"]
-			);
+$requared = [];
+if ($error === "" && is_array($iblock)) {
+	foreach($iblock["PROPERTIES"] as $arProp) {
+		if($arProp["CODE"] != "PRODUCT" && $arProp["CODE"] != "PRODUCT_PRICE") {
+			if($arProp["IS_REQUIRED"] == "Y") {
+				$requared[] = array(
+					"CODE" => $arProp["CODE"],
+					"NAME" => $arProp["NAME"]
+				);
+			}
 		}
 	}
+	unset($arProp);
 }
-unset($arProp);
 
 //CHECKS//
-if(isset($requared) && !empty($requared)) {
+if($error === "" && !empty($requared)) {
 	foreach($requared as $arProp) {
 		$post = $request->getPost($arProp["CODE"]);
 		if(empty($post))
@@ -53,24 +81,26 @@ unset($requared);
 
 //CHECKS_PERSONAL_DATA//
 $personalData = $request->getPost("PERSONAL_DATA");
-if($personalData === "N") {
+if($error === "" && $personalData === "N") {
 	$error .= Loc::getMessage("FIELD_NOT_FILLED_PERSONAL_DATA")."<br />";
 }
 
 //VALIDATE_PHONE_MASK//
-foreach($iblock["PROPERTIES"] as $arProp) {
-	if($arProp["CODE"] == "PHONE") {
-		$post = $request->getPost($arProp["CODE"]);
-		if(!empty($post)) {
-			if(!preg_match($params["VALIDATE_PHONE_MASK"], $post)) {
-				$error .= Loc::getMessage("FIELD_INVALID", array("#FIELD#" => $arProp["NAME"]))."<br />";
+if ($error === "" && is_array($iblock) && is_array($params) && !empty($params["VALIDATE_PHONE_MASK"])) {
+	foreach($iblock["PROPERTIES"] as $arProp) {
+		if($arProp["CODE"] == "PHONE") {
+			$post = $request->getPost($arProp["CODE"]);
+			if(!empty($post)) {
+				if(!@preg_match($params["VALIDATE_PHONE_MASK"], $post)) {
+					$error .= Loc::getMessage("FIELD_INVALID", array("#FIELD#" => $arProp["NAME"]))."<br />";
+				}
 			}
 		}
 	}
+	unset($arProp);
 }
-unset($arProp);
 
-if(!empty($captchaSid) && !$APPLICATION->CaptchaCheckCode($captchaWord, $captchaSid))
+if($error === "" && !empty($captchaSid) && !$APPLICATION->CaptchaCheckCode($captchaWord, $captchaSid))
 	$error .= Loc::getMessage("WRONG_CAPTCHA")."<br />";
 
 if(!empty($error)) {
@@ -80,13 +110,16 @@ if(!empty($error)) {
 			"captcha_code" => !empty($captchaSid) ? $APPLICATION->CaptchaGetCode() : ""
 		)
 	);
-	echo Bitrix\Main\Web\Json::encode($result);
+	echo Json::encode($result);
 	return;
 }
 
 //PROPERTIES//
 $arProps = $arPropsMess = array();
 foreach($iblock["PROPERTIES"] as $arProp) {
+	if(!altopAjaxIsValidPropertyCode($arProp["CODE"])) {
+		continue;
+	}
 	if($arProp["CODE"] == "PRODUCT") {
 		$arProps[$arProp["CODE"]] = $params["ELEMENT_NAME"];
 		$arPropsMess[$arProp["CODE"]] = $params["ELEMENT_NAME"];
@@ -108,9 +141,15 @@ foreach($iblock["PROPERTIES"] as $arProp) {
 					$arProps[$arProp["CODE"]] = iconv("UTF-8", SITE_CHARSET, strip_tags(trim($post)));
 				}
 				$arPropsMess[$arProp["CODE"]] = iconv("UTF-8", SITE_CHARSET, strip_tags(trim($post)));
-			} elseif($arProp["PROPERTY_TYPE"] == "F") {
+			} elseif($arProp["PROPERTY_TYPE"] == "F" && is_array($post)) {
 				foreach($post as $arFile) {
-                    $arProps[$arProp["CODE"]][] = CFile::MakeFileArray($_SERVER["DOCUMENT_ROOT"].$arFile["tmp_name"]);
+					if (!is_array($arFile)) {
+						continue;
+					}
+					$fileArray = altopAjaxMakeFileFromPosted($arFile);
+					if ($fileArray) {
+						$arProps[$arProp["CODE"]][] = $fileArray;
+					}
 				}
 				unset($arFile);
 			}
@@ -214,4 +253,4 @@ if($elementId = $el->Add($arFields)) {
 	);
 }
 
-echo Bitrix\Main\Web\Json::encode($result);?>
+echo Json::encode($result);?>

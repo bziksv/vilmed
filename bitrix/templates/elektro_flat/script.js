@@ -141,7 +141,7 @@ function addToDelay(id, qnt_cont, props, select_props, btn, site_dir, dsbl) {
 	$.ajax({
 		type: "POST",
 		url: site_dir + "ajax/add2delay.php",
-		data: "id=" + id + "&qnt=" + $("#" + qnt_cont).val() + "&props=" + props + "&select_props=" +select_props,
+		data: "id=" + id + "&qnt=" + $("#" + qnt_cont).val() + "&props=" + props + "&select_props=" + select_props + "&sessid=" + BX.bitrix_sessid(),
 		success: function(html){
 			$.post(site_dir + "ajax/delay_line.php", function(data) {
 				$(".delay_line").replaceWith(data);

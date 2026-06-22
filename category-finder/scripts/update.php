@@ -5,18 +5,31 @@ define('NO_KEEP_STATISTIC', 'Y');
 define('STOP_STATISTICS', true);
 define('BX_SECURITY_SHOW_MESSAGE', true);
 
-require_once($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/main/include/prolog_before.php');
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_before.php');
+require_once __DIR__ . '/CategoryFinderService.php';
 
 use Bitrix\Main\Loader;
-use Bitrix\Iblock\SectionTable;
-use Bitrix\Iblock\ElementTable;
-use Bitrix\Main\Entity\Query;
-use Bitrix\Main\Entity\ReferenceField;
 
-Loader::includeModule("iblock");
+Loader::includeModule('iblock');
 
-$ID = $_POST["ID"];
-$WITHOUT_PROD = $_POST["WITHOUT_PROD"] == 'true' ? true : false;
+global $USER;
+header('Content-Type: application/json; charset=utf-8');
 
-echo (new CIBlockSection)->Update($ID, ["UF_WITHOUT_PROD" => $WITHOUT_PROD]); 
+if (!$USER->IsAuthorized()) {
+    http_response_code(403);
+    echo json_encode(['status' => 'fail', 'error' => 'auth required']);
+    exit;
+}
 
+$id = (int)($_POST['id'] ?? $_POST['ID'] ?? 0);
+$withoutProd = filter_var($_POST['without_prod'] ?? $_POST['WITHOUT_PROD'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+if (!$id) {
+    http_response_code(400);
+    echo json_encode(['status' => 'fail', 'error' => 'id required']);
+    exit;
+}
+
+$ok = (new CategoryFinderService())->setWithoutProd($id, $withoutProd);
+
+echo json_encode(['status' => $ok ? 'ok' : 'fail']);

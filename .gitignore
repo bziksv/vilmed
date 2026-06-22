@@ -1,5 +1,6 @@
 bitrix/templates/elektro_flat/admin/description/*
 upload/*
+assets/
 bitrix/php_interface/*
 !/bitrix/php_interface/init.php
 bitrix/.settings.php

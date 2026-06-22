@@ -25,6 +25,7 @@ if(!window.BX.FormSubmit) {
 		}
 		
 		
+		data.sessid = BX.bitrix_sessid();
 		BX.ajax({
 			url: form.getAttribute("action"),
 			data: data,

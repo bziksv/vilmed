@@ -1,25 +1,40 @@
 <?php
 session_start();
 
-// Генерируем случайное число от 1 до 10 и сохраняем его в сессию
+function vilmedCaptchaSafeRedirect($url)
+{
+	$url = trim((string)$url);
+	if ($url === "" || strlen($url) > 2000) {
+		return "/";
+	}
+	if ($url[0] === "/" && ($url[1] ?? "") !== "/") {
+		return $url;
+	}
+	$parts = parse_url($url);
+	if (empty($parts["host"])) {
+		return "/";
+	}
+	$reqHost = isset($_SERVER["HTTP_HOST"]) ? strtolower(preg_replace("~:\d+$~", "", (string)$_SERVER["HTTP_HOST"])) : "";
+	$urlHost = strtolower(preg_replace("~:\d+$~", "", (string)$parts["host"]));
+	if ($reqHost !== "" && $urlHost === $reqHost) {
+		return $url;
+	}
+	return "/";
+}
+
 $_SESSION['captcha'] = rand(1, 10);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['captcha'])) {
-    // Проверяем правильность ввода капчи
-    $captcha = (int) $_POST['captcha'];
+	$captcha = (int) $_POST['captcha'];
+	$page = vilmedCaptchaSafeRedirect($_POST['page'] ?? '/');
 
-    if ($captcha === $_SESSION['captcha']) {
-        // Возвращаемся на исходную страницу
-        header('Location: ' . $_POST['page']);
-        exit;
-    } else {
-        // Выводим сообщение об ошибке
-        header('Location: captcha.php?error=Извините вы ошиблись, попробуйте снова');
-        exit;
-    }
+	if ($captcha === $_SESSION['captcha']) {
+		header('Location: ' . $page);
+		exit;
+	}
+	header('Location: captcha.php?error=Извините вы ошиблись, попробуйте снова');
+	exit;
 }
-
-?>
 
 
 <!DOCTYPE html>
@@ -101,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['captcha'])) {
 
         Введите цифру <?php echo $_SESSION['captcha'];?> ниже:</label>
         <input type="number" name="captcha" id="captcha" required>
-        <input type="hidden" name="page" value="<?php echo $_SERVER['HTTP_REFERER']; ?>">
+        <input type="hidden" name="page" value="<?php echo htmlspecialcharsbx($_SERVER['HTTP_REFERER'] ?? '/'); ?>">
         <input type="submit" value="Отправить">
         <?php if (isset($_GET['error'])): ?>
             <div class="error-message"><?php echo $_GET['error']; ?></div>

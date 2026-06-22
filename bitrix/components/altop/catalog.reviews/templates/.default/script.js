@@ -26,6 +26,7 @@ if(!window.BX.ReviewFormSubmit) {
 		}
 		
 		var wait = BX.showWait(popup);
+		data.sessid = BX.bitrix_sessid();
 		BX.ajax({
 			url: form.getAttribute("action"),
 			data: data,

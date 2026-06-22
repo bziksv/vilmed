@@ -5,111 +5,114 @@ define('NO_KEEP_STATISTIC', 'Y');
 define('STOP_STATISTICS', true);
 define('BX_SECURITY_SHOW_MESSAGE', true);
 
-require_once($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/main/include/prolog_before.php');
+require_once($_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_before.php');
+require_once __DIR__ . '/CategoryFinderService.php';
 
 use Bitrix\Main\Loader;
-use Bitrix\Iblock\SectionTable;
-use Bitrix\Iblock\ElementTable;
-use Bitrix\Main\Entity\Query;
-use Bitrix\Main\Entity\ReferenceField;
 use Bitrix\Main\Context;
 
-Loader::includeModule("iblock");
+Loader::includeModule('iblock');
 
-$request = Context::getCurrent()->getRequest();
-$protocol = $request->isHttps() ? "https" : "http";
-$domain = $request->getHttpHost();
-$url = $protocol . "://" . $domain;
-
-$IBLOCK_ID = $_POST['filter_iblock'] ?? false;
-$ELEMENT_COUNT = $_POST['filter_cnt'] ?? false;
-$DEPTH_LEVEL = $_POST['filter_level'] ?? false;
-$ACTIVE = $_POST['filter_active'];
-$REDIRECT_FILTER = $_POST['filter_redirect'];
-$WITHOUT_PROD = $_POST['filter_without_prod'];
-
-$data = [];
-
-if ($IBLOCK_ID && $DEPTH_LEVEL) {
-	
-	$arFilter = [
-		'IBLOCK_ID' => $IBLOCK_ID,
-		'>=DEPTH_LEVEL' => $DEPTH_LEVEL,
-	];
-	
-	if ($ACTIVE == "1") {
-		$arFilter['ACTIVE'] = "Y";
-	} else if ($ACTIVE == "0") {
-		$arFilter['ACTIVE'] = "N";
-	}
-	
-	if ($REDIRECT_FILTER == "1") {
-		$arFilter['!CODE'] = "%-r";
-	} else if ($REDIRECT_FILTER == "0") {
-		$arFilter['CODE'] = "%-r";
-	}
-	
-	if ($WITHOUT_PROD == "1") {
-		$arFilter['UF_WITHOUT_PROD'] = true;
-	} else if ($WITHOUT_PROD == "0") {
-		$arFilter['UF_WITHOUT_PROD'] = false;
-	}
-	
-	$SECTIONS = [];
-	$db_list = CIBlockSection::GetList([], $arFilter, true, ['ID']);
-	while($ar_result = $db_list->GetNext())
-	{
-		$SECTIONS[$ar_result['ELEMENT_CNT']][] = $ar_result['ID'];
-	}
-	
-	$arOrder = ['depth_level' => 'asc', 'name' => 'asc'];
-	$arSelects = ['IBLOCK_ID', 'ACTIVE', 'ID', 'CODE', 'NAME', 'SECTION_PAGE_URL', 'DEPTH_LEVEL', 'UF_WITHOUT_PROD'];
-	$arFilters = ['IBLOCK_ID' => $IBLOCK_ID, 'ID' => []];
-
-	if (is_numeric($ELEMENT_COUNT)) {
-		if (isset($SECTIONS[$ELEMENT_COUNT])) {
-			$arFilters['ID'] = $SECTIONS[$ELEMENT_COUNT];
-		}
-	} else if(is_string($ELEMENT_COUNT)) {
-		$arIds = [];
-			
-		array_walk_recursive($SECTIONS, function ($item) use (&$arIds) {
-			$arIds[] = $item;
-		});
-			
-		$arFilters['ID'] = $arIds;
-	}
-	
-	if (count($arFilters['ID']) > 0) {
-		$db_list = CIBlockSection::GetList($arOrder, $arFilters, true, $arSelects);
-		$i = 0;
-		while($ar_result = $db_list->GetNext())
-		{
-			$i++;
-			
-			$SECTION_ID = $ar_result['ID'];
-			$NAME = $ar_result['NAME'];
-			$CODE = $ar_result['CODE'];
-			$adminUrl = "/bitrix/admin/iblock_section_edit.php?IBLOCK_ID=$IBLOCK_ID&ID=$SECTION_ID&lang=ru";
-			$siteUrl = $ar_result['SECTION_PAGE_URL'];
-			$urlText = implode([$url, $siteUrl]);
-
-			$data[] = [
-				$i,
-				$ar_result['DEPTH_LEVEL'],
-				$ar_result['ID'],
-				$ar_result['ELEMENT_CNT'],
-				($ar_result['ACTIVE'] == 'Y') ? 'Да' : 'Нет',
-				"<a href='$adminUrl' target='_blank'>$NAME</a>",
-				"<a href='$siteUrl' target='_blank'>$urlText</a>",
-				$ar_result['UF_WITHOUT_PROD'] ? true : false,
-			];
-		}		
-	}
+global $USER;
+if (!$USER->IsAuthorized()) {
+    http_response_code(403);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['error' => 'auth required']);
+    exit;
 }
 
-echo json_encode([
-	'draw' => $_POST['draw'],
-    'data' => $data,
-	'recordsTotal' => count($data)
+$request = Context::getCurrent()->getRequest();
+$protocol = $request->isHttps() ? 'https' : 'http';
+$domain = $request->getHttpHost();
+$siteUrlPrefix = $protocol . '://' . $domain;
+
+$duplicateMode = (string)($_POST['filter_duplicate'] ?? '');
+
+$service = new CategoryFinderService();
+$rows = $service->getList([
+    'iblock_id' => (int)($_POST['filter_iblock'] ?? 24),
+    'level' => (int)($_POST['filter_level'] ?? 1),
+    'cnt' => $_POST['filter_cnt'] ?? '',
+    'active' => $_POST['filter_active'] ?? '',
+    'redirect' => $_POST['filter_redirect'] ?? '',
+    'without_prod' => $_POST['filter_without_prod'] ?? '',
+    'name' => trim((string)($_POST['filter_name'] ?? '')),
+    'storefront' => (string)($_POST['filter_storefront'] ?? ''),
+    'duplicate' => $duplicateMode,
+    'duplicate_similarity' => (int)($_POST['filter_duplicate_similarity'] ?? CategoryFinderService::DEFAULT_URL_SIMILARITY),
 ]);
+
+$data = [];
+$duplicateGroupCount = 0;
+
+foreach ($rows as $i => $row) {
+    $name = htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8');
+    $adminUrl = htmlspecialchars($row['admin_url'], ENT_QUOTES, 'UTF-8');
+    $publicPath = htmlspecialchars($row['public_url'], ENT_QUOTES, 'UTF-8');
+    $publicTitle = htmlspecialchars($siteUrlPrefix . $row['public_url'], ENT_QUOTES, 'UTF-8');
+    $code = htmlspecialchars($row['code'], ENT_QUOTES, 'UTF-8');
+    $storefrontLabel = htmlspecialchars($row['storefront_label'], ENT_QUOTES, 'UTF-8');
+    $duplicateGroup = (int)$row['duplicate_group'];
+
+    if ($duplicateGroup > $duplicateGroupCount) {
+        $duplicateGroupCount = $duplicateGroup;
+    }
+
+    $data[] = [
+        $i + 1,
+        $row['depth'],
+        $row['id'],
+        $row['count'],
+        !empty($row['include_sub_categories']) ? 'Да' : 'Нет',
+        (int)$row['subtree_count'],
+        $storefrontLabel,
+        !empty($row['active']) ? 'Да' : 'Нет',
+        '<a href="' . $adminUrl . '" target="_blank" rel="noopener">' . $name . '</a>',
+        $code,
+        '<a href="' . $publicPath . '" target="_blank" rel="noopener" title="' . $publicTitle . '">' . $publicPath . '</a>',
+        renderDuplicateMatches($row['duplicate_matches'] ?? []),
+        !empty($row['without_prod']),
+        $duplicateGroup,
+    ];
+}
+
+header('Content-Type: application/json; charset=utf-8');
+$total = count($data);
+echo json_encode([
+    'draw' => (int)($_POST['draw'] ?? 0),
+    'data' => $data,
+    'recordsTotal' => $total,
+    'recordsFiltered' => $total,
+    'duplicateMode' => $duplicateMode,
+    'duplicateGroupCount' => $duplicateGroupCount,
+]);
+
+/**
+ * @param array<int, array{id:int,reason:string}> $matches
+ */
+function renderDuplicateMatches(array $matches)
+{
+    if (!$matches) {
+        return '';
+    }
+
+    $parts = [];
+    foreach ($matches as $match) {
+        $id = (int)($match['id'] ?? 0);
+        if (!$id) {
+            continue;
+        }
+        $reason = htmlspecialchars($match['reason'] ?? '', ENT_QUOTES, 'UTF-8');
+        $parts[] = '<a href="#" class="cf-dup-link" data-cf-id="' . $id . '">' . $id . ' (' . $reason . ')</a>';
+    }
+
+    if (!$parts) {
+        return '';
+    }
+
+    if (count($parts) > 5) {
+        return implode(', ', array_slice($parts, 0, 5)) . '…';
+    }
+
+    return implode(', ', $parts);
+}

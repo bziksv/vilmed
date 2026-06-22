@@ -1,13 +1,12 @@
-<? if (empty($_SERVER["HTTP_REFERER"]))
-    die();
-
-define("NOT_CHECK_PERMISSIONS", true);
+<?define("NOT_CHECK_PERMISSIONS", true);
 require_once($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/main/include/prolog_before.php");
+require_once($_SERVER["DOCUMENT_ROOT"] . "/include/altop_ajax_safe.php");
 
 use Bitrix\Main\Loader,
     Bitrix\Main\Localization\Loc,
     Bitrix\Main\Application,
     Bitrix\Main\Config\Option,
+    Bitrix\Main\Web\Json,
     Bitrix\Sale,
     Bitrix\Sale\Order,
     Bitrix\Sale\DiscountCouponsManager;
@@ -28,10 +27,33 @@ Loc::loadMessages(__FILE__);
 global $USER, $APPLICATION;
 
 $request = Application::getInstance()->getContext()->getRequest();
+$error = "";
 
-$paramsString = $request->getPost("PARAMS_STRING");
-if (!empty($paramsString))
-    $params = unserialize(base64_decode(strtr($paramsString, "-_,", "+/=")));
+if (!check_bitrix_sessid()) {
+    $error .= Loc::getMessage("ORDER_CREATE_ERROR") . "<br />";
+}
+
+$params = altopAjaxSafeDecode($request->getPost("PARAMS_STRING"));
+if ($error === "" && !is_array($params)) {
+    $error .= Loc::getMessage("ORDER_CREATE_ERROR") . "<br />";
+}
+
+$allowedRequired = ["NAME" => true, "PHONE" => true, "EMAIL" => true, "MESSAGE" => true];
+if ($error === "" && is_array($params)) {
+    $params["VALIDATE_PHONE_MASK"] = altopAjaxGetPhoneValidateMask();
+    $params["IS_AUTHORIZED"] = ($params["IS_AUTHORIZED"] ?? "N") === "Y" ? "Y" : "N";
+    if (empty($params["REQUIRED"]) || !is_array($params["REQUIRED"])) {
+        $params["REQUIRED"] = ["NAME", "PHONE"];
+    } else {
+        $params["REQUIRED"] = array_values(array_filter($params["REQUIRED"], function ($code) use ($allowedRequired) {
+            return is_string($code) && isset($allowedRequired[$code]);
+        }));
+    }
+    if (empty($params["REQUIRED"])) {
+        $params["REQUIRED"] = ["NAME", "PHONE"];
+    }
+    $params["FILE_FIELD_NAME"] = mb_substr(strip_tags((string)($params["FILE_FIELD_NAME"] ?? "")), 0, 255);
+}
 
 $name = $request->getPost("NAME");
 $phone = $request->getPost("PHONE");
@@ -44,17 +66,28 @@ $basket_btn = $request->getPost("BASKET_BTN");
 $captchaWord = $request->getPost("CAPTCHA_WORD");
 $captchaSid = $request->getPost("CAPTCHA_SID");
 
-$id = $request->getPost("ID");
+$id = (int)$request->getPost("ID");
 $props = $request->getPost("PROPS");
 $selectProps = $request->getPost("SELECT_PROPS");
-$qnt = $request->getPost("QUANTITY");
+$qnt = max(1, (int)$request->getPost("QUANTITY"));
 
-$buyMode = $request->getPost("BUY_MODE");
+$buyMode = $request->getPost("BUY_MODE") === "ONE" ? "ONE" : "ALL";
+
+if ($error === "" && $buyMode === "ONE" && $id <= 0) {
+    $error .= Loc::getMessage("ORDER_CREATE_ERROR") . "<br />";
+}
+if ($error === "" && $buyMode === "ONE") {
+    $product = CIBlockElement::GetByID($id)->Fetch();
+    if (empty($product)) {
+        $error .= Loc::getMessage("ORDER_CREATE_ERROR") . "<br />";
+    }
+}
 
 if (!empty($basket_btn) && $basket_btn == "Y") {
 
     $arBasketItems = array();
     $summ = 0;
+    if ($error === "") {
     $dbBasketItems = CSaleBasket::GetList(
         array(
             "NAME" => "ASC",
@@ -80,27 +113,33 @@ if (!empty($basket_btn) && $basket_btn == "Y") {
 
     foreach ($arBasketItems as $item)
         $summ = $summ + $item["QUANTITY"] * $item["PRICE"];
+    }
 }else{
 
+    $summ = 0;
+    if ($error === "") {
     $arr_price = CPrice::GetBasePrice($id);
 
     if (!empty($arr_price)) {
         $arCurrencyInfo = CCurrency::GetByID($arr_price["CURRENCY"]);
         $summ = (int)$arr_price["PRICE"] * (int)$arCurrencyInfo["AMOUNT"];
     }
+    }
 }
 
 
 //MIN_PRICE
-if ($arSetting["ORDER_MIN_PRICE"] > $summ) {
+if ($error === "" && $arSetting["ORDER_MIN_PRICE"] > $summ) {
     $error .= Loc::getMessage("BOC_MIN_PRICE_VALUE") . CurrencyFormat($arSetting["ORDER_MIN_PRICE"], Bitrix\Currency\CurrencyManager::getBaseCurrency()) . "<br />";
 }
 
 //CHECKS//
-foreach ($params["REQUIRED"] as $arCode) {
-    $post = $request->getPost($arCode);
-    if (empty($post))
-        $error .= Loc::getMessage($arCode . "_NOT_FILLED") . "<br />";
+if ($error === "") {
+    foreach ($params["REQUIRED"] as $arCode) {
+        $post = $request->getPost($arCode);
+        if (empty($post))
+            $error .= Loc::getMessage($arCode . "_NOT_FILLED") . "<br />";
+    }
 }
 
 //CHECKS_PERSONAL_DATA//
@@ -110,8 +149,8 @@ if ($personalData === "N") {
 }
 
 //VALIDATE_PHONE_MASK//
-if (!empty($phone)) {
-    if (!preg_match($params["VALIDATE_PHONE_MASK"], $phone)) {
+if ($error === "" && !empty($phone) && !empty($params["VALIDATE_PHONE_MASK"])) {
+    if (!@preg_match($params["VALIDATE_PHONE_MASK"], $phone)) {
         $error .= Loc::getMessage("PHONE_INVALID") . "<br />";
     }
 }
@@ -215,15 +254,22 @@ if ($buyMode == "ONE") {
     $basket->save();
 
     if (!empty($props)) {
-        $arProps = unserialize(base64_decode(strtr($props, "-_,", "+/=")));
-        foreach ($arProps as $arProp) {
-            $arBasketProps[] = $arProp;
+        $decodedProps = altopAjaxSafeDecode($props);
+        if (is_array($decodedProps)) {
+            foreach (altopAjaxSanitizeBasketProps($decodedProps) as $arProp) {
+                $arBasketProps[] = $arProp;
+            }
         }
     }
-    if (!empty($selectProps)) {
+    if (!empty($selectProps) && is_string($selectProps)) {
         $arSelectProps = explode("||", $selectProps);
         foreach ($arSelectProps as $arSelProp) {
-            $arBasketProps[] = unserialize(base64_decode(strtr($arSelProp, "-_,", "+/=")));
+            $decoded = altopAjaxSafeDecode($arSelProp);
+            if (is_array($decoded)) {
+                foreach (altopAjaxSanitizeBasketProps([$decoded]) as $arProp) {
+                    $arBasketProps[] = $arProp;
+                }
+            }
         }
     }
     if (isset($arBasketProps) && !empty($arBasketProps)) {
@@ -408,4 +454,4 @@ if ($orderId > 0) {
     );
 }
 
-echo Bitrix\Main\Web\Json::encode($result); ?>
+echo Json::encode($result); ?>

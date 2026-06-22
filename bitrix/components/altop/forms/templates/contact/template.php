@@ -65,6 +65,7 @@ use Bitrix\Main\Localization\Loc; ?>
                                                 form.append("fil" + i, upload_file);
                                             }
                                         }
+                                        form.append("sessid", BX.bitrix_sessid());
                                         $.ajax({
                                             url: "/bitrix/components/altop/forms/script2.php",
                                             type: "post",

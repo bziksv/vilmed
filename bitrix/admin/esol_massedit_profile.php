@@ -1,9 +1,8 @@
 <?php
-if(isset($_REQUEST['path']) && strlen($_REQUEST['path']) > 0 || !file_exists($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/esol.massedit/admin/profile.php'))
-{
-	header((stristr(php_sapi_name(), 'cgi') !== false ? 'Status: ' : $_SERVER['SERVER_PROTOCOL'].' ').'403 Forbidden');
-	die();
-}
-?><?php
-require($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/esol.massedit/admin/profile.php');
-?>
+/**
+ * esol.massedit — отключён: модуль не в репо, точка входа атаки по логам.
+ * На prod удалить bitrix/modules/esol.massedit если установлен.
+ */
+http_response_code(403);
+header('Content-Type: text/plain; charset=utf-8');
+die('Access denied: esol.massedit disabled');

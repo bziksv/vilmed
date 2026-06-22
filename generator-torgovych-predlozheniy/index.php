@@ -1,4 +1,7 @@
-<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_before.php");?>
+<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_before.php");
+require_once $_SERVER['DOCUMENT_ROOT'] . '/include/dev_tools_auth.php';
+vilmedRequireAdmin();
+?>
 
 <?if(!CModule::IncludeModule("sale") || !CModule::IncludeModule("catalog") || !CModule::IncludeModule("iblock"))
     return;
