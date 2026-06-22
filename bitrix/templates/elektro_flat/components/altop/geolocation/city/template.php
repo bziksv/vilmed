@@ -34,9 +34,12 @@ if($arParams["USE_GEOLOCATION"] == "Y"):?>
 					city: <?=CUtil::PhpToJSObject($arResult["cityName"])?>
 				};
 				BX.Geolocation(geolocation);
-			<?} else {
-				$this->addExternalJS("https://api-maps.yandex.ru/2.0/?load=package.standard&lang=ru-RU");?>
-				ymaps.ready(BX.GeolocationYandex);
+			<?} else {?>
+				window.addEventListener('load', function() {
+					BX.loadYandexMaps(function() {
+						ymaps.ready(BX.GeolocationYandex);
+					});
+				});
 			<?}?>
 		<?}?>
 

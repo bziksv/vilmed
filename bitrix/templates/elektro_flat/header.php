@@ -9,6 +9,9 @@ Loc::loadMessages(__FILE__);
 	<link rel="shortcut icon" type="image/x-icon" href="<?=SITE_TEMPLATE_PATH?>/favicon.ico" type="image/x-icon">
 
 	<meta name='viewport' content='width=device-width, initial-scale=1.0' />
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link rel="preconnect" href="https://mc.yandex.ru">
 	<title><?$APPLICATION->ShowTitle()?></title>
 	<meta property="og:title" content="<?=$APPLICATION->ShowTitle();?>"/>
     <meta property="og:description" content="<?=$APPLICATION->ShowProperty("description");?>"/>
@@ -22,57 +25,68 @@ Loc::loadMessages(__FILE__);
 	$APPLICATION->ShowProperty('google_prev_next');
 	$APPLICATION->SetPageProperty("ogimagewidth", "144");
 	$APPLICATION->SetPageProperty("ogimageheight", "144");
-	Asset::getInstance()->addCss(SITE_TEMPLATE_PATH."/css/font-awesome.min.css");
+
+	$vilmedTplPath = SITE_TEMPLATE_PATH;
+	$vilmedIsHome = ($APPLICATION->GetCurPage(true) === SITE_DIR . "index.php");
+	$vilmedIsCatalog = CSite::InDir(SITE_DIR . "catalog/");
+	$vilmedIsProduct = CSite::InDir(SITE_DIR . "product/");
+	$vilmedIsCatalogLike = $vilmedIsCatalog || $vilmedIsProduct;
+	$vilmedNeedsSlider = $vilmedIsHome || $vilmedIsCatalogLike;
+
+	Asset::getInstance()->addCss($vilmedTplPath."/css/font-awesome.min.css");
 	if(!CModule::IncludeModule("altop.elastofont"))
 /*		Asset::getInstance()->addCss("https://d1azc1qln24ryf.cloudfront.net/130672/ELASTOFONT/style-cf.css?xk463o");
 */
-	Asset::getInstance()->addCss("https://fonts.googleapis.com/css?family=Open+Sans:400,300,600,700&subset=latin,cyrillic-ext");
-	Asset::getInstance()->addCss(SITE_TEMPLATE_PATH."/colors.css");
+	Asset::getInstance()->addCss("https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700&subset=latin,cyrillic-ext&display=swap");
+	Asset::getInstance()->addCss($vilmedTplPath."/colors.css");
+	Asset::getInstance()->addCss($vilmedTplPath."/js/custom-forms/custom-forms.css");
 
-	Asset::getInstance()->addCss(SITE_TEMPLATE_PATH."/js/anythingslider/slider.css");
-	Asset::getInstance()->addCss(SITE_TEMPLATE_PATH."/js/custom-forms/custom-forms.css");
-	Asset::getInstance()->addCss(SITE_TEMPLATE_PATH."/js/fancybox/jquery.fancybox-1.3.1.css");
-	Asset::getInstance()->addCss(SITE_TEMPLATE_PATH."/js/spectrum/spectrum.css");
-	Asset::getInstance()->addCss(SITE_TEMPLATE_PATH."/css/slick.css");
+	if($vilmedNeedsSlider) {
+		Asset::getInstance()->addCss($vilmedTplPath."/js/anythingslider/slider.css");
+		Asset::getInstance()->addJs($vilmedTplPath."/js/anythingslider/jquery.easing.1.2.js");
+		Asset::getInstance()->addJs($vilmedTplPath."/js/anythingslider/jquery.anythingslider.min.js");
+		Asset::getInstance()->addCss($vilmedTplPath."/js/fancybox/jquery.fancybox-1.3.1.css");
+		Asset::getInstance()->addJs($vilmedTplPath."/js/fancybox/jquery.fancybox-1.3.1.pack.js");
+		Asset::getInstance()->addJs($vilmedTplPath."/js/countdown/jquery.plugin.js");
+		Asset::getInstance()->addJs($vilmedTplPath."/js/countdown/jquery.countdown.js");
+		Asset::getInstance()->addString("
+			<script type='text/javascript'>
+				$(function() {
+					$.countdown.regionalOptions['ru'] = {
+						labels: ['".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_YEAR")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_MONTH")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_WEEK")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_DAY")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_HOUR")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_MIN")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_SEC")."'],
+						labels1: ['".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS1_YEAR")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS1_MONTH")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS1_WEEK")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS1_DAY")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS1_HOUR")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_MIN")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_SEC")."'],
+						labels2: ['".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS2_YEAR")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS2_MONTH")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS2_WEEK")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS2_DAY")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS2_HOUR")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_MIN")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_SEC")."'],
+						compactLabels: ['".Loc::getMessage("COUNTDOWN_REGIONAL_COMPACT_LABELS_YEAR")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_COMPACT_LABELS_MONTH")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_COMPACT_LABELS_WEEK")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_COMPACT_LABELS_DAY")."'],
+						compactLabels1: ['".Loc::getMessage("COUNTDOWN_REGIONAL_COMPACT_LABELS1_YEAR")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_COMPACT_LABELS_MONTH")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_COMPACT_LABELS_WEEK")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_COMPACT_LABELS_DAY")."'],
+						whichLabels: function(amount) {
+							var units = amount % 10;
+							var tens = Math.floor((amount % 100) / 10);
+							return (amount == 1 ? 1 : (units >= 2 && units <= 4 && tens != 1 ? 2 : (units == 1 && tens != 1 ? 1 : 0)));
+						},
+						digits: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
+						timeSeparator: ':',
+						isRTL: false
+					};
+					$.countdown.setDefaults($.countdown.regionalOptions['ru']);
+				});
+			</script>
+		");
+	}
+
+	if($vilmedIsCatalog) {
+		Asset::getInstance()->addCss($vilmedTplPath."/css/slick.css");
+		Asset::getInstance()->addJs($vilmedTplPath."/js/slick.min.js");
+	}
+
 	CJSCore::Init(array("jquery", "popup"));
-	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/jquery.cookie.js");
-	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/moremenu.js");
-	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/jquery.inputmask.bundle.min.js");
-	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/anythingslider/jquery.easing.1.2.js");
-	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/anythingslider/jquery.anythingslider.min.js");
-	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/custom-forms/jquery.custom-forms.js");
-	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/fancybox/jquery.fancybox-1.3.1.pack.js");
-	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/spectrum/spectrum.js");
-	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/countUp.min.js");
-	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/countdown/jquery.plugin.js");
-	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/countdown/jquery.countdown.js");
-    Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/TweenMax.min.js");
-	Asset::getInstance()->addString("
-		<script type='text/javascript'>
-			$(function() {
-				$.countdown.regionalOptions['ru'] = {
-					labels: ['".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_YEAR")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_MONTH")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_WEEK")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_DAY")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_HOUR")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_MIN")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_SEC")."'],
-					labels1: ['".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS1_YEAR")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS1_MONTH")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS1_WEEK")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS1_DAY")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS1_HOUR")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_MIN")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_SEC")."'],
-					labels2: ['".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS2_YEAR")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS2_MONTH")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS2_WEEK")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS2_DAY")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS2_HOUR")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_MIN")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_LABELS_SEC")."'],
-					compactLabels: ['".Loc::getMessage("COUNTDOWN_REGIONAL_COMPACT_LABELS_YEAR")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_COMPACT_LABELS_MONTH")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_COMPACT_LABELS_WEEK")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_COMPACT_LABELS_DAY")."'],
-					compactLabels1: ['".Loc::getMessage("COUNTDOWN_REGIONAL_COMPACT_LABELS1_YEAR")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_COMPACT_LABELS_MONTH")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_COMPACT_LABELS_WEEK")."', '".Loc::getMessage("COUNTDOWN_REGIONAL_COMPACT_LABELS_DAY")."'],
-					whichLabels: function(amount) {
-						var units = amount % 10;
-						var tens = Math.floor((amount % 100) / 10);
-						return (amount == 1 ? 1 : (units >= 2 && units <= 4 && tens != 1 ? 2 : (units == 1 && tens != 1 ? 1 : 0)));
-					},
-					digits: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
-					timeSeparator: ':',
-					isRTL: false
-				};
-				$.countdown.setDefaults($.countdown.regionalOptions['ru']);
-			});
-		</script>
-	");
-
-	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/slick.min.js");
-	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/main.js");
-	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/script.js");
+	Asset::getInstance()->addJs($vilmedTplPath."/js/jquery.cookie.js");
+	Asset::getInstance()->addJs($vilmedTplPath."/js/moremenu.js");
+	Asset::getInstance()->addJs($vilmedTplPath."/js/jquery.inputmask.bundle.min.js");
+	Asset::getInstance()->addJs($vilmedTplPath."/js/custom-forms/jquery.custom-forms.js");
+	Asset::getInstance()->addJs($vilmedTplPath."/js/countUp.min.js");
+	Asset::getInstance()->addJs($vilmedTplPath."/js/TweenMax.min.js");
+	Asset::getInstance()->addJs($vilmedTplPath."/js/main.js");
+	Asset::getInstance()->addJs($vilmedTplPath."/script.js");
 	$APPLICATION->ShowHead();?>
 
 	<?if(CModule::IncludeModule("altop.elektroinstrument")) {
@@ -83,9 +97,6 @@ Loc::loadMessages(__FILE__);
 	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/incut.js");
 	Asset::getInstance()->addCss(SITE_TEMPLATE_PATH."/css/incut.css");
 	?>
-
-<script type="text/javascript">window._ab_id_=163177</script>
-<script src="https://cdn.botfaqtor.ru/one.js"></script>
 
 </head>
 <body  <?=$APPLICATION->ShowProperty("bgClass")?><?=$APPLICATION->ShowProperty("backgroundColor")?><?=$APPLICATION->ShowProperty("backgroundImage")?>>

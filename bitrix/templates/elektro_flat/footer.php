@@ -237,10 +237,13 @@ Loc::loadMessages(__FILE__);?>
 <script>
     $(function(){
 
-        $('img').each(function(li,el){
+        $('img').not('.no-lazy, .logo img, header img, .ym-advanced-informer, .slider img, .anythingslider img, .slick-slider img').each(function(li,el){
             $(el).addClass('lazy-fadein');
             var alt = $(el).attr('alt');
             var src = $(el).attr('src');
+            if (!src) {
+                return;
+            }
             $(el).removeAttr( "alt" );
             $(el).removeAttr( "title" );
             $(el).removeAttr( "src" );
@@ -268,14 +271,19 @@ Loc::loadMessages(__FILE__);?>
 </script>
 
 
+<script type="text/javascript">window._ab_id_=163177</script>
+<script async src="https://cdn.botfaqtor.ru/one.js"></script>
+
 <!-- Roistat Counter Start -->
 <script>
-(function(w, d, s, h, id) {
-    w.roistatProjectId = id; w.roistatHost = h;
-    var p = d.location.protocol == "https:" ? "https://" : "http://";
-    var u = /^.*roistat_visit=[^;]+(.*)?$/.test(d.cookie) ? "/dist/module.js" : "/api/site/1.0/"+id+"/init?referrer="+encodeURIComponent(d.location.href);
-    var js = d.createElement(s); js.charset="UTF-8"; js.async = 1; js.src = p+h+u; var js2 = d.getElementsByTagName(s)[0]; js2.parentNode.insertBefore(js, js2);
-})(window, document, 'script', 'cloud.roistat.com', 'f7d48e1186929411cb056d0471bcc8eb');
+window.addEventListener('load', function() {
+    (function(w, d, s, h, id) {
+        w.roistatProjectId = id; w.roistatHost = h;
+        var p = d.location.protocol == "https:" ? "https://" : "http://";
+        var u = /^.*roistat_visit=[^;]+(.*)?$/.test(d.cookie) ? "/dist/module.js" : "/api/site/1.0/"+id+"/init?referrer="+encodeURIComponent(d.location.href);
+        var js = d.createElement(s); js.charset="UTF-8"; js.async = 1; js.src = p+h+u; var js2 = d.getElementsByTagName(s)[0]; js2.parentNode.insertBefore(js, js2);
+    })(window, document, 'script', 'cloud.roistat.com', 'f7d48e1186929411cb056d0471bcc8eb');
+});
 </script>
 <!-- Roistat Counter End -->
 

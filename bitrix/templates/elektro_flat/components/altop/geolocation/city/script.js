@@ -1,3 +1,30 @@
+//LOAD_YANDEX_MAPS//
+BX.loadYandexMaps = function(callback) {
+	if (window.ymaps && typeof window.ymaps.ready === "function") {
+		callback();
+		return;
+	}
+	if (BX._yandexMapsLoading) {
+		BX._yandexMapsCallbacks = BX._yandexMapsCallbacks || [];
+		BX._yandexMapsCallbacks.push(callback);
+		return;
+	}
+	BX._yandexMapsLoading = true;
+	BX._yandexMapsCallbacks = [callback];
+	var script = document.createElement("script");
+	script.src = "https://api-maps.yandex.ru/2.0/?load=package.standard&lang=ru-RU";
+	script.async = true;
+	script.onload = function() {
+		var callbacks = BX._yandexMapsCallbacks || [];
+		BX._yandexMapsLoading = false;
+		BX._yandexMapsCallbacks = [];
+		for (var i = 0; i < callbacks.length; i++) {
+			callbacks[i]();
+		}
+	};
+	document.head.appendChild(script);
+};
+
 //CITY_CHANGE//
 BX.CityChange = function() {
 	var close;

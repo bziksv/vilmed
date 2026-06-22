@@ -16,7 +16,7 @@ $APPLICATION->IncludeComponent(
 		"COMPONENT_TEMPLATE" => ".default",
 		"COMPOSITE_FRAME_MODE" => "A",
 		"COMPOSITE_FRAME_TYPE" => "AUTO",
-		"MODE_OPERATION" => "YANDEX",
+		"MODE_OPERATION" => "BITRIX",
 	),
 	false
 );?>
