@@ -13,6 +13,7 @@ if(count($arResult["ITEMS"]) < 1) return;
 				?>
 				<li class="anythingSliderLi anythingSliderLi_<?=$arParams['SLIDER_ASPECT_RATIO']?>">
 					<a
+						data-was-processed="true"
 						href="<?=(!empty($arItem['PROPERTIES']['URL']['VALUE'])? $arItem['PROPERTIES']['URL']['VALUE']: 'javascript:void(0)')?>"
 						<?=(!empty($arItem['PROPERTIES']['URL']['VALUE']) && !empty($arItem['PROPERTIES']['OPEN_URL']['VALUE'])? 'target="_blank"': '')?>
 						<?if(!empty($arItem['PROPERTIES']['BACKGROUND_DIM_COLOR']['VALUE'])) {?>
@@ -139,12 +140,12 @@ if(count($arResult["ITEMS"]) < 1) return;
 						</div>
 					<?}?>
 					<a
+						data-was-processed="true"
 						<?=(!empty($arItem['PROPERTIES']['CODE_YOUTUBE']['VALUE'])? "id=\"video_{$arItem['ID']}\"": '')?>
 						href="<?=(!empty($arItem['PROPERTIES']['URL']['VALUE'])? $arItem['PROPERTIES']['URL']['VALUE']: 'javascript:void(0)')?>"
 						<?=(!empty($arItem['PROPERTIES']['URL']['VALUE']) && !empty($arItem["PROPERTIES"]["OPEN_URL"]['VALUE'])? 'target="_blank"': '')?>
 						<?if(!empty($sImgUrl)) {?>
-                            class="lazy-fadein"
-                            data-src="<?=$sImgUrl?>"
+                            style="background: url(<?=htmlspecialcharsbx($sImgUrl)?>) center center / cover no-repeat;"
 						<?}?>
 						<?if(!empty($arItem['PROPERTIES']['CODE_YOUTUBE']['VALUE'])) {?>
 							data-property="{videoURL: '<?=$arItem['PROPERTIES']['CODE_YOUTUBE']['VALUE']?>', mute: <?=(!empty($arItem['PROPERTIES']['MUTE_AUDIO']['VALUE'])? 'true': 'false')?>, showControls: false, quality: 'default', opacity: 1, containment: 'self', optimizeDisplay: true, loop: <?=($sAutoPlay == 'true'? 'true': 1)?>, startAt: 0, remember_last_time: false, autoPlay: <?=$sAutoPlay?>, addRaster: false, gaTrack: false}"
