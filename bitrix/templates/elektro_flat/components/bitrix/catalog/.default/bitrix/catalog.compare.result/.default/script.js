@@ -321,6 +321,8 @@
 			}
 		}
 		
+		this.basketParams.sessid = BX.bitrix_sessid();
+
 		BX.ajax.post(
 			form.getAttribute("action"),			
 			this.basketParams,			

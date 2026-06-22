@@ -18,9 +18,9 @@ if(count($arResult["ITEMS"]) < 1)
 						<span class="item">
 							<span class="image">
 								<?if(!empty($arItem["PICTURE_PREVIEW"]["SRC"])):?>
-									<img src="<?=$arItem["PICTURE_PREVIEW"]["SRC"]?>" width="<?=$arItem["PICTURE_PREVIEW"]['WIDTH']?>" height="<?=$arItem["PICTURE_PREVIEW"]['HEIGHT']?>" alt="<?=$arItem['NAME']?>" />
+									<img src="<?=$arItem["PICTURE_PREVIEW"]["SRC"]?>" alt="<?=$arItem['NAME']?>" />
 								<?else:?>
-									<img src="<?=SITE_TEMPLATE_PATH?>/images/no-photo.jpg" width="50px" height="50px" alt="<?=$arItem['NAME']?>" />
+									<img class="no-vendor-logo" src="<?=SITE_TEMPLATE_PATH?>/images/no-photo.jpg" alt="<?=$arItem['NAME']?>" />
 								<?endif;?>
 							</span>
 							<span class="item-title">

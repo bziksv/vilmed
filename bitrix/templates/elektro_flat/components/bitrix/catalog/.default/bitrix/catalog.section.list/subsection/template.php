@@ -15,8 +15,8 @@ if(count($arResult["SECTIONS"]) < 1)
 							<span class="graph">
 								<?if(!empty($arSection["UF_ICON"])) {?>
 									<i class="<?=$arSection['UF_ICON']?>" aria-hidden="true"></i>
-								<?} elseif(is_array($arSection["PICTURE"])) {?>								
-									<img src="<?=$arSection['PICTURE']['SRC']?>" width="<?=$arSection['PICTURE']['WIDTH']?>" height="<?=$arSection['PICTURE']['HEIGHT']?>" alt="<?=$arSection['NAME']?>" title="<?=$arSection['NAME']?>" />
+								<?} elseif(is_array($arSection["PICTURE"]) && !empty($arSection["PICTURE"]["SRC"])) {?>								
+									<img src="<?=$arSection['PICTURE']['SRC']?>" alt="<?=$arSection['NAME']?>" title="<?=$arSection['NAME']?>" />
 								<?} else {?>
 									<img src="<?=SITE_TEMPLATE_PATH?>/images/no-photo.jpg" width="50" height="50" alt="<?=$arSection['NAME']?>" title="<?=$arSection['NAME']?>" />
 								<?}?>

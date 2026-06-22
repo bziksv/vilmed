@@ -17,7 +17,7 @@ if($arResult["ELEMENT"]["ID"] > 0):?>
 	</div>
 <?endif;?>
 <form action="<?=$this->__component->__path?>/script.php" id="<?=$arResult['ELEMENT_AREA_ID']?>_form" enctype="multipart/form-data">
-	<span class="alert"></span>
+	<span class="alert" aria-live="polite"></span>
 	<?foreach($arResult["IBLOCK"]["PROPERTIES"] as $arProp):
 		if($arProp["CODE"] != "PRODUCT" && $arProp["CODE"] != "PRODUCT_PRICE"):?>
 			<div class="row">
@@ -93,7 +93,18 @@ if($arResult["ELEMENT"]["ID"] > 0):?>
 	endforeach;?>
 
 	//FORM_SUBMIT//
-	BX.bind(BX("<?=$arResult['ELEMENT_AREA_ID']?>_btn"), "click", BX.delegate(BX.PopupFormSubmit, BX));
+	(function bindPopupFormSubmit() {
+		if (typeof BX.PopupFormSubmit !== "function") {
+			setTimeout(bindPopupFormSubmit, 50);
+			return;
+		}
+		BX.bind(BX("<?=$arResult['ELEMENT_AREA_ID']?>_btn"), "click", BX.delegate(BX.PopupFormSubmit, BX));
+	})();
+
+	// clear field error on input
+	$("#<?=$arResult['ELEMENT_AREA_ID']?>_form").on("input change", ".span2 input, .span2 textarea", function() {
+		$(this).closest(".row").removeClass("has-error");
+	});
 
 	//CHEKED//
 	BX.bind(BX("input-checkbox_<?=$arResult['ELEMENT_AREA_ID']?>"),"click",function(){
@@ -113,6 +124,7 @@ if($arResult["ELEMENT"]["ID"] > 0):?>
 					"value":"Y"
 				}
 			});
+			$("#<?=$arResult['ELEMENT_AREA_ID']?>_form .hint_agreement").removeClass("has-error");
 		} else {
 			BX.removeClass(BX("input-checkbox_<?=$arResult['ELEMENT_AREA_ID']?>"),"cheked");
 			BX.remove(BX.findChild(BX("input-checkbox_<?=$arResult['ELEMENT_AREA_ID']?>"),{

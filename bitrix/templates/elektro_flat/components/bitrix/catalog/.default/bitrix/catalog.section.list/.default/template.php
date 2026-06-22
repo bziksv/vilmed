@@ -26,8 +26,8 @@ if(count($arResult["SECTIONS"]) < 1)
 									<span class="graph">
 										<?if(!empty($arChild["UF_ICON"])) {?>
 											<i class="<?=$arChild['UF_ICON']?>" aria-hidden="true"></i>
-										<?} elseif(is_array($arChild["PICTURE"])) {?>
-											<img src="<?=$arChild['PICTURE']['SRC']?>" width="<?=$arChild['PICTURE']['WIDTH']?>" height="<?=$arChild['PICTURE']['HEIGHT']?>" alt="<?=$arChild['NAME']?>" title="<?=$arChild['NAME']?>" />
+										<?} elseif(is_array($arChild["PICTURE"]) && !empty($arChild["PICTURE"]["SRC"])) {?>
+											<img src="<?=$arChild['PICTURE']['SRC']?>" alt="<?=$arChild['NAME']?>" title="<?=$arChild['NAME']?>" />
 										<?} else {?>
 											<img src="<?=SITE_TEMPLATE_PATH?>/images/no-photo.jpg" width="50" height="50" alt="<?=$arChild['NAME']?>" title="<?=$arChild['NAME']?>" />
 										<?}?>

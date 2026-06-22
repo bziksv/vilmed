@@ -5,6 +5,31 @@ if(!CModule::IncludeModule("iblock")  || !CModule::IncludeModule("catalog") || !
 
 global $arSetting;
 
+if (!function_exists('vilmedBasketPicture')) {
+	function vilmedBasketPicture($fileId): ?array
+	{
+		if (!function_exists('vilmedResizePicture')) {
+			require_once $_SERVER['DOCUMENT_ROOT'] . '/include/vilmed_perf.php';
+		}
+
+		$fileId = (int)$fileId;
+		if ($fileId <= 0) {
+			return null;
+		}
+
+		$picture = vilmedResizePicture($fileId, 65, 65);
+		if ($picture === null) {
+			return null;
+		}
+
+		return [
+			'src' => $picture['SRC'],
+			'width' => $picture['WIDTH'],
+			'height' => $picture['HEIGHT'],
+		];
+	}
+}
+
 //OFFERS_IBLOCK//
 $arSKU = CCatalogSKU::GetInfoByProductIBlock($arParams["IBLOCK_ID"]);
 $arResult["OFFERS_IBLOCK"] = is_array($arSKU) ? $arSKU["IBLOCK_ID"] : 0;
@@ -20,7 +45,7 @@ if(is_array($arResult["ITEMS"]["AnDelCanBuy"])) {
 			array("ID", "IBLOCK_ID", "DETAIL_PICTURE")
 		)->Fetch();
 		if($ar["DETAIL_PICTURE"] > 0) {
-			$arResult["ITEMS"]["AnDelCanBuy"][$key]["DETAIL_PICTURE"] = CFile::ResizeImageGet($ar["DETAIL_PICTURE"], array("width" => 65, "height" => 65), BX_RESIZE_IMAGE_PROPORTIONAL, true);
+			$arResult["ITEMS"]["AnDelCanBuy"][$key]["DETAIL_PICTURE"] = vilmedBasketPicture($ar["DETAIL_PICTURE"]);
 		} else {
 			$mxResult = CCatalogSku::GetProductInfo($ar["ID"]);
 			if(is_array($mxResult)) {
@@ -32,7 +57,7 @@ if(is_array($arResult["ITEMS"]["AnDelCanBuy"])) {
 					array("ID", "IBLOCK_ID", "DETAIL_PICTURE")
 				)->Fetch();
 				if($ar["DETAIL_PICTURE"] > 0) {
-					$arResult["ITEMS"]["AnDelCanBuy"][$key]["DETAIL_PICTURE"] = CFile::ResizeImageGet($ar["DETAIL_PICTURE"], array("width" => 65, "height" => 65), BX_RESIZE_IMAGE_PROPORTIONAL, true);
+					$arResult["ITEMS"]["AnDelCanBuy"][$key]["DETAIL_PICTURE"] = vilmedBasketPicture($ar["DETAIL_PICTURE"]);
 				}
 			}
 		}
@@ -159,7 +184,7 @@ if(is_array($arResult["ITEMS"]["DelDelCanBuy"])) {
 			array("ID", "IBLOCK_ID", "DETAIL_PICTURE")
 		)->Fetch();
 		if($ar["DETAIL_PICTURE"] > 0) {
-			$arResult["ITEMS"]["DelDelCanBuy"][$key]["DETAIL_PICTURE"] = CFile::ResizeImageGet($ar["DETAIL_PICTURE"], array("width" => 65, "height" => 65), BX_RESIZE_IMAGE_PROPORTIONAL, true);
+			$arResult["ITEMS"]["DelDelCanBuy"][$key]["DETAIL_PICTURE"] = vilmedBasketPicture($ar["DETAIL_PICTURE"]);
 		} else {
 			$mxResult = CCatalogSku::GetProductInfo($ar["ID"]);
 			if(is_array($mxResult)) {
@@ -171,7 +196,7 @@ if(is_array($arResult["ITEMS"]["DelDelCanBuy"])) {
 					array("ID", "IBLOCK_ID", "DETAIL_PICTURE")
 				)->Fetch();
 				if($ar["DETAIL_PICTURE"] > 0) {
-					$arResult["ITEMS"]["DelDelCanBuy"][$key]["DETAIL_PICTURE"] = CFile::ResizeImageGet($ar["DETAIL_PICTURE"], array("width" => 65, "height" => 65), BX_RESIZE_IMAGE_PROPORTIONAL, true);
+					$arResult["ITEMS"]["DelDelCanBuy"][$key]["DETAIL_PICTURE"] = vilmedBasketPicture($ar["DETAIL_PICTURE"]);
 				}
 			}
 		}

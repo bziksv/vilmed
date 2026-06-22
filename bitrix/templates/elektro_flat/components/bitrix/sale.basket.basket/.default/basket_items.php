@@ -59,10 +59,15 @@ use Bitrix\Sale\DiscountCouponsManager;?>
 					<div class="tr" id="<?=$arBasketItems['ID']?>">
 						<div class="tr_into">							
 							<div class="cart-item-image">
-								<?if(is_array($arBasketItems["DETAIL_PICTURE"])):?>
-									<img src="<?=$arBasketItems['DETAIL_PICTURE']['src']?>" width="<?=$arBasketItems['DETAIL_PICTURE']['width']?>" height="<?=$arBasketItems['DETAIL_PICTURE']['height']?>" />
+								<?if(is_array($arBasketItems["DETAIL_PICTURE"]) && !empty($arBasketItems['DETAIL_PICTURE']['src'])):
+									$picW = (int)($arBasketItems['DETAIL_PICTURE']['width'] ?? 0);
+									$picH = (int)($arBasketItems['DETAIL_PICTURE']['height'] ?? 0);
+									if ($picW <= 0) { $picW = 65; }
+									if ($picH <= 0) { $picH = 65; }
+								?>
+									<img class="no-lazy" src="<?=$arBasketItems['DETAIL_PICTURE']['src']?>" width="<?=$picW?>" height="<?=$picH?>" alt="" />
 								<?else:?>
-									<img src="<?=SITE_TEMPLATE_PATH?>/images/no-photo.jpg" width="65" height="65" />
+									<img class="no-lazy" src="<?=SITE_TEMPLATE_PATH?>/images/no-photo.jpg" width="65" height="65" alt="" />
 								<?endif?>
 							</div>							
 							<?if(in_array("NAME", $arParams["COLUMNS_LIST"])):?>

@@ -228,47 +228,52 @@ Loc::loadMessages(__FILE__);?>
 					</div>
 					</div>
 
-<style>
-    img.lazy-fadein {opacity: 0;}
-    img.lazy-fadein:not(.initial) {transition: opacity 2s;}
-    img.lazy-fadein.initial,img.lazy-fadein.loaded,img.lazy-fadein.error {opacity: 1;}
-</style>
-<script src="<?=SITE_TEMPLATE_PATH . "/js/lazyload.min.js"; ?>"></script>
 <script>
-    $(function(){
+(function() {
+	function vilmedFixImages() {
+		document.querySelectorAll('img[width="0"], img[height="0"]').forEach(function(img) {
+			if (img.classList.contains('no-lazy') || img.closest('.catalog-detail-pictures')) {
+				var fallback = img.closest('.more_photo') ? 86 : 390;
+				if (img.getAttribute('width') === '0') {
+					img.setAttribute('width', String(fallback));
+				}
+				if (img.getAttribute('height') === '0') {
+					img.setAttribute('height', String(fallback));
+				}
+				return;
+			}
+			if (img.getAttribute('width') === '0') {
+				img.removeAttribute('width');
+			}
+			if (img.getAttribute('height') === '0') {
+				img.removeAttribute('height');
+			}
+		});
+	}
 
-        $('img').not('.no-lazy, .logo img, header img, .left-menu img, .catalog-section-child img, .ym-advanced-informer, .slider img, .anythingslider img, .slick-slider img').each(function(li,el){
-            $(el).addClass('lazy-fadein');
-            var alt = $(el).attr('alt');
-            var src = $(el).attr('src');
-            if (!src) {
-                return;
-            }
-            $(el).removeAttr( "alt" );
-            $(el).removeAttr( "title" );
-            $(el).removeAttr( "src" );
+	function vilmedApplyLazy() {
+		document.querySelectorAll('img').forEach(function(el) {
+			if (el.classList.contains('no-lazy') || el.getAttribute('loading') || el.getAttribute('fetchpriority') === 'high') {
+				return;
+			}
+			if (el.closest('.logo, header, .left-menu, .catalog-section-child, .ym-advanced-informer, .slider, .anythingslider, .slick-slider')) {
+				return;
+			}
+			el.setAttribute('loading', 'lazy');
+		});
+	}
 
-            $(el).attr('data-alt',alt);
-            $(el).attr('data-src',src);
-        });
+	function init() {
+		vilmedFixImages();
+		vilmedApplyLazy();
+	}
 
-        if($(window).width() < 787){}
-
-        var lazyLoadInstance = new LazyLoad({
-            elements_selector: ".lazy-fadein",
-            threshold: 0,
-            callback_enter: function(el) {
-                $img = $(el);
-                $img.attr('alt', $img.attr('data-alt'));
-                $img.attr('title', $img.attr('data-alt'));
-            }
-        });
-
-        if (lazyLoadInstance) {
-            lazyLoadInstance.update();
-            lazyLoadInstance.loadAll();
-        }
-    });
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', init);
+	} else {
+		init();
+	}
+})();
 </script>
 
 

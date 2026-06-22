@@ -17,18 +17,14 @@ foreach($arResult["SECTIONS"] as $key => $arSection):
 	if(isset($arSection["CHILDREN"]) && count($arSection["CHILDREN"]) > 0):
 		foreach($arSection["CHILDREN"] as $keyChild => $arChild):
 			if(is_array($arChild["PICTURE"])):
-				$arFileTmp = CFile::ResizeImageGet(
+				$picture = vilmedResizePicture(
 					$arChild["PICTURE"],
-					array("width" => $arParams["DISPLAY_IMG_WIDTH"], "height" => $arParams["DISPLAY_IMG_HEIGHT"]),
-					BX_RESIZE_IMAGE_PROPORTIONAL,
-					true
+					(int)$arParams["DISPLAY_IMG_WIDTH"],
+					(int)$arParams["DISPLAY_IMG_HEIGHT"]
 				);
-
-				$arResult["SECTIONS"][$key]["CHILDREN"][$keyChild]["PICTURE_PREVIEW"] = array(
-					"SRC" => $arFileTmp["src"],
-					"WIDTH" => $arFileTmp["width"],
-					"HEIGHT" => $arFileTmp["height"],
-				);
+				if ($picture !== null) {
+					$arResult["SECTIONS"][$key]["CHILDREN"][$keyChild]["PICTURE_PREVIEW"] = $picture;
+				}
 			endif;
 		endforeach;
 	endif;

@@ -156,6 +156,7 @@ $(function() {
 
 
 
+	if ($('.tag-slider').length && typeof $.fn.slick === 'function') {
 	$('.tag-slider').slick({
 		dots: false,
 		arrows: true,
@@ -197,6 +198,7 @@ $(function() {
 			});
 		});
 	});
+	}
 
 	if ($("[data-text_script]").length){
 		$('[data-text_script]').each(function(i, el){

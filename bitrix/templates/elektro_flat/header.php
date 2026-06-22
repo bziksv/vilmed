@@ -9,8 +9,6 @@ Loc::loadMessages(__FILE__);
 	<link rel="shortcut icon" type="image/x-icon" href="<?=SITE_TEMPLATE_PATH?>/favicon.ico" type="image/x-icon">
 
 	<meta name='viewport' content='width=device-width, initial-scale=1.0' />
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link rel="preconnect" href="https://mc.yandex.ru">
 	<title><?$APPLICATION->ShowTitle()?></title>
 	<meta property="og:title" content="<?=$APPLICATION->ShowTitle();?>"/>
@@ -37,7 +35,7 @@ Loc::loadMessages(__FILE__);
 	if(!CModule::IncludeModule("altop.elastofont"))
 /*		Asset::getInstance()->addCss("https://d1azc1qln24ryf.cloudfront.net/130672/ELASTOFONT/style-cf.css?xk463o");
 */
-	Asset::getInstance()->addCss("https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700&subset=latin,cyrillic-ext&display=swap");
+	// Open Sans — локально через Bitrix UI (ShowHead), без Google Fonts
 	Asset::getInstance()->addCss($vilmedTplPath."/colors.css");
 	Asset::getInstance()->addCss($vilmedTplPath."/js/custom-forms/custom-forms.css");
 
@@ -87,6 +85,7 @@ Loc::loadMessages(__FILE__);
 	Asset::getInstance()->addJs($vilmedTplPath."/js/TweenMax.min.js");
 	Asset::getInstance()->addJs($vilmedTplPath."/js/main.js");
 	Asset::getInstance()->addJs($vilmedTplPath."/script.js");
+	Asset::getInstance()->addJs("/bitrix/components/altop/forms/templates/.default/script.js");
 	$APPLICATION->ShowHead();?>
 
 	<?if(CModule::IncludeModule("altop.elektroinstrument")) {
@@ -94,8 +93,9 @@ Loc::loadMessages(__FILE__);
         CElektroinstrument::SetCannonicalURL($APPLICATION->GetCurPageParam());
     }?>
 	<?
-	Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/incut.js");
-	Asset::getInstance()->addCss(SITE_TEMPLATE_PATH."/css/incut.css");
+	$vilmedIncutJs = SITE_TEMPLATE_PATH . "/js/incut.js";
+	$vilmedIncutCss = SITE_TEMPLATE_PATH . "/css/incut.css";
+	$APPLICATION->AddHeadString("<script>window.addEventListener('load',function(){var l=document.createElement('link');l.rel='stylesheet';l.href='{$vilmedIncutCss}';document.head.appendChild(l);var s=document.createElement('script');s.src='{$vilmedIncutJs}';document.body.appendChild(s);});</script>", true);
 	?>
 
 </head>

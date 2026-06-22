@@ -440,38 +440,21 @@ if(is_array($arResult["DETAIL_PICTURE"])) {
 		$arParams["DISPLAY_DETAIL_IMG_WIDTH"] = "690";
 		$arParams["DISPLAY_DETAIL_IMG_HEIGHT"] = "517";
 	}
+	$detailImgWidth = (int)($arParams["DISPLAY_DETAIL_IMG_WIDTH"] ?: 390);
+	$detailImgHeight = (int)($arParams["DISPLAY_DETAIL_IMG_HEIGHT"] ?: 390);
+	$previewImgWidth = (int)($arParams["DISPLAY_IMG_WIDTH"] ?: 208);
+	$previewImgHeight = (int)($arParams["DISPLAY_IMG_HEIGHT"] ?: 208);
+
 	//DETAIL_IMG//
-	if($arResult["DETAIL_PICTURE"]["WIDTH"] > $arParams["DISPLAY_DETAIL_IMG_WIDTH"] || $arResult["DETAIL_PICTURE"]["HEIGHT"] > $arParams["DISPLAY_DETAIL_IMG_HEIGHT"]) {
-		$arFileTmp = CFile::ResizeImageGet(
-			$arResult["DETAIL_PICTURE"],
-			array("width" => $arParams["DISPLAY_DETAIL_IMG_WIDTH"], "height" => $arParams["DISPLAY_DETAIL_IMG_HEIGHT"]),
-			BX_RESIZE_IMAGE_PROPORTIONAL,
-			true
-		);
-		$arResult["DETAIL_IMG"] = array(
-			"SRC" => $arFileTmp["src"],
-			"WIDTH" => $arFileTmp["width"],
-			"HEIGHT" => $arFileTmp["height"],
-		);
-	} else {
-		$arResult["DETAIL_IMG"] = $arResult["DETAIL_PICTURE"];
+	$detailImg = vilmedResizePicture($arResult["DETAIL_PICTURE"], $detailImgWidth, $detailImgHeight);
+	if ($detailImg !== null) {
+		$arResult["DETAIL_IMG"] = $detailImg;
 	}
 
 	//PREVIEW_IMG//
-	if($arResult["DETAIL_PICTURE"]["WIDTH"] > $arParams["DISPLAY_IMG_WIDTH"] || $arResult["DETAIL_PICTURE"]["HEIGHT"] > $arParams["DISPLAY_IMG_HEIGHT"]) {
-		$arFileTmp = CFile::ResizeImageGet(
-			$arResult["DETAIL_PICTURE"],
-			array("width" => $arParams["DISPLAY_IMG_WIDTH"], "height" => $arParams["DISPLAY_IMG_HEIGHT"]),
-			BX_RESIZE_IMAGE_PROPORTIONAL,
-			true
-		);
-		$arResult["PREVIEW_IMG"] = array(
-			"SRC" => $arFileTmp["src"],
-			"WIDTH" => $arFileTmp["width"],
-			"HEIGHT" => $arFileTmp["height"],
-		);
-	} else {
-		$arResult["PREVIEW_IMG"] = $arResult["DETAIL_PICTURE"];
+	$previewImg = vilmedResizePicture($arResult["DETAIL_PICTURE"], $previewImgWidth, $previewImgHeight);
+	if ($previewImg !== null) {
+		$arResult["PREVIEW_IMG"] = $previewImg;
 	}
 }
 
@@ -498,17 +481,12 @@ if(is_array($arResult["MORE_PHOTO"]) && count($arResult["MORE_PHOTO"]) > 0) {
 		}
 
 		//MORE_PICTURES_PREVIEW//
-		$arFileTmp = CFile::ResizeImageGet(
-			$arFile,
-			array("width" => $arParams["DISPLAY_MORE_PHOTO_WIDTH"] ? $arParams["DISPLAY_MORE_PHOTO_WIDTH"] : 86, "height" => $arParams["DISPLAY_MORE_PHOTO_HEIGHT"] ? $arParams["DISPLAY_MORE_PHOTO_HEIGHT"] : 86),
-			BX_RESIZE_IMAGE_PROPORTIONAL,
-			true
-		);
-		$arResult["MORE_PHOTO"][$key]["PREVIEW"] = array(
-			"SRC" => $arFileTmp["src"],
-			"WIDTH" => $arFileTmp["width"],
-			"HEIGHT" => $arFileTmp["height"],
-		);
+		$morePhotoWidth = (int)($arParams["DISPLAY_MORE_PHOTO_WIDTH"] ?: 86);
+		$morePhotoHeight = (int)($arParams["DISPLAY_MORE_PHOTO_HEIGHT"] ?: 86);
+		$morePhotoPreview = vilmedResizePicture($arFile, $morePhotoWidth, $morePhotoHeight);
+		if ($morePhotoPreview !== null) {
+			$arResult["MORE_PHOTO"][$key]["PREVIEW"] = $morePhotoPreview;
+		}
 	}
 }
 
@@ -626,20 +604,9 @@ if(!empty($arResult["PROPERTIES"]["MANUFACTURER"]["VALUE"])) {
 		//PREVIEW_PICTURE//
 		if($arEl["PREVIEW_PICTURE"] > 0) {
 			$arFile = CFile::GetFileArray($arEl["PREVIEW_PICTURE"]);
-			if($arFile["WIDTH"] > 69 || $arFile["HEIGHT"] > 24) {
-				$arFileTmp = CFile::ResizeImageGet(
-					$arFile,
-					array("width" => 69, "height" => 24),
-					BX_RESIZE_IMAGE_PROPORTIONAL,
-					true
-				);
-				$arResult["PROPERTIES"]["MANUFACTURER"]["FULL_VALUE"]["PREVIEW_PICTURE"] = array(
-					"SRC" => $arFileTmp["src"],
-					"WIDTH" => $arFileTmp["width"],
-					"HEIGHT" => $arFileTmp["height"],
-				);
-			} else {
-				$arResult["PROPERTIES"]["MANUFACTURER"]["FULL_VALUE"]["PREVIEW_PICTURE"] = $arFile;
+			$manufacturerPicture = vilmedResizePicture($arFile, 69, 24);
+			if ($manufacturerPicture !== null) {
+				$arResult["PROPERTIES"]["MANUFACTURER"]["FULL_VALUE"]["PREVIEW_PICTURE"] = $manufacturerPicture;
 			}
 		}
 	}
@@ -914,38 +881,21 @@ if(isset($arResult["OFFERS"]) && !empty($arResult["OFFERS"])) {
 				$arResult["OFFERS"][$keyOffer]["DETAIL_PICTURE"] = $arFile;
 			}
 
+			$offerDetailImgWidth = (int)($arParams["DISPLAY_DETAIL_IMG_WIDTH"] ?: 390);
+			$offerDetailImgHeight = (int)($arParams["DISPLAY_DETAIL_IMG_HEIGHT"] ?: 390);
+			$offerPreviewImgWidth = (int)($arParams["DISPLAY_IMG_WIDTH"] ?: 208);
+			$offerPreviewImgHeight = (int)($arParams["DISPLAY_IMG_HEIGHT"] ?: 208);
+
 			//DETAIL_IMG//
-			if($arOffer["DETAIL_PICTURE"]["WIDTH"] > $arParams["DISPLAY_DETAIL_IMG_WIDTH"] || $arOffer["DETAIL_PICTURE"]["HEIGHT"] > $arParams["DISPLAY_DETAIL_IMG_HEIGHT"]) {
-				$arFileTmp = CFile::ResizeImageGet(
-					$arOffer["DETAIL_PICTURE"],
-					array("width" => $arParams["DISPLAY_DETAIL_IMG_WIDTH"], "height" => $arParams["DISPLAY_DETAIL_IMG_HEIGHT"]),
-					BX_RESIZE_IMAGE_PROPORTIONAL,
-					true
-				);
-				$arResult["OFFERS"][$keyOffer]["DETAIL_IMG"] = array(
-					"SRC" => $arFileTmp["src"],
-					"WIDTH" => $arFileTmp["width"],
-					"HEIGHT" => $arFileTmp["height"],
-				);
-			} else {
-				$arResult["OFFERS"][$keyOffer]["DETAIL_IMG"] = $arOffer["DETAIL_PICTURE"];
+			$offerDetailImg = vilmedResizePicture($arOffer["DETAIL_PICTURE"], $offerDetailImgWidth, $offerDetailImgHeight);
+			if ($offerDetailImg !== null) {
+				$arResult["OFFERS"][$keyOffer]["DETAIL_IMG"] = $offerDetailImg;
 			}
 
 			//PREVIEW_IMG//
-			if($arOffer["DETAIL_PICTURE"]["WIDTH"] > $arParams["DISPLAY_IMG_WIDTH"] || $arOffer["DETAIL_PICTURE"]["HEIGHT"] > $arParams["DISPLAY_IMG_HEIGHT"]) {
-				$arFileTmp = CFile::ResizeImageGet(
-					$arOffer["DETAIL_PICTURE"],
-					array("width" => $arParams["DISPLAY_IMG_WIDTH"], "height" => $arParams["DISPLAY_IMG_HEIGHT"]),
-					BX_RESIZE_IMAGE_PROPORTIONAL,
-					true
-				);
-				$arResult["OFFERS"][$keyOffer]["PREVIEW_IMG"] = array(
-					"SRC" => $arFileTmp["src"],
-					"WIDTH" => $arFileTmp["width"],
-					"HEIGHT" => $arFileTmp["height"],
-				);
-			} else {
-				$arResult["OFFERS"][$keyOffer]["PREVIEW_IMG"] = $arOffer["DETAIL_PICTURE"];
+			$offerPreviewImg = vilmedResizePicture($arOffer["DETAIL_PICTURE"], $offerPreviewImgWidth, $offerPreviewImgHeight);
+			if ($offerPreviewImg !== null) {
+				$arResult["OFFERS"][$keyOffer]["PREVIEW_IMG"] = $offerPreviewImg;
 			}
 		}
 		//END_DETAIL_PREVIEW_IMG//

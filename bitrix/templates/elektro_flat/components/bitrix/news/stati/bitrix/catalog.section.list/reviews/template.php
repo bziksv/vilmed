@@ -11,8 +11,8 @@ if(count($arResult["SECTIONS"]) < 1)
 			<a href="<?=$arSection['SECTION_PAGE_URL']?>" title="<?=$arSection['NAME']?>">
 				<span class="child">
 					<span class="graph">
-						<?if(is_array($arSection["PICTURE"])) {?>
-							<img src="<?=$arSection['PICTURE']['SRC']?>" width="<?=$arSection['PICTURE']['WIDTH']?>" height="<?=$arSection['PICTURE']['HEIGHT']?>" alt="<?=$arSection['NAME']?>" />
+						<?if(is_array($arSection["PICTURE"]) && !empty($arSection["PICTURE"]["SRC"])) {?>
+							<img src="<?=$arSection['PICTURE']['SRC']?>" alt="<?=$arSection['NAME']?>" />
 						<?} else {?>
 							<img src="<?=SITE_TEMPLATE_PATH?>/images/no-photo.jpg" width="50" height="50" alt="<?=$arSection['NAME']?>" />
 						<?}?>

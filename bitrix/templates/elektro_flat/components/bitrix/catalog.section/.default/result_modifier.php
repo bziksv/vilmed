@@ -275,38 +275,12 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 	}
 
 	//PREVIEW_PICTURE//
+	$imgW = (int)($arParams["DISPLAY_IMG_WIDTH"] ?? 280);
+	$imgH = (int)($arParams["DISPLAY_IMG_HEIGHT"] ?? 280);
 	if($arParams["TYPE"] != "collections" && is_array($arElement["PREVIEW_PICTURE"])) {
-		if($arElement["PREVIEW_PICTURE"]["WIDTH"] > $arParams["DISPLAY_IMG_WIDTH"] || $arElement["PREVIEW_PICTURE"]["HEIGHT"] > $arParams["DISPLAY_IMG_HEIGHT"]) {
-			$arFileTmp = CFile::ResizeImageGet(
-				CFile::GetFileArray($arElement["PREVIEW_PICTURE"]["ID"]),
-				array("width" => $arParams["DISPLAY_IMG_WIDTH"], "height" => $arParams["DISPLAY_IMG_HEIGHT"]),
-				BX_RESIZE_IMAGE_PROPORTIONAL,
-				true
-			);
-			$arResult["ITEMS"][$key]["PREVIEW_PICTURE"] = array(
-				"SRC" => $arFileTmp["src"],
-				"WIDTH" => $arFileTmp["width"],
-				"HEIGHT" => $arFileTmp["height"]
-			);
-			unset($arFileTmp);
-		}
+		$arResult["ITEMS"][$key]["PREVIEW_PICTURE"] = vilmedOptimizePicture($arElement["PREVIEW_PICTURE"], $imgW, $imgH);
 	} elseif(is_array($arElement["DETAIL_PICTURE"])) {
-		if($arElement["DETAIL_PICTURE"]["WIDTH"] > $arParams["DISPLAY_IMG_WIDTH"] || $arElement["DETAIL_PICTURE"]["HEIGHT"] > $arParams["DISPLAY_IMG_HEIGHT"]) {
-			$arFileTmp = CFile::ResizeImageGet(
-				$arElement["DETAIL_PICTURE"],
-				array("width" => $arParams["DISPLAY_IMG_WIDTH"], "height" => $arParams["DISPLAY_IMG_HEIGHT"]),
-				BX_RESIZE_IMAGE_PROPORTIONAL,
-				true
-			);
-			$arResult["ITEMS"][$key]["PREVIEW_PICTURE"] = array(
-				"SRC" => $arFileTmp["src"],
-				"WIDTH" => $arFileTmp["width"],
-				"HEIGHT" => $arFileTmp["height"]
-			);
-			unset($arFileTmp);
-		} else {
-			$arResult["ITEMS"][$key]["PREVIEW_PICTURE"] = $arElement["DETAIL_PICTURE"];
-		}
+		$arResult["ITEMS"][$key]["PREVIEW_PICTURE"] = vilmedOptimizePicture($arElement["DETAIL_PICTURE"], $imgW, $imgH);
 	}
 
 	//MANUFACTURER//
@@ -529,23 +503,9 @@ if(count($vendorIds) > 0) {
 	while($arElement = $rsElements->GetNext()) {
 		$arVendor[$arElement["ID"]]["NAME"] = $arElement["NAME"];
 		if($arElement["PREVIEW_PICTURE"] > 0) {
-			$arFile = CFile::GetFileArray($arElement["PREVIEW_PICTURE"]);
-			if($arFile["WIDTH"] > 69 || $arFile["HEIGHT"] > 24) {
-				$arFileTmp = CFile::ResizeImageGet(
-					$arFile,
-					array("width" => 69, "height" => 24),
-					BX_RESIZE_IMAGE_PROPORTIONAL,
-					true
-				);
-				$arVendor[$arElement["ID"]]["PREVIEW_PICTURE"] = array(
-					"SRC" => $arFileTmp["src"],
-					"WIDTH" => $arFileTmp["width"],
-					"HEIGHT" => $arFileTmp["height"],
-				);
-				unset($arFileTmp);
-			} else {
-				 $arVendor[$arElement["ID"]]["PREVIEW_PICTURE"] = $arFile;
-				 unset($arFile);
+			$picture = vilmedResizePicture((int)$arElement["PREVIEW_PICTURE"], 69, 24);
+			if ($picture !== null) {
+				$arVendor[$arElement["ID"]]["PREVIEW_PICTURE"] = $picture;
 			}
 		}
 	}

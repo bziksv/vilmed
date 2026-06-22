@@ -3527,6 +3527,21 @@ footer{
 	height:56px;
 	display:table-cell;
 	vertical-align:middle;
+	text-align:center;
+	background:#f5f6fa;
+}
+
+.vendors-section-item a .item .image img{
+	max-width:69px;
+	max-height:24px;
+	width:auto !important;
+	height:auto !important;
+	object-fit:contain;
+}
+
+.vendors-section-item a .item .image img.no-vendor-logo{
+	max-width:50px;
+	max-height:50px;
 }
 
 .vendors-section-item a .item .item-title{
@@ -3678,6 +3693,16 @@ footer{
 	height:56px;
 	display:table-cell;
 	vertical-align:middle;
+	text-align:center;
+}
+
+.catalog-section-child a .child .graph img,
+.reviews-section-child a .child .graph img{
+	max-width:50px;
+	max-height:50px;
+	width:auto !important;
+	height:auto !important;
+	object-fit:contain;
 }
 
 .catalog-section-child a .child .text-cont,
@@ -9166,7 +9191,32 @@ transform: translateX(-8px);
 
 .pop-up.forms .alert{
 	width:100%;
-	display:table;
+	display:block;
+	margin-bottom:10px;
+}
+
+.pop-up.forms .alert .vilmed-form-alert{
+	display:flex;
+	align-items:flex-start;
+	gap:10px;
+	padding:10px 12px;
+	margin-bottom:4px;
+	line-height:1.45;
+}
+
+.pop-up.forms .alert .vilmed-form-alert .text{
+	display:block;
+}
+
+.pop-up.forms .row.has-error .span2 input[type="text"],
+.pop-up.forms .row.has-error .span2 textarea{
+	border-color:#d9534f !important;
+	box-shadow:0 0 0 2px rgba(217,83,79,.18);
+}
+
+.pop-up.forms .hint_agreement.has-error .input-checkbox{
+	border-color:#d9534f;
+	box-shadow:0 0 0 2px rgba(217,83,79,.18);
 }
 
 .pop-up.forms .row{

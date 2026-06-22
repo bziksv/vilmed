@@ -1,5 +1,8 @@
 document.addEventListener("DOMContentLoaded", function(event) {
     var primeIncut = document.getElementsByClassName("prime-incut");
+    if (!primeIncut.length) {
+        return;
+    }
     var primeIncutUrl   = 'https://incut.prime-ltd.su/incut/incut.php';
 
     var domainFrom = extractDomain(window.location.href);
