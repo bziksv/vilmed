@@ -237,7 +237,7 @@ Loc::loadMessages(__FILE__);?>
 <script>
     $(function(){
 
-        $('img').not('.no-lazy, .logo img, header img, .ym-advanced-informer, .slider img, .anythingslider img, .slick-slider img').each(function(li,el){
+        $('img').not('.no-lazy, .logo img, header img, .left-menu img, .catalog-section-child img, .ym-advanced-informer, .slider img, .anythingslider img, .slick-slider img').each(function(li,el){
             $(el).addClass('lazy-fadein');
             var alt = $(el).attr('alt');
             var src = $(el).attr('src');
@@ -266,6 +266,7 @@ Loc::loadMessages(__FILE__);?>
 
         if (lazyLoadInstance) {
             lazyLoadInstance.update();
+            lazyLoadInstance.loadAll();
         }
     });
 </script>

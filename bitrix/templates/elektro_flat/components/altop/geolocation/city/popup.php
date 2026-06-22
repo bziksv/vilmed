@@ -45,7 +45,10 @@ $APPLICATION->IncludeComponent("bitrix:sale.location.selector.search", "geolocat
 				locationId: BX.findChild(BX("cityChange"), {tagName: "input", className: "dropdown-field"}, true, false).value
 			},
 			function(result) {
-			    $('#geolocationChangeCity .geolocation__value').text($.cookie('BITRIX_SM_GEOLOCATION_CITY'));
+			    var city = $.cookie('GEOLOCATION_CITY');
+			    if (city) {
+			        $('#geolocationChangeCity .geolocation__value').text(city);
+			    }
                 BX.CityChange.popup.close();
 			}
 		);
