@@ -13,11 +13,8 @@ if ($vilmedIsCatalogSection && $vilmedIsFirstPage && !empty($arResult['ITEMS'][0
 	$vilmedLcpSrc = function_exists('vilmedPicturePreloadSrc')
 		? vilmedPicturePreloadSrc($vilmedLcpPicture)
 		: $vilmedLcpPicture['SRC'];
-	if ($vilmedLcpSrc !== '') {
-		$APPLICATION->AddHeadString(
-			'<link rel="preload" as="image" href="' . htmlspecialcharsbx($vilmedLcpSrc) . '" fetchpriority="high">',
-			true
-		);
+	if ($vilmedLcpSrc !== '' && function_exists('vilmedSetLcpPreload')) {
+		vilmedSetLcpPreload($vilmedLcpSrc);
 	}
 }
 

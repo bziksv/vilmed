@@ -37,7 +37,7 @@ if (!function_exists('vilmedEnsureWebpSrc')) {
 		}
 
 		// Do not generate WebP during HTTP — blocks TTFB on catalog (many images per page).
-		// Run: php .local/performance/webp-warmup.php (on server, after deploy).
+		// Run: php tools/perf/webp-warmup.php --limit=1000 (on server, after deploy).
 		return null;
 	}
 }
@@ -278,3 +278,32 @@ if (!function_exists('vilmedBasketPicture')) {
 		];
 	}
 }
+
+if (!function_exists('vilmedSetLcpPreload')) {
+	/** Queue LCP image preload — injected into <head> via OnEndBufferContent. */
+	function vilmedSetLcpPreload(string $src): void
+	{
+		$src = (string)preg_replace('#\?.*$#', '', $src);
+		if ($src === '') {
+			return;
+		}
+		$GLOBALS['vilmedLcpPreloadSrc'] = $src;
+	}
+}
+
+if (!function_exists('vilmedInjectLcpPreload')) {
+	function vilmedInjectLcpPreload(string &$content): void
+	{
+		$src = $GLOBALS['vilmedLcpPreloadSrc'] ?? '';
+		if ($src === '' || stripos($content, 'rel="preload" as="image"') !== false) {
+			return;
+		}
+
+		$link = '<link rel="preload" as="image" href="' . htmlspecialcharsbx($src, ENT_QUOTES) . '" fetchpriority="high">';
+		if (preg_match('/<head\b[^>]*>/i', $content)) {
+			$content = preg_replace('/<head\b[^>]*>/i', '$0' . $link, $content, 1);
+		}
+	}
+}
+
+AddEventHandler('main', 'OnEndBufferContent', 'vilmedInjectLcpPreload');

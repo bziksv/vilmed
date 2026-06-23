@@ -36,11 +36,8 @@ $APPLICATION->SetPageProperty("ogtype", "product");
 $vilmedLcpSrc = !empty($arResult["DETAIL_IMG"]["SRC"])
 	? vilmedPicturePreloadSrc($arResult["DETAIL_IMG"])
 	: (!empty($arResult["DETAIL_PICTURE"]["SRC"]) ? $arResult["DETAIL_PICTURE"]["SRC"] : "");
-if ($vilmedLcpSrc !== "") {
-	$APPLICATION->AddHeadString(
-		'<link rel="preload" as="image" href="' . htmlspecialcharsbx($vilmedLcpSrc) . '" fetchpriority="high">',
-		true
-	);
+if ($vilmedLcpSrc !== "" && function_exists('vilmedSetLcpPreload')) {
+	vilmedSetLcpPreload($vilmedLcpSrc);
 }
 if(isset($arResult["JS_OFFERS"]) && !empty($arResult["JS_OFFERS"])):
 	foreach($arResult["JS_OFFERS"] as $key => $arOffer):
