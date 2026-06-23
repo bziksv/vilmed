@@ -186,6 +186,7 @@ use Bitrix\Main\Localization\Loc,
 				paletteButton = $(".color-scheme-custom button[name=palette_button]"),
 				formSwitcher = $("form[name=style-switcher]");
 
+			if ($.fn.spectrum && paletteButton.length) {
 			paletteButton.spectrum({				
 				clickoutFiresChange: false,
 				cancelText: "<i class='fa fa-times'></i>",
@@ -212,6 +213,7 @@ use Bitrix\Main\Localization\Loc,
 				paletteButton.spectrum("set", curColor);
 				customColorDiv.attr("style", "background:" + curColor + ";");
 				customColorInput.val(curColor);
+			}
 			}
 			
 			customColorInput.change(function() {				

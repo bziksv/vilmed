@@ -52,6 +52,15 @@
     border-color: #ebccd1;
 }
 
+.categoryfinder-admin--booting .categoryfinder-table-wrap {
+    visibility: hidden;
+}
+
+.categoryfinder-filter__actions .btn[disabled] {
+    opacity: 0.65;
+    cursor: wait;
+}
+
 .categoryfinder-filters {
     display: flex;
     flex-wrap: wrap;

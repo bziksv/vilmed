@@ -1,5 +1,7 @@
-(function ($) {
+(function () {
     'use strict';
+
+    var $;
 
     var assetsLoaded = false;
     var assetsLoading = null;
@@ -271,19 +273,32 @@
         var listUrl = $root.data('list-url');
         var updateUrl = $root.data('update-url');
         var table = null;
+        var tableReady = false;
+        var loading = false;
+        var pendingLoad = true;
+
+        function setButtonsDisabled(disabled) {
+            $root.find('#cf-filter-btn, #cf-filter-reset-btn').prop('disabled', disabled);
+        }
 
         function loadRows() {
-            var $btn = $root.find('#cf-filter-btn');
-            $btn.prop('disabled', true);
+            if (!tableReady) {
+                pendingLoad = true;
+                setStatus($root, 'Инициализация таблицы…', 'loading');
+                setButtonsDisabled(true);
+                return;
+            }
+            if (loading) {
+                return;
+            }
+
+            loading = true;
+            setButtonsDisabled(true);
             setStatus($root, 'Загрузка…', 'loading');
 
             fetchRows(listUrl, $root)
                 .done(function (resp) {
                     var rows = (resp && resp.data) ? resp.data : [];
-                    if (!table) {
-                        setStatus($root, 'Ошибка инициализации таблицы', 'error');
-                        return;
-                    }
                     table.clear();
                     if (rows.length) {
                         table.rows.add(rows);
@@ -304,9 +319,38 @@
                     setStatus($root, 'Ошибка загрузки (' + xhr.status + ')', 'error');
                 })
                 .always(function () {
-                    $btn.prop('disabled', false);
+                    loading = false;
+                    setButtonsDisabled(false);
                 });
         }
+
+        setButtonsDisabled(true);
+        setStatus($root, 'Инициализация…', 'loading');
+        $root.addClass('categoryfinder-admin--booting');
+
+        toggleDuplicateSimilarity($root);
+
+        $root.on('change', '#cf-filter-duplicate', function () {
+            toggleDuplicateSimilarity($root);
+        });
+
+        $root.on('click', '#cf-filter-btn', function (e) {
+            e.preventDefault();
+            loadRows();
+        });
+
+        $root.on('click', '#cf-filter-reset-btn', function (e) {
+            e.preventDefault();
+            resetFiltersToDefaults($root);
+            loadRows();
+        });
+
+        $root.on('keydown', '#cf-filter-name', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                loadRows();
+            }
+        });
 
         loadAssets().done(function () {
             table = $root.find('#cf-category-table').DataTable({
@@ -343,31 +387,9 @@
                 }
             });
 
-            toggleDuplicateSimilarity($root);
-
-            $root.on('change', '#cf-filter-duplicate', function () {
-                toggleDuplicateSimilarity($root);
-            });
-
+            tableReady = true;
+            $root.removeClass('categoryfinder-admin--booting');
             $root.find('.dt-container, .dt-buttons').css('clear', 'none');
-
-            $root.on('click', '#cf-filter-btn', function (e) {
-                e.preventDefault();
-                loadRows();
-            });
-
-            $root.on('click', '#cf-filter-reset-btn', function (e) {
-                e.preventDefault();
-                resetFiltersToDefaults($root);
-                loadRows();
-            });
-
-            $root.on('keydown', '#cf-filter-name', function (e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    loadRows();
-                }
-            });
 
             $root.on('mouseenter', '#cf-category-table tbody tr[data-cf-dup-group]', function () {
                 var group = $(this).attr('data-cf-dup-group');
@@ -416,15 +438,45 @@
                 });
             });
 
-            loadRows();
+            if (pendingLoad) {
+                pendingLoad = false;
+                loadRows();
+            } else {
+                setButtonsDisabled(false);
+                setStatus($root, '', '');
+            }
         }).fail(function () {
+            $root.removeClass('categoryfinder-admin--booting');
+            setButtonsDisabled(false);
             setStatus($root, 'Не удалось загрузить DataTables', 'error');
         });
     }
 
-    $(function () {
-        $('.categoryfinder-admin').each(function () {
-            initPage($(this));
+    function startCategoryFinder() {
+        $ = window.jQuery;
+        $(function () {
+            $('.categoryfinder-admin').each(function () {
+                initPage($(this));
+            });
         });
-    });
-})(jQuery);
+    }
+
+    function waitForJQuery(tries) {
+        tries = tries || 0;
+        if (typeof window.jQuery !== 'undefined') {
+            startCategoryFinder();
+            return;
+        }
+        if (tries > 200) {
+            if (window.console && console.error) {
+                console.error('category-finder: jQuery not loaded');
+            }
+            return;
+        }
+        setTimeout(function () {
+            waitForJQuery(tries + 1);
+        }, 25);
+    }
+
+    waitForJQuery(0);
+})();

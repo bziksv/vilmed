@@ -124,6 +124,8 @@ if(in_array("FALLING_SNOW", $arResult["GENERAL_SETTINGS"]["VALUE"])) {
 //SETTINGS_PANEL//
 global $USER;
 if($USER->IsAdmin() && $arResult["SHOW_SETTINGS_PANEL"]["VALUE"] == "Y") {
+	\Bitrix\Main\Page\Asset::getInstance()->addCss(SITE_TEMPLATE_PATH."/js/spectrum/spectrum.css");
+	\Bitrix\Main\Page\Asset::getInstance()->addJs(SITE_TEMPLATE_PATH."/js/spectrum/spectrum.js");
 	$this->IncludeComponentTemplate();
 }
 

@@ -1,5 +1,7 @@
 <?
 define("NEED_AUTH", true);
+require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_before.php");
+$APPLICATION->SetAdditionalCSS("/category-finder/css/admin.css?v=6");
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 
 $APPLICATION->SetTitle("Поиск разделов каталога");
@@ -108,13 +110,13 @@ $APPLICATION->SetTitle("Поиск разделов каталога");
         </div>
         <div class="categoryfinder-filter categoryfinder-filter--action">
             <div class="categoryfinder-filter__actions">
-                <button type="button" class="btn btn-primary" id="cf-filter-btn">Найти</button>
-                <button type="button" class="btn btn-default" id="cf-filter-reset-btn">По умолчанию</button>
+                <button type="button" class="btn btn-primary" id="cf-filter-btn" disabled>Найти</button>
+                <button type="button" class="btn btn-default" id="cf-filter-reset-btn" disabled>По умолчанию</button>
             </div>
         </div>
     </div>
 
-    <div class="categoryfinder-status" id="cf-status" aria-live="polite" hidden></div>
+    <div class="categoryfinder-status categoryfinder-status--loading" id="cf-status" aria-live="polite">Инициализация…</div>
 
     <div class="categoryfinder-dup-legend" id="cf-dup-legend" hidden></div>
 
@@ -123,7 +125,5 @@ $APPLICATION->SetTitle("Поиск разделов каталога");
     </div>
 </div>
 
-<link rel="stylesheet" href="/category-finder/css/admin.css?v=4">
-<script src="/category-finder/js/admin.js?v=4"></script>
-
+<script src="/category-finder/js/admin.js?v=6"></script>
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>
