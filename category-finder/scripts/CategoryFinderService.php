@@ -222,23 +222,28 @@ class CategoryFinderService
             return [];
         }
 
+        global $DB;
+
         $needed = array_fill_keys(array_map('intval', $sectionIds), true);
         $counts = [];
 
-        $rs = CIBlockElement::GetList(
-            [],
-            [
-                'IBLOCK_ID' => $iblockId,
-                'INCLUDE_SUBSECTIONS' => 'N',
-                'CHECK_PERMISSIONS' => 'N',
-            ],
-            ['IBLOCK_SECTION_ID'],
-            false,
-            ['IBLOCK_SECTION_ID']
-        );
+        // Same join logic as CIBlockSection::GetList(..., true), one query for all sections.
+        $sql = "
+            SELECT SE.IBLOCK_SECTION_ID AS SECTION_ID, COUNT(DISTINCT SE.IBLOCK_ELEMENT_ID) AS CNT
+            FROM b_iblock_section_element SE
+            INNER JOIN b_iblock_element BE ON BE.ID = SE.IBLOCK_ELEMENT_ID
+            WHERE BE.IBLOCK_ID = " . $iblockId . "
+              AND BE.WF_STATUS_ID = 1
+              AND (BE.WF_PARENT_ELEMENT_ID IS NULL OR BE.WF_PARENT_ELEMENT_ID = 0)
+              AND BE.ACTIVE = 'Y'
+              AND (BE.ACTIVE_TO >= " . $DB->CurrentTimeFunction() . " OR BE.ACTIVE_TO IS NULL)
+              AND (BE.ACTIVE_FROM <= " . $DB->CurrentTimeFunction() . " OR BE.ACTIVE_FROM IS NULL)
+            GROUP BY SE.IBLOCK_SECTION_ID
+        ";
 
-        while ($row = $rs->Fetch()) {
-            $sectionId = (int)($row['IBLOCK_SECTION_ID'] ?? 0);
+        $res = $DB->Query($sql);
+        while ($row = $res->Fetch()) {
+            $sectionId = (int)($row['SECTION_ID'] ?? 0);
             if ($sectionId > 0 && isset($needed[$sectionId])) {
                 $counts[$sectionId] = (int)($row['CNT'] ?? 0);
             }

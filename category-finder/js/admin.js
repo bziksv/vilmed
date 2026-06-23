@@ -298,6 +298,10 @@
 
             fetchRows(listUrl, $root)
                 .done(function (resp) {
+                    if (resp && resp.error) {
+                        setStatus($root, 'Ошибка: ' + resp.error, 'error');
+                        return;
+                    }
                     var rows = (resp && resp.data) ? resp.data : [];
                     table.clear();
                     if (rows.length) {
@@ -306,7 +310,7 @@
                     table.draw(false);
                     updateDuplicateLegend($root, resp, rows);
                     if (rows.length) {
-                        setStatus($root, 'Найдено: ' + rows.length, 'ok');
+                        setStatus($root, 'Найдено: ' + rows.length + (resp.timingMs ? ' (' + resp.timingMs + ' ms)' : ''), 'ok');
                     } else {
                         setStatus($root, 'Ничего не найдено — измените фильтры и нажмите «Найти»', 'empty');
                     }
@@ -316,7 +320,13 @@
                         setStatus($root, 'Превышено время ожидания — сузьте фильтры и попробуйте снова', 'error');
                         return;
                     }
-                    setStatus($root, 'Ошибка загрузки (' + xhr.status + ')', 'error');
+                    var detail = '';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        detail = xhr.responseJSON.error;
+                    } else if (xhr.responseText) {
+                        detail = $.trim(xhr.responseText).substring(0, 200);
+                    }
+                    setStatus($root, 'Ошибка загрузки (' + xhr.status + ')' + (detail ? ': ' + detail : ''), 'error');
                 })
                 .always(function () {
                     loading = false;
