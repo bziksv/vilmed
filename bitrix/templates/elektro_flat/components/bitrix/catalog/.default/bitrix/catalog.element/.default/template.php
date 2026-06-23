@@ -333,7 +333,13 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
                             <meta content="<?=($isDetailImg ? $arResult['DETAIL_PICTURE']['SRC'] : SITE_TEMPLATE_PATH.'/images/no-photo.jpg');?>" itemprop="image" />
 							<?if($isDetailImg) {?>
 								<a rel="lightbox" class="catalog-detail-images fancybox" href="<?=$arResult['DETAIL_PICTURE']['SRC']?>">
-									<img class="no-lazy" fetchpriority="high" src="<?=$arResult['DETAIL_IMG']['SRC']?>" width="<?=$arResult['DETAIL_IMG']['WIDTH']?>" height="<?=$arResult['DETAIL_IMG']['HEIGHT']?>" alt="<?=$strAlt?>" title="<?=$strTitle?>" />
+									<?$APPLICATION->IncludeFile('/include/vilmed_picture.php', [
+										'picture' => $arResult['DETAIL_IMG'],
+										'class' => 'no-lazy',
+										'alt' => $strAlt,
+										'title' => $strTitle,
+										'attrs' => ['fetchpriority' => 'high'],
+									], ['MODE' => 'php', 'SHOW_BORDER' => false]);?>
 							<?} else {?>
 								<div class="catalog-detail-images">
 									<img src="<?=SITE_TEMPLATE_PATH?>/images/no-photo.jpg" width="150" height="150" alt="<?=$strAlt?>" title="<?=$strTitle?>" />

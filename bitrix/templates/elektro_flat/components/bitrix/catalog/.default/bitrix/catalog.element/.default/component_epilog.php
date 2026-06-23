@@ -34,7 +34,7 @@ if(isset($templateData["JS_OBJ"])) {?>
 //META_PROPERTY//
 $APPLICATION->SetPageProperty("ogtype", "product");
 $vilmedLcpSrc = !empty($arResult["DETAIL_IMG"]["SRC"])
-	? $arResult["DETAIL_IMG"]["SRC"]
+	? vilmedPicturePreloadSrc($arResult["DETAIL_IMG"])
 	: (!empty($arResult["DETAIL_PICTURE"]["SRC"]) ? $arResult["DETAIL_PICTURE"]["SRC"] : "");
 if ($vilmedLcpSrc !== "") {
 	$APPLICATION->AddHeadString(

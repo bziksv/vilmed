@@ -177,7 +177,7 @@ class CategoryFinderService
                 'IBLOCK_ID' => $iblockId,
                 '>=DEPTH_LEVEL' => $minDepth,
             ],
-            true,
+            false,
             [
                 'ID',
                 'IBLOCK_ID',
@@ -187,17 +187,64 @@ class CategoryFinderService
                 'ACTIVE',
                 'LEFT_MARGIN',
                 'RIGHT_MARGIN',
-                'ELEMENT_CNT',
                 'SECTION_PAGE_URL',
                 'UF_WITHOUT_PROD',
             ]
         );
 
         while ($row = $rs->GetNext()) {
+            $row['ELEMENT_CNT'] = 0;
             $sections[(int)$row['ID']] = $row;
         }
 
+        if ($sections) {
+            foreach ($this->loadDirectElementCounts($iblockId, array_keys($sections)) as $sectionId => $cnt) {
+                if (isset($sections[$sectionId])) {
+                    $sections[$sectionId]['ELEMENT_CNT'] = $cnt;
+                }
+            }
+        }
+
         return $sections;
+    }
+
+    /**
+     * One grouped query instead of CIBlockSection::GetList(..., true) per section.
+     *
+     * @param int $iblockId
+     * @param int[] $sectionIds
+     * @return array<int, int>
+     */
+    protected function loadDirectElementCounts($iblockId, array $sectionIds)
+    {
+        $iblockId = (int)$iblockId;
+        if ($iblockId <= 0 || !$sectionIds) {
+            return [];
+        }
+
+        $needed = array_fill_keys(array_map('intval', $sectionIds), true);
+        $counts = [];
+
+        $rs = CIBlockElement::GetList(
+            [],
+            [
+                'IBLOCK_ID' => $iblockId,
+                'INCLUDE_SUBSECTIONS' => 'N',
+                'CHECK_PERMISSIONS' => 'N',
+            ],
+            ['IBLOCK_SECTION_ID'],
+            false,
+            ['IBLOCK_SECTION_ID']
+        );
+
+        while ($row = $rs->Fetch()) {
+            $sectionId = (int)($row['IBLOCK_SECTION_ID'] ?? 0);
+            if ($sectionId > 0 && isset($needed[$sectionId])) {
+                $counts[$sectionId] = (int)($row['CNT'] ?? 0);
+            }
+        }
+
+        return $counts;
     }
 
     protected function matchesActiveFilter(array $section, $active)
@@ -284,25 +331,46 @@ class CategoryFinderService
             return [];
         }
 
-        $map = [];
+        $targetIds = [];
         foreach ($sectionIds as $id) {
             $id = (int)$id;
-            $map[$id] = 0;
+            if ($id > 0 && isset($sections[$id])) {
+                $targetIds[$id] = true;
+            }
+        }
 
-            if (!isset($sections[$id])) {
-                continue;
+        if (!$targetIds) {
+            return [];
+        }
+
+        $map = array_fill_keys(array_keys($targetIds), 0);
+
+        $ordered = $sections;
+        uasort($ordered, static function ($a, $b) {
+            return (int)$a['LEFT_MARGIN'] <=> (int)$b['LEFT_MARGIN'];
+        });
+
+        $stack = [];
+
+        foreach ($ordered as $section) {
+            $id = (int)$section['ID'];
+            $left = (int)$section['LEFT_MARGIN'];
+            $cnt = (int)$section['ELEMENT_CNT'];
+
+            while ($stack !== []) {
+                $topId = $stack[count($stack) - 1];
+                if ($left <= (int)$sections[$topId]['RIGHT_MARGIN']) {
+                    break;
+                }
+                array_pop($stack);
             }
 
-            $parent = $sections[$id];
-            $left = (int)$parent['LEFT_MARGIN'];
-            $right = (int)$parent['RIGHT_MARGIN'];
+            foreach ($stack as $ancestorId) {
+                $map[$ancestorId] += $cnt;
+            }
 
-            foreach ($sections as $child) {
-                $childLeft = (int)$child['LEFT_MARGIN'];
-                $childRight = (int)$child['RIGHT_MARGIN'];
-                if ($childLeft > $left && $childRight < $right) {
-                    $map[$id] += (int)$child['ELEMENT_CNT'];
-                }
+            if (isset($targetIds[$id])) {
+                $stack[] = $id;
             }
         }
 

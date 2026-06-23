@@ -20,9 +20,14 @@ use \Bitrix\Main\Localization\Loc;?>
             ?>
 			<meta content="<?=(is_array($arElement['PREVIEW_PICTURE']) ? $arElement['PREVIEW_PICTURE']['SRC'] : SITE_TEMPLATE_PATH.'/images/no-photo.jpg');?>" itemprop="image" />
 			<a href="<?=$arElement['DETAIL_PAGE_URL']?>">
-				<?if(is_array($arElement["PREVIEW_PICTURE"])) {?>
-					<img class="item_img" src="<?=$arElement['PREVIEW_PICTURE']['SRC']?>" width="<?=$arElement['PREVIEW_PICTURE']['WIDTH']?>" height="<?=$arElement['PREVIEW_PICTURE']['HEIGHT']?>" alt="<?=$strAlt?>" title="<?=$strTitle?>" />
-				<?} else {?>
+				<?if(is_array($arElement["PREVIEW_PICTURE"])) {
+					$APPLICATION->IncludeFile('/include/vilmed_picture.php', [
+						'picture' => $arElement['PREVIEW_PICTURE'],
+						'class' => 'item_img',
+						'alt' => $strAlt,
+						'title' => $strTitle,
+					], ['MODE' => 'php', 'SHOW_BORDER' => false]);
+				} else {?>
 					<img src="<?=SITE_TEMPLATE_PATH?>/images/no-photo.jpg" width="150" height="150" alt="<?=$strAlt?>" title="<?=$strTitle?>" />
 				<?}?>
 			</a>

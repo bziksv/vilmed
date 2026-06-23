@@ -3,6 +3,24 @@
 //JS_CORE//
 CJSCore::Init(array('popup', 'ajax', 'fx'));
 
+//LCP preload — first product image on catalog section pages (page 1)
+global $APPLICATION;
+$vilmedCurPage = $APPLICATION->GetCurPage(false);
+$vilmedIsCatalogSection = (strpos($vilmedCurPage, '/catalog/') === 0);
+$vilmedIsFirstPage = empty($arResult['NAV_RESULT']) || (int)$arResult['NAV_RESULT']->NavPageNomer <= 1;
+if ($vilmedIsCatalogSection && $vilmedIsFirstPage && !empty($arResult['ITEMS'][0]['PREVIEW_PICTURE']['SRC'])) {
+	$vilmedLcpPicture = $arResult['ITEMS'][0]['PREVIEW_PICTURE'];
+	$vilmedLcpSrc = function_exists('vilmedPicturePreloadSrc')
+		? vilmedPicturePreloadSrc($vilmedLcpPicture)
+		: $vilmedLcpPicture['SRC'];
+	if ($vilmedLcpSrc !== '') {
+		$APPLICATION->AddHeadString(
+			'<link rel="preload" as="image" href="' . htmlspecialcharsbx($vilmedLcpSrc) . '" fetchpriority="high">',
+			true
+		);
+	}
+}
+
 //LAZY_LOAD_JSON_ANSWERS//
 $request = \Bitrix\Main\Context::getCurrent()->getRequest();
 if($request->isAjaxRequest() && ($request->get('action') === 'showMore' || $request->get('action') === 'deferredLoad')) {

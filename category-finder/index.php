@@ -125,5 +125,5 @@ $APPLICATION->SetTitle("Поиск разделов каталога");
     </div>
 </div>
 
-<script src="/category-finder/js/admin.js?v=6"></script>
+<script src="/category-finder/js/admin.js?v=7"></script>
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>

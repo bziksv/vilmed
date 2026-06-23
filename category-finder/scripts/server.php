@@ -5,6 +5,8 @@ define('NO_KEEP_STATISTIC', 'Y');
 define('STOP_STATISTICS', true);
 define('BX_SECURITY_SHOW_MESSAGE', true);
 
+@set_time_limit(300);
+
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_before.php');
 require_once __DIR__ . '/CategoryFinderService.php';
 

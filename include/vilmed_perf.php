@@ -3,6 +3,142 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
 	die();
 }
 
+if (!function_exists('vilmedEnsureWebpSrc')) {
+	/**
+	 * Create/read cached .webp sibling next to jpg/png under document root.
+	 */
+	function vilmedEnsureWebpSrc(string $relativeSrc): ?string
+	{
+		if (!function_exists('imagewebp')) {
+			return null;
+		}
+
+		$relativeSrc = (string)preg_replace('#\?.*$#', '', $relativeSrc);
+		if ($relativeSrc === '' || $relativeSrc[0] !== '/') {
+			return null;
+		}
+
+		$ext = strtolower(pathinfo($relativeSrc, PATHINFO_EXTENSION));
+		if (!in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
+			return null;
+		}
+
+		$docRoot = rtrim((string)$_SERVER['DOCUMENT_ROOT'], '/');
+		$sourcePath = $docRoot . $relativeSrc;
+		if (!is_file($sourcePath) || !is_readable($sourcePath)) {
+			return null;
+		}
+
+		$webpRelative = (string)preg_replace('/\.(jpe?g|png)$/i', '.webp', $relativeSrc);
+		$webpPath = $docRoot . $webpRelative;
+
+		if (is_file($webpPath) && filemtime($webpPath) >= filemtime($sourcePath)) {
+			return $webpRelative;
+		}
+
+		$webpDir = dirname($webpPath);
+		if (!is_dir($webpDir) && !@mkdir($webpDir, 0755, true) && !is_dir($webpDir)) {
+			return null;
+		}
+
+		$image = null;
+		if (in_array($ext, ['jpg', 'jpeg'], true)) {
+			$image = @imagecreatefromjpeg($sourcePath);
+		} elseif ($ext === 'png') {
+			$image = @imagecreatefrompng($sourcePath);
+			if ($image !== false) {
+				imagepalettetotruecolor($image);
+				imagealphablending($image, true);
+				imagesavealpha($image, true);
+			}
+		}
+
+		if ($image === false || $image === null) {
+			return null;
+		}
+
+		$saved = imagewebp($image, $webpPath, 82);
+		imagedestroy($image);
+
+		if (!$saved) {
+			@unlink($webpPath);
+			return null;
+		}
+
+		@chmod($webpPath, 0644);
+
+		return $webpRelative;
+	}
+}
+
+if (!function_exists('vilmedAttachWebp')) {
+	function vilmedAttachWebp(array $picture): array
+	{
+		$src = $picture['SRC'] ?? '';
+		if ($src === '') {
+			return $picture;
+		}
+
+		$webpSrc = vilmedEnsureWebpSrc($src);
+		if ($webpSrc !== null) {
+			$picture['SRC_WEBP'] = $webpSrc;
+		}
+
+		return $picture;
+	}
+}
+
+if (!function_exists('vilmedPicturePreloadSrc')) {
+	function vilmedPicturePreloadSrc(array $picture): string
+	{
+		if (!empty($picture['SRC_WEBP'])) {
+			return (string)$picture['SRC_WEBP'];
+		}
+
+		return (string)($picture['SRC'] ?? '');
+	}
+}
+
+if (!function_exists('vilmedPictureHtml')) {
+	function vilmedPictureHtml(array $picture, array $attrs = []): string
+	{
+		$src = $picture['SRC'] ?? '';
+		if ($src === '') {
+			return '';
+		}
+
+		$class = (string)($attrs['class'] ?? '');
+		$alt = htmlspecialcharsbx((string)($attrs['alt'] ?? ''), ENT_QUOTES);
+		$title = htmlspecialcharsbx((string)($attrs['title'] ?? ''), ENT_QUOTES);
+		$width = (int)($picture['WIDTH'] ?? 0);
+		$height = (int)($picture['HEIGHT'] ?? 0);
+		$extra = '';
+
+		foreach (['loading', 'fetchpriority', 'decoding'] as $key) {
+			if (!empty($attrs[$key])) {
+				$extra .= ' ' . $key . '="' . htmlspecialcharsbx((string)$attrs[$key], ENT_QUOTES) . '"';
+			}
+		}
+
+		$widthAttr = $width > 0 ? ' width="' . $width . '"' : '';
+		$heightAttr = $height > 0 ? ' height="' . $height . '"' : '';
+		$classAttr = $class !== '' ? ' class="' . htmlspecialcharsbx($class, ENT_QUOTES) . '"' : '';
+		$titleAttr = $title !== '' ? ' title="' . $title . '"' : '';
+		$webpSrc = $picture['SRC_WEBP'] ?? '';
+
+		if ($webpSrc !== '') {
+			return '<picture>'
+				. '<source srcset="' . htmlspecialcharsbx($webpSrc, ENT_QUOTES) . '" type="image/webp">'
+				. '<img' . $classAttr . ' src="' . htmlspecialcharsbx($src, ENT_QUOTES) . '"' . $widthAttr . $heightAttr
+				. ' alt="' . $alt . '"' . $titleAttr . $extra . ' />'
+				. '</picture>';
+		}
+
+		return '<img' . $classAttr . ' src="' . htmlspecialcharsbx($src, ENT_QUOTES) . '"' . $widthAttr . $heightAttr
+			. ' alt="' . $alt . '"' . $titleAttr . $extra . ' />';
+	}
+}
+
 if (!function_exists('vilmedResizePicture')) {
 	/**
 	 * Resize with fallback dimensions when PHP cannot read /upload/ locally
@@ -53,11 +189,11 @@ if (!function_exists('vilmedResizePicture')) {
 			$resized['height'] = $height;
 		}
 
-		return [
+		return vilmedAttachWebp([
 			'SRC' => $resized['src'],
 			'WIDTH' => $resized['width'],
 			'HEIGHT' => $resized['height'],
-		];
+		]);
 	}
 }
 
