@@ -307,3 +307,16 @@ if (!function_exists('vilmedInjectLcpPreload')) {
 }
 
 AddEventHandler('main', 'OnEndBufferContent', 'vilmedInjectLcpPreload');
+
+if (!function_exists('vilmedDeferStylesheet')) {
+	/** Non-blocking CSS — for below-the-fold blocks (e.g. catalog cards on homepage). */
+	function vilmedDeferStylesheet(string $href): void
+	{
+		$href = htmlspecialcharsbx($href, ENT_QUOTES);
+		\Bitrix\Main\Page\Asset::getInstance()->addString(
+			'<link rel="preload" as="style" href="' . $href . '" onload="this.onload=null;this.rel=\'stylesheet\'">'
+			. '<noscript><link rel="stylesheet" href="' . $href . '"></noscript>',
+			true
+		);
+	}
+}

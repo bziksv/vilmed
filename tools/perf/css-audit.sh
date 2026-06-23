@@ -11,7 +11,7 @@ BASE="${1:-https://vilmed.ru}"
 UA='Mozilla/5.0 (compatible; vilmed-warmup/2.0)'
 
 echo "== CSS source files =="
-for f in colors.css template_styles.css css/template_styles.personal.css css/font-awesome.min.css; do
+for f in colors.css template_styles.css css/template_styles.catalog.css css/template_styles.personal.css css/template_styles.compare.css css/font-awesome.min.css; do
   if [[ -f "$TPL/$f" ]]; then
     kb=$(awk -v s="$(wc -c < "$TPL/$f")" 'BEGIN { printf "%.1f", s/1024 }')
     printf "  %6s KB  %s\n" "$kb" "$f"
@@ -37,6 +37,8 @@ fi
 
 echo
 echo "Conditional CSS loads:"
+echo "  template_styles.catalog.css — catalog/product/vendors/payments (deferred on /)"
 echo "  template_styles.personal.css — only /personal/*"
+echo "  template_styles.compare.css — only /catalog/compare/*"
 echo "  bread.css — breadcrumb setting"
 echo "  slick/slider/fancybox — home + catalog"

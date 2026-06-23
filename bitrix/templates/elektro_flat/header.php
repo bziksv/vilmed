@@ -30,6 +30,10 @@ Loc::loadMessages(__FILE__);
 	$vilmedIsProduct = CSite::InDir(SITE_DIR . "product/");
 	$vilmedIsCatalogLike = $vilmedIsCatalog || $vilmedIsProduct;
 	$vilmedIsPersonal = CSite::InDir(SITE_DIR . "personal/");
+	$vilmedIsCompare = CSite::InDir(SITE_DIR . "catalog/compare/");
+	$vilmedNeedsCatalogCss = $vilmedIsCatalogLike
+		|| CSite::InDir(SITE_DIR . "vendors/")
+		|| CSite::InDir(SITE_DIR . "payments/");
 	$vilmedNeedsSlider = $vilmedIsHome || $vilmedIsCatalogLike;
 
 	\Bitrix\Main\Page\Asset::getInstance()->addString(
@@ -44,8 +48,16 @@ Loc::loadMessages(__FILE__);
 */
 	// Open Sans — локально через Bitrix UI (ShowHead), без Google Fonts
 	Asset::getInstance()->addCss($vilmedTplPath."/colors.css");
+	if ($vilmedIsHome && function_exists('vilmedDeferStylesheet')) {
+		vilmedDeferStylesheet($vilmedTplPath . "/css/template_styles.catalog.css");
+	} elseif ($vilmedNeedsCatalogCss) {
+		Asset::getInstance()->addCss($vilmedTplPath."/css/template_styles.catalog.css");
+	}
 	if ($vilmedIsPersonal) {
 		Asset::getInstance()->addCss($vilmedTplPath."/css/template_styles.personal.css");
+	}
+	if ($vilmedIsCompare) {
+		Asset::getInstance()->addCss($vilmedTplPath."/css/template_styles.compare.css");
 	}
 	Asset::getInstance()->addCss($vilmedTplPath."/js/custom-forms/custom-forms.css");
 

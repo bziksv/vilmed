@@ -1,0 +1,266 @@
+/* Compare page — /catalog/compare/ only (see header.php) */
+
+/***COMPARE***/
+.compare-list-result .sort{
+	width:100%;
+	margin:0px;
+	padding:0px 0px 10px 0px;
+}
+
+.compare-list-result .sort .sorttext{
+	display:inline-block;
+	margin:0px 10px 0px 0px;
+	padding:0px;
+}
+
+.compare-list-result .sort a.sortbutton{
+	display:inline-block;
+	margin:0px 10px 0px 0px;
+	padding:0px;
+}
+
+.compare-list-result .sort a.sortbutton:last-child{
+	margin:0px;
+}
+
+.compare-list-result .sort a.sortbutton .mob{
+	display:none;
+}
+
+.compare-list-result .sort a.sortbutton.current{
+	padding:5px 10px;
+}
+
+.compare-grid{
+	width:100%;
+	margin:0px 0px 10px 0px;
+	padding:0px;
+	overflow:auto;
+}
+
+table.compare-grid{
+	width:100%;
+	margin:0px;
+	padding:0px;
+	border-collapse:collapse;
+}
+
+table.compare-grid td{
+	vertical-align:top;
+	margin:0px;
+	padding:5px 10px;
+}
+
+table.compare-grid tr.compare-delete td{
+	padding:5px 10px 15px 10px;
+}
+
+table.compare-grid tr.price td{
+	padding:15px 10px 7px 10px;
+	vertical-align:bottom;
+}
+
+table.compare-grid tr.buy td{
+	padding:0px 10px;
+	vertical-align:bottom;
+}
+
+table.compare-grid tr.delay td{
+	padding:5px 10px 15px 10px;
+}
+
+table.compare-grid .compare-delete-item{
+	height:27px;
+	display:inline-block;
+	margin:0px;
+	padding:0px 20px;
+}
+
+table.compare-grid .compare-delete-item i{
+	margin:0px;
+	padding:0px 7px 0px 0px;
+}
+
+table.compare-grid .catalog-item-price,
+table.compare-grid .catalog-item-price-old,
+table.compare-grid .catalog-item-price-percent,
+table.compare-grid .catalog-item-price-reference,
+table.compare-grid .item-no-price{
+	display:block;
+	margin:0px;
+	padding:0px;
+}
+
+table.compare-grid .catalog-item-price-reference{
+	margin-bottom:4px;
+}
+
+table.compare-grid .item-no-price{
+	margin:0px 0px 4px 0px;
+}
+
+table.compare-grid .available{
+	margin:0px;
+	padding:0px;
+}
+
+table.compare-grid .available .avl,
+table.compare-grid .available .not_avl{
+	height:23px;
+	display:table;
+	margin:0px auto;
+	padding:0px;
+}
+
+table.compare-grid .available .avl i,
+table.compare-grid .available .not_avl i,
+table.compare-grid .available .avl span,
+table.compare-grid .available .not_avl span{
+	display:table-cell;
+	vertical-align:middle;
+	margin:0px;
+	padding:0px;
+}
+
+table.compare-grid .available .avl i,
+table.compare-grid .available .not_avl i{
+	padding:0px 6px 0px 0px;
+}
+
+table.compare-grid .buy_more{
+	width:138px;
+	margin:0px auto;
+	padding:0px;
+}
+
+table.compare-grid .buy_more .qnt_cont{
+	display:table;
+	margin:0px auto;
+	padding:0px;
+}
+
+table.compare-grid .buy_more a.minus,
+table.compare-grid .buy_more a.plus{
+	width:22px;
+	height:23px;
+	float:left;
+	display:table;
+	margin:0px;
+	padding:0px;
+}
+
+table.compare-grid .buy_more a.minus span,
+table.compare-grid .buy_more a.plus span{
+	display:table-cell;
+	vertical-align:middle;
+	margin:0px;
+	padding:0px;
+}
+
+table.compare-grid .buy_more input[name="quantity"]{
+	width:32px;
+	height:19px;
+	float:left;
+	margin:0px;
+	padding:0px;
+}
+
+table.compare-grid .buy_more button[name="add2basket"],
+table.compare-grid .buy_more .btn_href,
+table.compare-grid .buy_more .apuo{
+	width:138px;
+	height:29px;
+	margin:5px 0px 0px 0px;
+	padding:0px;
+	display: inline-block;
+	line-height: 29px;
+	text-decoration: none;
+}
+
+table.compare-grid .buy_more .apuo{
+	float:left;
+}
+
+table.compare-grid .buy_more .apuo{
+	width:136px;
+	height:27px;
+}
+
+table.compare-grid .buy_more button[name="add2basket"] i,
+table.compare-grid .buy_more .btn_href i,
+table.compare-grid .buy_more .apuo i{
+	margin:0px;
+	padding:0px 7px 0px 0px;
+}
+
+table.compare-grid .buy_more .hidden{
+	display:none;
+}
+
+table.compare-grid .delay{
+	width:138px;
+	margin:0px auto;
+	padding:0px;
+}
+
+table.compare-grid .delay a{
+	height:27px;
+	display:block;
+	margin:0px;
+	padding:0px 11px 0px 8px;
+}
+
+table.compare-grid .delay a .delay_cont{
+	height:27px;
+	display:table;
+	margin:0px auto;
+	padding:0px;
+}
+
+table.compare-grid .delay a i,
+table.compare-grid .delay a .delay_text{
+	display:table-cell;
+	vertical-align:middle;
+	margin:0px;
+	padding:0px;
+}
+
+table.compare-grid .delay a .delay_text{
+	padding:0px 0px 0px 5px;
+}
+
+table.compare-grid .delay .catalog-item-delay i:nth-child(2),
+table.compare-grid .delay .catalog-item-delayed i:first-child{
+	display:none;
+}
+
+table.compare-grid .delay .catalog-item-delayed i:nth-child(2){
+	display:table-cell;
+}
+
+.compare-list-result a.compare-delete-item-all{
+	height:27px;
+	display:inline-block;
+	margin:0px;
+	padding:0px 20px;
+}
+
+.compare-list-result a.compare-delete-item-all i{
+	margin:0px;
+	padding:0px 7px 0px 0px;
+}
+
+@media screen and (max-width:787px) {
+	/***COMPARE***/
+	.compare-list-result .sort .sorttext{
+		display:none;
+	}
+
+	.compare-list-result .sort a.sortbutton .def{
+		display:none;
+	}
+
+	.compare-list-result .sort a.sortbutton .mob{
+		display:inline-block;
+	}
+}
