@@ -87,8 +87,11 @@ if($arResult["ELEMENT"]["ID"] > 0):?>
 		//MASK//
 		if($arProp["CODE"] == "PHONE" && !empty($arParams["PHONE_MASK"])):?>
 			var input = $("#<?=$arResult['ELEMENT_AREA_ID']?>_form").find("[name='<?=$arProp['CODE']?>']");
-			if(!!input)
-				input.inputmask("<?=$arParams['PHONE_MASK']?>");
+			if(!!input) {
+				vilmedLoadInputmask(function() {
+					input.inputmask("<?=$arParams['PHONE_MASK']?>");
+				});
+			}
 		<?endif;
 	endforeach;?>
 

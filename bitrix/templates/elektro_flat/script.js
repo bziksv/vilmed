@@ -1,3 +1,64 @@
+window.vilmedScriptQueue = window.vilmedScriptQueue || {};
+window.vilmedTplPath = window.vilmedTplPath || "/bitrix/templates/elektro_flat";
+
+window.vilmedLoadScript = function(src, checkFn, callback) {
+	if (checkFn && checkFn()) {
+		callback && callback();
+		return;
+	}
+	if (!window.vilmedScriptQueue[src]) {
+		window.vilmedScriptQueue[src] = {loading: false, callbacks: []};
+	}
+	var q = window.vilmedScriptQueue[src];
+	if (callback) {
+		q.callbacks.push(callback);
+	}
+	if (q.loading) {
+		return;
+	}
+	q.loading = true;
+	var s = document.createElement("script");
+	s.src = src;
+	s.onload = s.onerror = function() {
+		q.loading = false;
+		q.callbacks.splice(0).forEach(function(cb) {
+			cb();
+		});
+	};
+	document.head.appendChild(s);
+};
+
+window.vilmedLoadCountUp = function(callback) {
+	vilmedLoadScript(
+		vilmedTplPath + "/js/countUp.min.js",
+		function() { return typeof countUp !== "undefined"; },
+		callback
+	);
+};
+
+window.vilmedLoadTweenMax = function(callback) {
+	vilmedLoadScript(
+		vilmedTplPath + "/js/TweenMax.min.js",
+		function() { return typeof TweenMax !== "undefined"; },
+		callback
+	);
+};
+
+window.vilmedLoadInputmask = function(callback) {
+	vilmedLoadScript(
+		vilmedTplPath + "/js/jquery.inputmask.bundle.min.js",
+		function() { return typeof jQuery !== "undefined" && jQuery.fn && jQuery.fn.inputmask; },
+		callback
+	);
+};
+
+window.vilmedAnimateCountUp = function(elementId, startVal, endVal, decimals, duration, options) {
+	vilmedLoadCountUp(function() {
+		var counter = new countUp(elementId, startVal, endVal, decimals, duration, options);
+		counter.start();
+	});
+};
+
 function openFormCallback() {
 	var action = "callback",
 		visualId = "callback_" + BX.message("SITE_ID");
@@ -114,8 +175,7 @@ function refreshCartLine(result, disabled) {
 			separator: basketCont.find(".sum").data("separator"),
 			decimal: basketCont.find(".sum").data("dec-point")
 		}
-		var counter = new countUp("cartCounter", sumOld, sumCurr, basketCont.find(".sum").data("decimal"), 0.5, options);
-		counter.start();
+		vilmedAnimateCountUp("cartCounter", sumOld, sumCurr, basketCont.find(".sum").data("decimal"), 0.5, options);
 	}
 	
 	if(disabled != true)
@@ -170,17 +230,19 @@ function urlInit() {
 function openbtn() {
     var btnId = BX("btnOformitAction");
     if(btnId!=null) {
-        var duration = 0.3,
-            delay = 0.08;
-        $("#btnOformitAction").addClass("btnOformit");
-        TweenMax.to(btnId, duration, {scaleY: 1.6, ease: Expo.easeOut});
-        TweenMax.to(btnId, duration, {scaleX: 1.2, scaleY: 1, ease: Back.easeOut, easeParams: [3], delay: delay});
-        TweenMax.to(btnId, duration * 1.25, {
-            scaleX: 1,
-            scaleY: 1,
-            ease: Back.easeOut,
-            easeParams: [6],
-            delay: delay * 3
+        vilmedLoadTweenMax(function() {
+            var duration = 0.3,
+                delay = 0.08;
+            $("#btnOformitAction").addClass("btnOformit");
+            TweenMax.to(btnId, duration, {scaleY: 1.6, ease: Expo.easeOut});
+            TweenMax.to(btnId, duration, {scaleX: 1.2, scaleY: 1, ease: Back.easeOut, easeParams: [3], delay: delay});
+            TweenMax.to(btnId, duration * 1.25, {
+                scaleX: 1,
+                scaleY: 1,
+                ease: Back.easeOut,
+                easeParams: [6],
+                delay: delay * 3
+            });
         });
     }
 

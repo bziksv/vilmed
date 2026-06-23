@@ -51,8 +51,7 @@ BitrixSmallCart.prototype = {
 				separator: basketCont.find(".sum").data("separator"),
 				decimal: basketCont.find(".sum").data("dec-point")
 			}
-			var counter = new countUp("cartCounter", sumOld, sumCurr, basketCont.find(".sum").data("decimal"), 0.5, options);
-			counter.start();
+			vilmedAnimateCountUp("cartCounter", sumOld, sumCurr, basketCont.find(".sum").data("decimal"), 0.5, options);
 		}
 
 		basketCont.find(".oformit_cont").html($(result).find(".oformit_cont").html());

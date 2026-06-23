@@ -31,6 +31,12 @@ Loc::loadMessages(__FILE__);
 	$vilmedIsCatalogLike = $vilmedIsCatalog || $vilmedIsProduct;
 	$vilmedNeedsSlider = $vilmedIsHome || $vilmedIsCatalogLike;
 
+	\Bitrix\Main\Page\Asset::getInstance()->addString(
+		"<script>window.vilmedTplPath=" . \CUtil::PhpToJSObject($vilmedTplPath) . ";</script>",
+		true,
+		\Bitrix\Main\Page\AssetLocation::AFTER_CSS
+	);
+
 	Asset::getInstance()->addCss($vilmedTplPath."/css/font-awesome.min.css");
 	if(!CModule::IncludeModule("altop.elastofont"))
 /*		Asset::getInstance()->addCss("https://d1azc1qln24ryf.cloudfront.net/130672/ELASTOFONT/style-cf.css?xk463o");
@@ -79,10 +85,7 @@ Loc::loadMessages(__FILE__);
 	CJSCore::Init(array("jquery", "popup"));
 	Asset::getInstance()->addJs($vilmedTplPath."/js/jquery.cookie.js");
 	Asset::getInstance()->addJs($vilmedTplPath."/js/moremenu.js");
-	Asset::getInstance()->addJs($vilmedTplPath."/js/jquery.inputmask.bundle.min.js");
 	Asset::getInstance()->addJs($vilmedTplPath."/js/custom-forms/jquery.custom-forms.js");
-	Asset::getInstance()->addJs($vilmedTplPath."/js/countUp.min.js");
-	Asset::getInstance()->addJs($vilmedTplPath."/js/TweenMax.min.js");
 	Asset::getInstance()->addJs($vilmedTplPath."/js/main.js");
 	Asset::getInstance()->addJs($vilmedTplPath."/script.js");
 	Asset::getInstance()->addJs("/bitrix/components/altop/forms/templates/.default/script.js");

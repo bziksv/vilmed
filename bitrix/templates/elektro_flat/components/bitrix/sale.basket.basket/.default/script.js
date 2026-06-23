@@ -138,8 +138,7 @@ function updateBasketTable(basketItemId, res) {
 							separator: itemSumCont.data("separator"),
 							decimal: itemSumCont.data("dec-point")
 						}
-						var counter = new countUp("itemSumVal_" + id, itemSumOld, itemSumCurr, decimals, 0.5, options);
-						counter.start();
+						vilmedAnimateCountUp("itemSumVal_" + id, itemSumOld, itemSumCurr, decimals, 0.5, options);
 					}
 
 					//ITEM_REFERENCE_SUM//
@@ -166,8 +165,7 @@ function updateBasketTable(basketItemId, res) {
 								separator: itemSumCont.data("separator"),
 								decimal: itemSumCont.data("dec-point")
 							}
-							var counter = new countUp("itemReferenceSumVal_" + id, itemReferenceSumOld, itemReferenceSumCurr, decimals, 0.5, options);
-							counter.start();
+							vilmedAnimateCountUp("itemReferenceSumVal_" + id, itemReferenceSumOld, itemReferenceSumCurr, decimals, 0.5, options);
 						}
 					}					
 				}
@@ -223,8 +221,7 @@ function updateBasketTable(basketItemId, res) {
 					separator: allSumCont.data("separator"),
 					decimal: allSumCont.data("dec-point")
 				}
-				var counter = new countUp("allSumVal", allSumOld, allSumCurr, decimals, 0.5, options);
-				counter.start();
+				vilmedAnimateCountUp("allSumVal", allSumOld, allSumCurr, decimals, 0.5, options);
                 
                 BX("total_price_basket").value=allSumCurr;
 			}
@@ -253,8 +250,7 @@ function updateBasketTable(basketItemId, res) {
 						separator: allSumCont.data("separator"),
 						decimal: allSumCont.data("dec-point")
 					}
-					var counter = new countUp("allReferenceSumVal", allReferenceSumOld, allReferenceSumCurr, decimals, 0.5, options);
-					counter.start();
+					vilmedAnimateCountUp("allReferenceSumVal", allReferenceSumOld, allReferenceSumCurr, decimals, 0.5, options);
 				}
 			}
 			
