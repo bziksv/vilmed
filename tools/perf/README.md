@@ -4,8 +4,14 @@
 
 ```bash
 cd /var/www/vilmed_ru_usr/data/www/vilmed.ru
-git pull origin main
 bash tools/perf/prod-deploy.sh
+```
+
+## Полный цикл (deploy + checker + webp 2000)
+
+```bash
+bash tools/perf/prod-full-optimize.sh
+WEBP_LIMIT=3000 bash tools/perf/prod-full-optimize.sh
 ```
 
 ## Полный сброс композита (редко — смена шаблона)

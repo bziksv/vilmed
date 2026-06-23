@@ -46,6 +46,8 @@ done
 
 if [[ "${CLEAR_HTML_PAGES:-0}" == "1" ]]; then
   touch bitrix/html_pages/.enabled
+  echo "  WARN: после CLEAR_HTML_PAGES откройте /bitrix/admin/composite.php → Сохранить"
+  echo "        (восстановит bitrix/html_pages/.config.php)"
 fi
 
 echo "== Apache reload (opcache) =="
@@ -58,11 +60,14 @@ chown -R vilmed_ru_usr:vilmed_ru_usr .
 if [[ -f bitrix/html_pages/.enabled ]]; then
   echo "== composite warmup =="
   bash "$DIR/prod-warmup.sh" "$BASE"
+  if [[ -f "$DIR/prod-warmup-sitemap.sh" ]]; then
+    bash "$DIR/prod-warmup-sitemap.sh" "$BASE" "${SITEMAP_WARMUP_LIMIT:-25}"
+  fi
   bash "$DIR/prod-composite-check.sh" "$BASE" || true
 
   if [[ -f "$ROOT/tools/perf/webp-warmup.php" ]]; then
-    echo "== webp batch (limit ${WEBP_LIMIT:-500}) =="
-    php "$ROOT/tools/perf/webp-warmup.php" --limit="${WEBP_LIMIT:-500}" || true
+    echo "== webp batch (limit ${WEBP_LIMIT:-1000}) =="
+    php "$ROOT/tools/perf/webp-warmup.php" --limit="${WEBP_LIMIT:-1000}" || true
   fi
 fi
 
