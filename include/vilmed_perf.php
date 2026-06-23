@@ -36,6 +36,43 @@ if (!function_exists('vilmedEnsureWebpSrc')) {
 			return $webpRelative;
 		}
 
+		// Do not generate WebP during HTTP — blocks TTFB on catalog (many images per page).
+		// Run: php .local/performance/webp-warmup.php (on server, after deploy).
+		return null;
+	}
+}
+
+if (!function_exists('vilmedGenerateWebpSrc')) {
+	/** CLI / warmup only — writes .webp next to jpg/png. */
+	function vilmedGenerateWebpSrc(string $relativeSrc): ?string
+	{
+		if (!function_exists('imagewebp')) {
+			return null;
+		}
+
+		$relativeSrc = (string)preg_replace('#\?.*$#', '', $relativeSrc);
+		if ($relativeSrc === '' || $relativeSrc[0] !== '/') {
+			return null;
+		}
+
+		$ext = strtolower(pathinfo($relativeSrc, PATHINFO_EXTENSION));
+		if (!in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
+			return null;
+		}
+
+		$docRoot = rtrim((string)$_SERVER['DOCUMENT_ROOT'], '/');
+		$sourcePath = $docRoot . $relativeSrc;
+		if (!is_file($sourcePath) || !is_readable($sourcePath)) {
+			return null;
+		}
+
+		$webpRelative = (string)preg_replace('/\.(jpe?g|png)$/i', '.webp', $relativeSrc);
+		$webpPath = $docRoot . $webpRelative;
+
+		if (is_file($webpPath) && filemtime($webpPath) >= filemtime($sourcePath)) {
+			return $webpRelative;
+		}
+
 		$webpDir = dirname($webpPath);
 		if (!is_dir($webpDir) && !@mkdir($webpDir, 0755, true) && !is_dir($webpDir)) {
 			return null;
