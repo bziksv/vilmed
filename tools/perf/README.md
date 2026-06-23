@@ -24,9 +24,7 @@ CLEAR_HTML_PAGES=1 bash tools/perf/prod-deploy.sh
 
 ```bash
 bash tools/perf/prod-warmup.sh https://vilmed.ru
-bash tools/perf/prod-warmup-sitemap.sh https://vilmed.ru 25   # топ категорий из sitemap
-bash tools/perf/prod-composite-check.sh https://vilmed.ru
-bash tools/perf/prod-checker-fixes.sh
+bash tools/perf/css-audit.sh https://vilmed.ru
 php tools/perf/webp-warmup.php --limit=1000
 ```
 

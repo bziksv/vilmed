@@ -29,6 +29,7 @@ Loc::loadMessages(__FILE__);
 	$vilmedIsCatalog = CSite::InDir(SITE_DIR . "catalog/");
 	$vilmedIsProduct = CSite::InDir(SITE_DIR . "product/");
 	$vilmedIsCatalogLike = $vilmedIsCatalog || $vilmedIsProduct;
+	$vilmedIsPersonal = CSite::InDir(SITE_DIR . "personal/");
 	$vilmedNeedsSlider = $vilmedIsHome || $vilmedIsCatalogLike;
 
 	\Bitrix\Main\Page\Asset::getInstance()->addString(
@@ -43,6 +44,9 @@ Loc::loadMessages(__FILE__);
 */
 	// Open Sans — локально через Bitrix UI (ShowHead), без Google Fonts
 	Asset::getInstance()->addCss($vilmedTplPath."/colors.css");
+	if ($vilmedIsPersonal) {
+		Asset::getInstance()->addCss($vilmedTplPath."/css/template_styles.personal.css");
+	}
 	Asset::getInstance()->addCss($vilmedTplPath."/js/custom-forms/custom-forms.css");
 
 	if($vilmedNeedsSlider) {
