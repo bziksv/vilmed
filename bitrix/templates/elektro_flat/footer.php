@@ -371,6 +371,55 @@ Loc::loadMessages(__FILE__);?>
 
 <script>
 (function() {
+	<?php
+	$vilmedGs = $arSetting["GENERAL_SETTINGS"]["VALUE"] ?? $arSetting["GENERAL_SETTINGS"] ?? [];
+	$vilmedAdd2BasketWindow = in_array("ADD2BASKET_WINDOW", $vilmedGs) ? "Y" : "N";
+	?>
+	window.vilmedAdd2BasketWindow = <?= \CUtil::PhpToJSObject($vilmedAdd2BasketWindow) ?>;
+
+	function vilmedCatalogItemFromBtn(btn) {
+		var node = btn;
+		while (node && node !== document.body) {
+			if (node.id) {
+				var obName = "ob" + node.id.replace(/[^a-zA-Z0-9_]/g, "x");
+				if (window[obName] && typeof window[obName].BasketResult === "function") {
+					return window[obName];
+				}
+			}
+			node = node.parentElement;
+		}
+		return null;
+	}
+
+	function vilmedAfterAdd2Basket(btn) {
+		var addedText = BX.message("ADDITEMINCART_ADDED")
+			|| BX.message("BIGDATA_ADDITEMINCART_ADDED")
+			|| "Добавлено";
+		BX.addClass(btn, "ppp");
+		BX.adjust(btn, {
+			props: {disabled: btn.tagName === "BUTTON"},
+			html: "<i class='fa fa-check'></i><span>" + addedText + "</span>"
+		});
+
+		if (window.vilmedAdd2BasketWindow !== "Y" || typeof flyingCart !== "function" || typeof jQuery === "undefined") {
+			return;
+		}
+
+		var siteDir = BX.message("SITE_DIR") || "/";
+		var cartPath = siteDir.replace(/\/?$/, "/") + "personal/cart/";
+		if (location.pathname === cartPath || location.pathname === cartPath.replace(/\/$/, "")) {
+			return;
+		}
+
+		var cartEl = jQuery(".cart");
+		if (!cartEl.length) {
+			return;
+		}
+
+		var catalogItem = vilmedCatalogItemFromBtn(btn) || {BasketResult: function() {}};
+		flyingCart(jQuery(btn), cartEl, catalogItem);
+	}
+
 	function vilmedBindAdd2BasketFallback() {
 		if (window.__vilmedAdd2BasketBound) {
 			return;
@@ -421,12 +470,7 @@ Loc::loadMessages(__FILE__);?>
 					}
 				});
 
-				var addedText = BX.message("ADDITEMINCART_ADDED") || "Добавлено";
-				BX.addClass(btn, "ppp");
-				BX.adjust(btn, {
-					props: {disabled: btn.tagName === "BUTTON"},
-					html: "<i class='fa fa-check'></i><span>" + addedText + "</span>"
-				});
+				vilmedAfterAdd2Basket(btn);
 			});
 		}, true);
 
