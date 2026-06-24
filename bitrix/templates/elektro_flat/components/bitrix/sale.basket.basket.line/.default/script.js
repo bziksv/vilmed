@@ -6,6 +6,10 @@ BitrixSmallCart.prototype = {
 		
 		this.setCartBodyClosure = this.closure("setCartBody");
 		BX.addCustomEvent(window, "OnBasketChange", this.closure("refreshCart", {}));
+
+		if (!this.cartElement || !this.cartElement.querySelector(".cart")) {
+			this.refreshCart({});
+		}
 	},
 
 	closure: function(fname, data) {
@@ -29,12 +33,17 @@ BitrixSmallCart.prototype = {
 		});
 	},
 
-	setCartBody: function(result) {		
+	setCartBody: function(result) {
 		var basketCont,
 			sumOld,
 			sumCurr;
 
 		basketCont = $(this.cartElement);
+
+		if (!basketCont.find(".cart").length) {
+			basketCont.html(result);
+			return;
+		}
 		
 		basketCont.find(".qnt").text($(result).find(".qnt").text());
 		

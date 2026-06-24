@@ -374,7 +374,6 @@ if (!function_exists('vilmedDeferHomeStylesheets')) {
 		}
 
 		$patterns = [
-			'template_[^"\'\\s]+\\.css',
 			'ui\\.font\\.opensans',
 		];
 
@@ -436,32 +435,38 @@ if (!function_exists('vilmedDeferHomeScripts')) {
 			return;
 		}
 
+		$neverDeferNeedles = [
+			'core_frame_cache',
+			'pull.client',
+			'pull/protobuf',
+			'rest.client',
+			'dexie.bitrix',
+			'sale.basket.basket.line',
+		];
+
 		$deferNeedles = [
 			'countdown/',
 			'custom-forms/',
 			'/main.js',
 			'/script.js',
 			'forms/templates',
-			'pull.client',
-			'pull/protobuf',
-			'dexie.bitrix',
-			'rest.client',
-			'core_frame_cache',
 			'core_ls.min.js',
 			'moremenu.js',
 			'jquery.cookie',
-			'core_ui_widget',
-			'core_ui_etc',
-			'core_ui_autocomplete',
 			'socialservices/ss.js',
 			'kernel_main_polyfill_customevent',
 		];
 
 		$content = preg_replace_callback(
 			'/<script(\s[^>]*?\ssrc="([^"]+)"[^>]*)>\s*<\/script>/i',
-			static function (array $m) use ($deferNeedles): string {
+			static function (array $m) use ($deferNeedles, $neverDeferNeedles): string {
 				if (stripos($m[1], ' defer') !== false || stripos($m[1], ' async') !== false) {
 					return $m[0];
+				}
+				foreach ($neverDeferNeedles as $needle) {
+					if (stripos($m[2], $needle) !== false) {
+						return $m[0];
+					}
 				}
 				foreach ($deferNeedles as $needle) {
 					if (stripos($m[2], $needle) !== false) {
