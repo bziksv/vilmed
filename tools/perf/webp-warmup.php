@@ -23,6 +23,7 @@ define('NO_KEEP_STATISTIC', true);
 define('NOT_CHECK_PERMISSIONS', true);
 
 require $docRoot . '/bitrix/modules/main/include/prolog_before.php';
+require $docRoot . '/bitrix/modules/main/include/prolog.php';
 require_once $docRoot . '/include/vilmed_perf.php';
 
 $limit = 0;
