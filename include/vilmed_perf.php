@@ -365,6 +365,23 @@ if (!function_exists('vilmedInjectBackgroundWebp')) {
 	}
 }
 
+if (!function_exists('vilmedIsMobileClient')) {
+	function vilmedIsMobileClient(): bool
+	{
+		if (isset($GLOBALS['vilmedIsMobile'])) {
+			return (bool)$GLOBALS['vilmedIsMobile'];
+		}
+
+		$ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+		$GLOBALS['vilmedIsMobile'] = (bool)preg_match(
+			'/Mobile|Android|iPhone|iPod|Opera Mini|IEMobile|webOS|BlackBerry/i',
+			$ua
+		);
+
+		return $GLOBALS['vilmedIsMobile'];
+	}
+}
+
 if (!function_exists('vilmedDeferHomeStylesheets')) {
 	/** Homepage: non-blocking load for aggregated template CSS and Open Sans. */
 	function vilmedDeferHomeStylesheets(string &$content): void
@@ -376,6 +393,10 @@ if (!function_exists('vilmedDeferHomeStylesheets')) {
 		$patterns = [
 			'ui\\.font\\.opensans',
 		];
+
+		if (vilmedIsMobileClient()) {
+			$patterns[] = 'template_.+_v1\\.css';
+		}
 
 		$content = preg_replace_callback(
 			'/<link(\s[^>]+)>/i',
@@ -437,6 +458,7 @@ if (!function_exists('vilmedDeferHomeScripts')) {
 
 		$neverDeferNeedles = [
 			'core_frame_cache',
+			'core_ls.min.js',
 			'pull.client',
 			'pull/protobuf',
 			'rest.client',
@@ -450,12 +472,18 @@ if (!function_exists('vilmedDeferHomeScripts')) {
 			'/main.js',
 			'/script.js',
 			'forms/templates',
-			'core_ls.min.js',
 			'moremenu.js',
 			'jquery.cookie',
 			'socialservices/ss.js',
 			'kernel_main_polyfill_customevent',
 		];
+
+		if (vilmedIsMobileClient()) {
+			$deferNeedles[] = 'TweenMax.min.js';
+			$deferNeedles[] = 'template_.+_v1.js';
+			$deferNeedles[] = 'search.title';
+			$deferNeedles[] = 'geolocation';
+		}
 
 		$content = preg_replace_callback(
 			'/<script(\s[^>]*?\ssrc="([^"]+)"[^>]*)>\s*<\/script>/i',

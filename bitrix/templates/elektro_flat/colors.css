@@ -6625,6 +6625,20 @@ a.btn_buy.apuo{
 	color:#babed5;
 }
 
+.btn_buy:disabled:has(.fa-check),
+a.btn_buy.ppp,
+a.btn_buy:has(.fa-check){
+	color:#fff;
+	background:#b7bbd3;
+	cursor:default;
+}
+
+.btn_buy:disabled:has(.fa-check) i,
+a.btn_buy.ppp i,
+a.btn_buy:has(.fa-check) i{
+	color:#fff;
+}
+
 .btn_buy.detail:disabled i{
 	font-size:21px;
 }

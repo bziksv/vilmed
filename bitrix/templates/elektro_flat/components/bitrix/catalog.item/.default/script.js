@@ -620,6 +620,7 @@
                             delayLine.innerHTML = data;
                     }, this)
                 );
+                BX.addClass(target, "ppp");
                 BX.adjust(target, {
                     props: {disabled: true},
                     html: "<i class='fa fa-check'></i><span>" + BX.message("ADDITEMINCART_ADDED") + "</span>"

@@ -276,9 +276,59 @@ Loc::loadMessages(__FILE__);?>
 })();
 </script>
 
+<script>
+(function() {
+	function vilmedLoadKabinetLine() {
+		var kabinet = document.getElementById("kabinet");
+		if (!kabinet || kabinet.querySelector(".login_anch, .personal")) {
+			return;
+		}
+
+		BX.ajax({
+			url: "/ajax/kabinet_line.php",
+			method: "GET",
+			dataType: "html",
+			onsuccess: function(result) {
+				if (!result || !String(result).replace(/\s/g, "")) {
+					return;
+				}
+
+				var wrapper = document.createElement("div");
+				wrapper.innerHTML = result;
+				var source = wrapper.querySelector("#kabinet") || wrapper.querySelector(".kabinet");
+				if (source) {
+					kabinet.innerHTML = source.innerHTML;
+				}
+			}
+		});
+	}
+
+	var runKabinet = function() {
+		if (window.requestIdleCallback) {
+			requestIdleCallback(vilmedLoadKabinetLine, {timeout: 2500});
+		} else {
+			vilmedLoadKabinetLine();
+		}
+	};
+
+	if (document.readyState === "complete") {
+		runKabinet();
+	} else {
+		window.addEventListener("load", runKabinet, {once: true});
+	}
+})();
+</script>
+
 
 <script type="text/javascript">window._ab_id_=163177</script>
-<script async src="https://cdn.botfaqtor.ru/one.js"></script>
+<script>
+window.addEventListener("load", function() {
+	var s = document.createElement("script");
+	s.async = true;
+	s.src = "https://cdn.botfaqtor.ru/one.js";
+	document.body.appendChild(s);
+}, {once: true});
+</script>
 
 <!-- Roistat Counter Start -->
 <script>

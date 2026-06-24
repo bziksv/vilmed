@@ -621,6 +621,7 @@
 						}, this)
 					);
 				}
+				BX.addClass(target, "ppp");
 				BX.adjust(target, {
 					props: {disabled: true},
 					html: "<i class='fa fa-check'></i><span>" + BX.message("BIGDATA_ADDITEMINCART_ADDED") + "</span>"

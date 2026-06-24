@@ -159,6 +159,14 @@ function refreshCartLine(result, disabled) {
 	var basketCont, sumOld, sumCurr;
 	
 	basketCont = $(".cart_line");
+
+	if (!basketCont.find(".cart").length) {
+		var inner = $(result).find(".cart_line").html();
+		if (inner) {
+			basketCont.html(inner);
+		}
+		return;
+	}
 	
 	basketCont.find(".qnt").text($(result).find(".qnt").text());
 	
