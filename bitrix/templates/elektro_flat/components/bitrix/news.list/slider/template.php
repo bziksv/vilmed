@@ -87,14 +87,19 @@ $vilmedSliderAspect = $arAspectRatios[$arParams['SLIDER_ASPECT_RATIO']] ?? '958/
 						}?>
 						<span
 							class="slide-bg"
-							<?if(!empty($arItem['PICTURE_PREVIEW']['SRC'])) {?>
-								style="background: url(<?=$arItem['PICTURE_PREVIEW']['SRC']?>) center center / cover no-repeat; height: 100%;<?=(!empty($arItem['PROPERTIES']['BACKGROUND_DIM_COLOR']['VALUE'])? ' opacity: 0.15': '')?>"
+							<?if(!empty($arItem['PICTURE_PREVIEW']['SRC'])) {
+								$vilmedSlideBg = function_exists('vilmedBestImageSrc') ? vilmedBestImageSrc($arItem['PICTURE_PREVIEW']['SRC']) : $arItem['PICTURE_PREVIEW']['SRC'];
+								?>
+								style="background: url(<?=htmlspecialcharsbx($vilmedSlideBg)?>) center center / cover no-repeat; height: 100%;<?=(!empty($arItem['PROPERTIES']['BACKGROUND_DIM_COLOR']['VALUE'])? ' opacity: 0.15': '')?>"
 							<?}?>
 						></span>
 					</a>
 				</li>
 			<?} else {
 				$sImgUrl = (!empty($arItem['PROPERTIES']['PREVIEW_YOUTUBE']['VALUE']) && !empty($arItem['PROPERTIES']['CODE_YOUTUBE']['VALUE'])? "//img.youtube.com/vi/{$arItem['PROPERTIES']['CODE_YOUTUBE']['VALUE']}/maxresdefault.jpg": $arItem['PICTURE_PREVIEW']['SRC']);
+				if (!empty($sImgUrl) && function_exists('vilmedBestImageSrc') && strpos($sImgUrl, '//') !== 0) {
+					$sImgUrl = vilmedBestImageSrc($sImgUrl);
+				}
 				$sAutoPlay = (!empty($arItem['PROPERTIES']['AUTOMATIC_PLAYBACK']['VALUE'])? 'true': 'false');
 				$sAutoPlaySlide = ($arParams['SLIDER_AUTOPLAY'] === 'Y'? 'true': 'false');
 				?>

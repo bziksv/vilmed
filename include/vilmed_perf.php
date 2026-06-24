@@ -125,6 +125,20 @@ if (!function_exists('vilmedAttachWebp')) {
 	}
 }
 
+if (!function_exists('vilmedBestImageSrc')) {
+	/** Prefer cached .webp sibling for img/background URLs (no generation on HTTP). */
+	function vilmedBestImageSrc(string $src): string
+	{
+		$src = (string)preg_replace('#\?.*$#', '', $src);
+		if ($src === '') {
+			return $src;
+		}
+
+		$webpSrc = vilmedEnsureWebpSrc($src);
+		return $webpSrc ?? $src;
+	}
+}
+
 if (!function_exists('vilmedPicturePreloadSrc')) {
 	function vilmedPicturePreloadSrc(array $picture): string
 	{
@@ -332,6 +346,61 @@ if (!function_exists('vilmedInjectLazyImages')) {
 	}
 }
 
+if (!function_exists('vilmedInjectBackgroundWebp')) {
+	/** Swap background-image png/jpg URLs to .webp when pre-generated on disk. */
+	function vilmedInjectBackgroundWebp(string &$content): void
+	{
+		$content = preg_replace_callback(
+			'/(background(?:-image)?\s*:\s*[^;]*url\s*\(\s*(["\']?)(\/[^"\')\s>]+\.(?:png|jpe?g))\1\s*\))/i',
+			static function (array $m): string {
+				$webp = vilmedEnsureWebpSrc($m[2]);
+				if ($webp === null) {
+					return $m[0];
+				}
+
+				return str_replace($m[2], $webp, $m[0]);
+			},
+			$content
+		);
+	}
+}
+
+if (!function_exists('vilmedDeferHomeStylesheets')) {
+	/** Homepage: non-blocking load for aggregated template CSS and Open Sans. */
+	function vilmedDeferHomeStylesheets(string &$content): void
+	{
+		if (empty($GLOBALS['vilmedIsHome'])) {
+			return;
+		}
+
+		$patterns = [
+			'template_[^"\'\\s]+\\.css',
+			'ui\\.font\\.opensans',
+		];
+
+		$content = preg_replace_callback(
+			'/<link(\s[^>]*?\brel=["\']stylesheet["\'][^>]*?\bhref=["\']([^"\']+)["\'][^>]*)>/i',
+			static function (array $m) use ($patterns): string {
+				if (stripos($m[1], 'onload=') !== false) {
+					return $m[0];
+				}
+
+				foreach ($patterns as $pattern) {
+					if (preg_match('#' . $pattern . '#i', $m[2])) {
+						$href = htmlspecialcharsbx($m[2], ENT_QUOTES);
+
+						return '<link rel="preload" as="style" href="' . $href . '" onload="this.onload=null;this.rel=\'stylesheet\'">'
+							. '<noscript><link rel="stylesheet" href="' . $href . '"></noscript>';
+					}
+				}
+
+				return $m[0];
+			},
+			$content
+		);
+	}
+}
+
 if (!function_exists('vilmedFixFontDisplay')) {
 	function vilmedFixFontDisplay(string &$content): void
 	{
@@ -406,7 +475,9 @@ if (!function_exists('vilmedOnEndBufferContent')) {
 	{
 		vilmedInjectLcpPreload($content);
 		vilmedInjectLazyImages($content);
+		vilmedInjectBackgroundWebp($content);
 		vilmedFixFontDisplay($content);
+		vilmedDeferHomeStylesheets($content);
 		vilmedDeferHomeScripts($content);
 	}
 }

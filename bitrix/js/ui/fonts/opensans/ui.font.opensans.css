@@ -10,6 +10,7 @@
 		url('/bitrix/js/ui/fonts/opensans/opensans-regular.ttf') format('truetype');
 	font-weight: 400;
 	font-style: normal;
+	font-display: swap;
 }
 
 @font-face {
@@ -20,6 +21,7 @@
 		url('/bitrix/js/ui/fonts/opensans/opensans-light.ttf') format('truetype');
 	font-weight: 300;
 	font-style: normal;
+	font-display: swap;
 }
 
 @font-face {
@@ -30,6 +32,7 @@
 		url('/bitrix/js/ui/fonts/opensans/opensans-semibold.ttf') format('truetype');
 	font-weight: 600;
 	font-style: normal;
+	font-display: swap;
 }
 
 @font-face {
@@ -40,6 +43,7 @@
 		url('/bitrix/js/ui/fonts/opensans/opensans-bold.ttf') format('truetype');
 	font-weight: 700;
 	font-style: normal;
+	font-display: swap;
 }
 
 @font-face {
@@ -50,6 +54,7 @@
 		url('/bitrix/js/ui/fonts/opensans/opensans-regular.ttf') format('truetype');
 	font-weight: normal;
 	font-style: normal;
+	font-display: swap;
 }
 
 @font-face {
@@ -60,6 +65,7 @@
 		url('/bitrix/js/ui/fonts/opensans/opensans-regular.ttf') format('truetype');
 	font-weight: normal;
 	font-style: normal;
+	font-display: swap;
 }
 
 @font-face {
@@ -70,6 +76,7 @@
 		url('/bitrix/js/ui/fonts/opensans/opensans-light.ttf') format('truetype');
 	font-weight: normal;
 	font-style: normal;
+	font-display: swap;
 }
 
 @font-face {
@@ -80,6 +87,7 @@
 		url('/bitrix/js/ui/fonts/opensans/opensans-semibold.ttf') format('truetype');
 	font-weight: normal;
 	font-style: normal;
+	font-display: swap;
 }
 
 @font-face {
@@ -90,4 +98,5 @@
 		url('/bitrix/js/ui/fonts/opensans/opensans-bold.ttf') format('truetype');
 	font-weight: normal;
 	font-style: normal;
+	font-display: swap;
 }

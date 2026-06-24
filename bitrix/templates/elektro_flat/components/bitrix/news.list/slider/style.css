@@ -57,6 +57,7 @@
 	object-fit: cover;
 	z-index: 0;
 	display: block;
+	opacity: 1 !important;
 }
 
 @media screen and (max-width: 787px) {

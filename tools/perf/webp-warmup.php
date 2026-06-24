@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 /**
- * Batch WebP for /upload/resize_cache — run on server after deploy.
+ * Batch WebP for homepage images — run on server after deploy.
  *
  *   cd /var/www/vilmed_ru_usr/data/www/vilmed.ru
  *   php tools/perf/webp-warmup.php
@@ -13,7 +13,7 @@ if (PHP_SAPI !== 'cli') {
 }
 
 $docRoot = realpath(__DIR__ . '/../..');
-if ($docRoot === false || !is_dir($docRoot . '/upload')) {
+if ($docRoot === false) {
 	fwrite(STDERR, "Cannot find document root\n");
 	exit(1);
 }
@@ -32,29 +32,20 @@ foreach ($argv as $arg) {
 	}
 }
 
-$resizeRoot = $docRoot . '/upload/resize_cache';
-if (!is_dir($resizeRoot)) {
-	echo "No resize_cache dir\n";
-	exit(0);
-}
+$scanRoots = [
+	$docRoot . '/logo',
+	$docRoot . '/upload/iblock',
+	$docRoot . '/upload/resize_cache',
+];
 
 $created = 0;
 $skipped = 0;
 $errors = 0;
 
-$iterator = new RecursiveIteratorIterator(
-	new RecursiveDirectoryIterator($resizeRoot, FilesystemIterator::SKIP_DOTS)
-);
-
-foreach ($iterator as $file) {
-	if (!$file->isFile()) {
-		continue;
-	}
-
-	$path = $file->getPathname();
-	$ext = strtolower($file->getExtension());
+$processFile = static function (string $path) use ($docRoot, &$created, &$skipped, &$errors, $limit): bool {
+	$ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
 	if (!in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
-		continue;
+		return true;
 	}
 
 	$relative = substr($path, strlen($docRoot));
@@ -62,18 +53,14 @@ foreach ($iterator as $file) {
 
 	if (is_file($webpPath) && filemtime($webpPath) >= filemtime($path)) {
 		$skipped++;
-		continue;
-	}
 
-	if (!function_exists('vilmedGenerateWebpSrc')) {
-		fwrite(STDERR, "vilmedGenerateWebpSrc missing — deploy include/vilmed_perf.php first\n");
-		exit(1);
+		return true;
 	}
 
 	$result = vilmedGenerateWebpSrc($relative);
 	if ($result !== null) {
 		$created++;
-		if ($created <= 20 || $created % 100 === 0) {
+		if ($created <= 30 || $created % 100 === 0) {
 			echo "+ $result\n";
 		}
 	} else {
@@ -81,7 +68,31 @@ foreach ($iterator as $file) {
 	}
 
 	if ($limit > 0 && ($created + $errors) >= $limit) {
-		break;
+		return false;
+	}
+
+	return true;
+};
+
+foreach ($scanRoots as $root) {
+	if (!is_dir($root)) {
+		continue;
+	}
+
+	echo "== scan: " . str_replace($docRoot, '', $root) . " ==\n";
+
+	$iterator = new RecursiveIteratorIterator(
+		new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS)
+	);
+
+	foreach ($iterator as $file) {
+		if (!$file->isFile()) {
+			continue;
+		}
+
+		if (!$processFile($file->getPathname())) {
+			break 2;
+		}
 	}
 }
 
