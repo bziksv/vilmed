@@ -371,30 +371,11 @@ Loc::loadMessages(__FILE__);?>
 
 <script>
 (function() {
-	function vilmedHasWorkingCatalogInits() {
-		var scripts = document.querySelectorAll("script:not([src])");
-		for (var i = 0; i < scripts.length; i++) {
-			var text = scripts[i].textContent || "";
-			var match = text.match(/(?:var|window\.)\s*(ob[\w]+)\s*=\s*new\s+JCCatalog(?:Bigdata)?Item/);
-			if (match && typeof window[match[1]] !== "undefined") {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	function vilmedNeedsAdd2BasketFallback() {
-		if (!document.querySelector('form.add2basket_form[action*="add2basket.php"]')) {
-			return false;
-		}
-		if (typeof JCCatalogItem === "undefined" && typeof JCCatalogBigdataItem === "undefined") {
-			return true;
-		}
-		return !vilmedHasWorkingCatalogInits();
-	}
-
 	function vilmedBindAdd2BasketFallback() {
-		if (window.__vilmedAdd2BasketBound || !vilmedNeedsAdd2BasketFallback()) {
+		if (window.__vilmedAdd2BasketBound) {
+			return;
+		}
+		if (!document.querySelector('form.add2basket_form[action*="add2basket.php"]')) {
 			return;
 		}
 		window.__vilmedAdd2BasketBound = true;
@@ -416,6 +397,7 @@ Loc::loadMessages(__FILE__);?>
 			}
 
 			e.preventDefault();
+			e.stopImmediatePropagation();
 
 			var params = {};
 			form.querySelectorAll("input").forEach(function(input) {
@@ -439,14 +421,14 @@ Loc::loadMessages(__FILE__);?>
 					}
 				});
 
-				var addedText = BX.message("ADDITEMINCART_ADDED") || "ДОБАВЛЕНО";
+				var addedText = BX.message("ADDITEMINCART_ADDED") || "Добавлено";
 				BX.addClass(btn, "ppp");
 				BX.adjust(btn, {
 					props: {disabled: btn.tagName === "BUTTON"},
 					html: "<i class='fa fa-check'></i><span>" + addedText + "</span>"
 				});
 			});
-		});
+		}, true);
 
 		document.addEventListener("click", function(e) {
 			var plus = e.target.closest('[id^="quantity_plus_"]');
@@ -473,7 +455,7 @@ Loc::loadMessages(__FILE__);?>
 			}
 			cur = plus ? cur + 1 : Math.max(1, cur - 1);
 			input.value = cur;
-		});
+		}, true);
 	}
 
 	function vilmedInitAdd2BasketFallback() {
@@ -483,9 +465,7 @@ Loc::loadMessages(__FILE__);?>
 		vilmedBindAdd2BasketFallback();
 	}
 
-	if (typeof BX !== "undefined" && typeof BX.ready === "function") {
-		BX.ready(vilmedInitAdd2BasketFallback);
-	} else if (document.readyState === "loading") {
+	if (document.readyState === "loading") {
 		document.addEventListener("DOMContentLoaded", vilmedInitAdd2BasketFallback);
 	} else {
 		vilmedInitAdd2BasketFallback();
