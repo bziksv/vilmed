@@ -25,7 +25,8 @@ else
     $insert = "'\''options'\'' => 2,\n        '\''initCommand'\'' => \"SET NAMES '\''utf8'\'' COLLATE '\''utf8_unicode_ci'\'',";
     if (strpos($c, "initCommand") !== false) { echo "skip\n"; exit(0); }
     if (strpos($c, $needle) === false) { fwrite(STDERR, "ERROR: cannot find options => 2 in .settings.php\n"); exit(1); }
-    file_put_contents($f, str_replace($needle, $insert, $c, 1));
+    $count = 1;
+    file_put_contents($f, str_replace($needle, $insert, $c, $count));
     echo "  OK: added initCommand to .settings.php\n";
   '
 fi
