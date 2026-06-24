@@ -17,6 +17,20 @@ echo "== Composite check: $BASE =="
 echo "Ожидание: X-Bitrix-Composite: Cache или warm TTFB < ~0.8s"
 echo
 
+# Homepage diagnostics (HTML size, PHP = no static composite)
+home_headers=$(curl -skI --http1.1 -A "$UA" --max-time 120 "${BASE}/" 2>/dev/null || true)
+home_size=$(curl -sk --http1.1 -A "$UA" --max-time 120 "${BASE}/" 2>/dev/null | wc -c | tr -d ' ')
+home_powered=$(echo "$home_headers" | grep -i '^X-Powered-By:' | tr -d '\r' || true)
+home_cookie=$(echo "$home_headers" | grep -ci '^Set-Cookie:' || true)
+echo "Homepage: HTML=${home_size} bytes  cookies=${home_cookie}  ${home_powered:-no PHP header}"
+if [[ "$home_size" -gt 500000 ]]; then
+  echo "  WARN: HTML > 500 KB — run: php tools/perf/prod-cssinliner-fix.php"
+fi
+if [[ -n "$home_powered" ]]; then
+  echo "  WARN: PHP on every hit — composite static cache not serving (warmup or .enabled?)"
+fi
+echo
+
 composite_hits=0
 fast_hits=0
 

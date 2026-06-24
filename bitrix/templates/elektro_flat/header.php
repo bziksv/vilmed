@@ -106,10 +106,6 @@ Loc::loadMessages(__FILE__);
 	Asset::getInstance()->addJs($vilmedTplPath."/script.js");
 	Asset::getInstance()->addJs("/bitrix/components/altop/forms/templates/.default/script.js");
 
-	if ($vilmedIsHome && function_exists('vilmedSetLcpPreload')) {
-		vilmedSetLcpPreload('/logo/Vilmed-logo-min.png');
-	}
-
 	$APPLICATION->ShowHead();?>
 
 	<?if(CModule::IncludeModule("altop.elektroinstrument")) {

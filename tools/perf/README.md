@@ -14,6 +14,15 @@ bash tools/perf/prod-full-optimize.sh
 WEBP_LIMIT=3000 bash tools/perf/prod-full-optimize.sh
 ```
 
+Включает: deploy, checker, **cssinliner-fix** (HTML −200…400 KB), invalidate home, webp.
+
+## После правок главной / слайдера / LCP
+
+```bash
+bash tools/perf/prod-invalidate-home.sh https://vilmed.ru
+php tools/perf/prod-cssinliner-fix.php   # если HTML > 500 KB
+```
+
 ## Полный сброс композита (редко — смена шаблона)
 
 ```bash

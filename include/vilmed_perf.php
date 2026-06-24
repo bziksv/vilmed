@@ -306,7 +306,63 @@ if (!function_exists('vilmedInjectLcpPreload')) {
 	}
 }
 
-AddEventHandler('main', 'OnEndBufferContent', 'vilmedInjectLcpPreload');
+if (!function_exists('vilmedInjectLazyImages')) {
+	/** Below-the-fold images — skip logo (no-lazy / fetchpriority=high). */
+	function vilmedInjectLazyImages(string &$content): void
+	{
+		if (stripos($content, '<img') === false) {
+			return;
+		}
+
+		$content = preg_replace_callback(
+			'/<img\b(?![^>]*\bloading\s*=)([^>]*?)>/i',
+			static function (array $m): string {
+				$attrs = $m[1];
+				if (preg_match('/\bclass="[^"]*\bno-lazy\b/i', $attrs)) {
+					return $m[0];
+				}
+				if (stripos($attrs, 'fetchpriority="high"') !== false) {
+					return $m[0];
+				}
+
+				return '<img loading="lazy"' . $attrs . '>';
+			},
+			$content
+		);
+	}
+}
+
+if (!function_exists('vilmedFixFontDisplay')) {
+	function vilmedFixFontDisplay(string &$content): void
+	{
+		if (stripos($content, '@font-face') === false) {
+			return;
+		}
+
+		$content = preg_replace_callback(
+			'/@font-face\s*\{([^}]*)\}/i',
+			static function (array $m): string {
+				if (stripos($m[1], 'font-display') !== false) {
+					return $m[0];
+				}
+
+				return '@font-face{' . rtrim($m[1], ';') . ';font-display:swap}';
+			},
+			$content
+		);
+	}
+}
+
+if (!function_exists('vilmedOnEndBufferContent')) {
+	function vilmedOnEndBufferContent(string &$content): void
+	{
+		vilmedInjectLcpPreload($content);
+		vilmedInjectLazyImages($content);
+		vilmedFixFontDisplay($content);
+	}
+}
+
+AddEventHandler('main', 'OnEndBufferContent', 'vilmedOnEndBufferContent');
 
 if (!function_exists('vilmedDeferStylesheet')) {
 	/** Non-blocking CSS — for below-the-fold blocks (e.g. catalog cards on homepage). */

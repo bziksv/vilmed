@@ -24,21 +24,38 @@ $arParam['SLIDER_HEIGHT'] = $arSlideHight[$arParams['SLIDER_ASPECT_RATIO']];
 $arResult['IN_VIDEO'] = false;
 
 foreach($arResult["ITEMS"] as $key => $arItem) {
-	if(is_array($arItem["PREVIEW_PICTURE"])) {
-		$arFilter = '';
-						
+	$previewFile = null;
+	if (!empty($arItem['PREVIEW_PICTURE'])) {
+		$previewFile = is_array($arItem['PREVIEW_PICTURE'])
+			? $arItem['PREVIEW_PICTURE']
+			: CFile::GetFileArray((int)$arItem['PREVIEW_PICTURE']);
+	}
+
+	if (is_array($previewFile) && !empty($previewFile['SRC'])) {
 		$arFileTmp = CFile::ResizeImageGet(
-			$arItem["PREVIEW_PICTURE"],
-			array("width" => 958, "height" => $arParam['SLIDER_HEIGHT']),
+			$previewFile,
+			array('width' => 958, 'height' => $arParam['SLIDER_HEIGHT']),
 			BX_RESIZE_IMAGE_PROPORTIONAL,
-			true, $arFilter
+			true
 		);
 
-		$arResult["ITEMS"][$key]['PICTURE_PREVIEW'] = array(
-			'SRC' => $arFileTmp["src"],
-			'WIDTH' => $arFileTmp["width"],
-			'HEIGHT' => $arFileTmp["height"],
+		$picture = array(
+			'SRC' => $arFileTmp['src'],
+			'WIDTH' => (int)$arFileTmp['width'],
+			'HEIGHT' => (int)$arFileTmp['height'],
 		);
+
+		if (function_exists('vilmedAttachWebp')) {
+			$picture = vilmedAttachWebp($picture);
+		}
+
+		$arResult['ITEMS'][$key]['PICTURE_PREVIEW'] = $picture;
+
+		if ($key === 0 && empty($arResult['LCP_PRELOAD_SRC'])) {
+			$arResult['LCP_PRELOAD_SRC'] = function_exists('vilmedPicturePreloadSrc')
+				? vilmedPicturePreloadSrc($picture)
+				: $picture['SRC'];
+		}
 	}
 	
 	foreach($arItem['PROPERTIES'] as $keyProp => $arProp) {
@@ -51,6 +68,7 @@ foreach($arResult["ITEMS"] as $key => $arItem) {
 
 $this->__component->SetResultCacheKeys(
 	array(
-		"IN_VIDEO"
+		'IN_VIDEO',
+		'LCP_PRELOAD_SRC',
 	)
 );

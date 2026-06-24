@@ -15,6 +15,10 @@ cd "$ROOT"
 WEBP_LIMIT="${WEBP_LIMIT:-2000}" bash "$DIR/prod-deploy.sh" "$ROOT" "$BASE"
 bash "$DIR/prod-checker-fixes.sh" "$ROOT" || true
 
+if [[ -f bitrix/html_pages/.enabled ]]; then
+  bash "$DIR/prod-invalidate-home.sh" "$BASE" "$ROOT" || true
+fi
+
 echo
 echo "== html_pages files =="
 find bitrix/html_pages -type f ! -name '.enabled' 2>/dev/null | wc -l | xargs echo "  cached:"

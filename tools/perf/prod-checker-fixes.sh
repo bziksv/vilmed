@@ -53,6 +53,12 @@ else
   echo "        then: bash tools/perf/prod-warmup.sh https://vilmed.ru"
 fi
 
+if [[ -f "$ROOT/tools/perf/prod-cssinliner-fix.php" ]]; then
+  echo
+  echo "== cssinliner (reduce HTML bloat) =="
+  php "$ROOT/tools/perf/prod-cssinliner-fix.php" || echo "  WARN: cssinliner fix failed"
+fi
+
 PHPINI="/var/www/vilmed_ru_usr/data/php-bin/vilmed.ru/php.ini"
 if [[ -f "$PHPINI" ]]; then
   echo "  PHP ini ($PHPINI):"
