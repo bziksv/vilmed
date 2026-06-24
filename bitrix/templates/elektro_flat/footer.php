@@ -375,7 +375,11 @@ Loc::loadMessages(__FILE__);?>
 		if (!document.querySelector('form.add2basket_form[action*="add2basket.php"]')) {
 			return false;
 		}
-		return document.documentElement.innerHTML.indexOf("new JCCatalogItem") === -1;
+		if (typeof JCCatalogItem === "undefined" && typeof JCCatalogBigdataItem === "undefined") {
+			return true;
+		}
+		var html = document.documentElement.innerHTML;
+		return html.indexOf("new JCCatalogItem") === -1 && html.indexOf("new JCCatalogBigdataItem") === -1;
 	}
 
 	function vilmedBindAdd2BasketFallback() {

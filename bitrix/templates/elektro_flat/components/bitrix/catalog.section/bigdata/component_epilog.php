@@ -2,6 +2,7 @@
 
 //JS_CORE//
 CJSCore::Init(array('popup', 'ajax', 'fx'));
+\Bitrix\Main\Page\Asset::getInstance()->addJs($templateFolder . '/script.js');
 
 //BIG_DATA_JSON_ANSWERS//
 $request = \Bitrix\Main\Context::getCurrent()->getRequest();
