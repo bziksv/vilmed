@@ -19,12 +19,21 @@ window.vilmedLoadScript = function(src, checkFn, callback) {
 	q.loading = true;
 	var s = document.createElement("script");
 	s.src = src;
-	s.onload = s.onerror = function() {
+	var done = false;
+	var finish = function() {
+		if (done) {
+			return;
+		}
+		done = true;
+		clearTimeout(timer);
 		q.loading = false;
 		q.callbacks.splice(0).forEach(function(cb) {
 			cb();
 		});
 	};
+	var timer = setTimeout(finish, 12000);
+	s.onload = finish;
+	s.onerror = finish;
 	document.head.appendChild(s);
 };
 

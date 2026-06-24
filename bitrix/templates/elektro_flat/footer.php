@@ -520,12 +520,27 @@ Loc::loadMessages(__FILE__);?>
 
 <script type="text/javascript">window._ab_id_=163177</script>
 <script>
-window.addEventListener("load", function() {
-	var s = document.createElement("script");
-	s.async = true;
-	s.src = "https://cdn.botfaqtor.ru/one.js";
-	document.body.appendChild(s);
-}, {once: true});
+(function() {
+	function vilmedLoadBotfaqtor() {
+		var s = document.createElement("script");
+		s.async = true;
+		s.src = "https://cdn.botfaqtor.ru/one.js";
+		s.onerror = function() { s.remove(); };
+		document.body.appendChild(s);
+	}
+	function vilmedScheduleBotfaqtor() {
+		if ("requestIdleCallback" in window) {
+			requestIdleCallback(vilmedLoadBotfaqtor, {timeout: 10000});
+		} else {
+			setTimeout(vilmedLoadBotfaqtor, 5000);
+		}
+	}
+	if (document.readyState === "complete") {
+		vilmedScheduleBotfaqtor();
+	} else {
+		window.addEventListener("load", vilmedScheduleBotfaqtor, {once: true});
+	}
+})();
 </script>
 
 <!-- Roistat Counter Start -->
