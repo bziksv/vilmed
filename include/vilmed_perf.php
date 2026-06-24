@@ -405,7 +405,9 @@ if (!function_exists('vilmedOnEndBufferContent')) {
 	}
 }
 
-AddEventHandler('main', 'OnEndBufferContent', 'vilmedOnEndBufferContent');
+if (function_exists('AddEventHandler')) {
+	AddEventHandler('main', 'OnEndBufferContent', 'vilmedOnEndBufferContent');
+}
 
 if (!function_exists('vilmedEnsureCssinliner')) {
 	/** One-time prod fix: stop inlining 300+ KB CSS into HTML. */
@@ -443,7 +445,9 @@ if (!function_exists('vilmedEnsureCssinliner')) {
 	}
 }
 
-AddEventHandler('main', 'OnPageStart', 'vilmedEnsureCssinliner');
+if (function_exists('AddEventHandler')) {
+	AddEventHandler('main', 'OnPageStart', 'vilmedEnsureCssinliner');
+}
 
 if (!function_exists('vilmedDeferStylesheet')) {
 	/** Non-blocking CSS — for below-the-fold blocks (e.g. catalog cards on homepage). */
