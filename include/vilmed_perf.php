@@ -392,10 +392,11 @@ if (!function_exists('vilmedDeferHomeStylesheets')) {
 
 		$patterns = [
 			'ui\\.font\\.opensans',
+			'template_.+_v1\\.css',
 		];
 
 		if (vilmedIsMobileClient()) {
-			$patterns[] = 'template_.+_v1\\.css';
+			// mobile-only extras handled in vilmedDeferHomeScripts
 		}
 
 		$content = preg_replace_callback(
