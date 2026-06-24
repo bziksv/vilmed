@@ -278,9 +278,56 @@ Loc::loadMessages(__FILE__);?>
 
 <script>
 (function() {
+	function vilmedKabinetHasLoginPopup() {
+		var kabinet = document.getElementById("kabinet");
+		return !!(kabinet && kabinet.querySelector(".login_anch") && kabinet.querySelector(".pop-up.login"));
+	}
+
+	function vilmedBindKabinetPopup() {
+		if (window.__vilmedKabinetPopupBound) {
+			return;
+		}
+		window.__vilmedKabinetPopupBound = true;
+
+		document.addEventListener("click", function(e) {
+			var kabinet = document.getElementById("kabinet");
+			if (!kabinet) {
+				return;
+			}
+
+			if (e.target.closest("#kabinet .login_anch")) {
+				e.preventDefault();
+				var loginBody = document.querySelector(".login_body");
+				var loginPopup = document.querySelector(".pop-up.login");
+				if (loginBody) {
+					loginBody.style.display = "block";
+				}
+				if (loginPopup) {
+					loginPopup.style.display = "block";
+				}
+				return;
+			}
+
+			if (e.target.closest(".login_close") || e.target.classList.contains("login_body")) {
+				e.preventDefault();
+				document.querySelectorAll(".login_body, .pop-up.login").forEach(function(el) {
+					el.style.display = "none";
+				});
+			}
+		});
+	}
+
 	function vilmedLoadKabinetLine() {
 		var kabinet = document.getElementById("kabinet");
-		if (!kabinet || kabinet.querySelector(".login_anch, .personal")) {
+		if (!kabinet) {
+			return;
+		}
+		if (kabinet.querySelector(".personal")) {
+			vilmedBindKabinetPopup();
+			return;
+		}
+		if (vilmedKabinetHasLoginPopup()) {
+			vilmedBindKabinetPopup();
 			return;
 		}
 
@@ -299,9 +346,12 @@ Loc::loadMessages(__FILE__);?>
 				if (source) {
 					kabinet.innerHTML = source.innerHTML;
 				}
+				vilmedBindKabinetPopup();
 			}
 		});
 	}
+
+	vilmedBindKabinetPopup();
 
 	var runKabinet = function() {
 		if (window.requestIdleCallback) {
