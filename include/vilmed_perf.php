@@ -379,15 +379,21 @@ if (!function_exists('vilmedDeferHomeStylesheets')) {
 		];
 
 		$content = preg_replace_callback(
-			'/<link(\s[^>]*?\brel=["\']stylesheet["\'][^>]*?\bhref=["\']([^"\']+)["\'][^>]*)>/i',
+			'/<link(\s[^>]+)>/i',
 			static function (array $m) use ($patterns): string {
+				if (!preg_match('#\brel=["\']stylesheet["\']#i', $m[1])) {
+					return $m[0];
+				}
 				if (stripos($m[1], 'onload=') !== false) {
+					return $m[0];
+				}
+				if (!preg_match('#\bhref=["\']([^"\']+)["\']#i', $m[1], $hrefMatch)) {
 					return $m[0];
 				}
 
 				foreach ($patterns as $pattern) {
-					if (preg_match('#' . $pattern . '#i', $m[2])) {
-						$href = htmlspecialcharsbx($m[2], ENT_QUOTES);
+					if (preg_match('#' . $pattern . '#i', $hrefMatch[1])) {
+						$href = htmlspecialcharsbx($hrefMatch[1], ENT_QUOTES);
 
 						return '<link rel="preload" as="style" href="' . $href . '" onload="this.onload=null;this.rel=\'stylesheet\'">'
 							. '<noscript><link rel="stylesheet" href="' . $href . '"></noscript>';
