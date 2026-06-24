@@ -44,6 +44,35 @@
 	opacity: 1;
 }
 
+.anythingContainer ul.anythingSlider li:first-child a {
+	opacity: 1;
+	transition: none;
+}
+
+.anythingContainer ul.anythingSlider li a .slide-lcp-img {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	z-index: 0;
+	display: block;
+}
+
+@media screen and (max-width: 787px) {
+	.anythingContainer_DEFAULT {
+		aspect-ratio: 958 / 304;
+	}
+
+	.anythingContainer_16_9 {
+		aspect-ratio: 958 / 538;
+	}
+
+	.anythingContainer_16_7 {
+		aspect-ratio: 958 / 419;
+	}
+}
+
 /***PRODUCT_IN_SLIDE***/
 .slide-card-container {
 	display: table-cell;

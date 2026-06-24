@@ -34,7 +34,7 @@ foreach($arResult["ITEMS"] as $key => $arItem) {
 	if (is_array($previewFile) && !empty($previewFile['SRC'])) {
 		$arFileTmp = CFile::ResizeImageGet(
 			$previewFile,
-			array('width' => 958, 'height' => $arParam['SLIDER_HEIGHT']),
+			array('width' => 824, 'height' => (int)round(824 * $arParam['SLIDER_HEIGHT'] / 958)),
 			BX_RESIZE_IMAGE_PROPORTIONAL,
 			true
 		);

@@ -3,11 +3,18 @@
 $this->setFrameMode(true);
 
 if(count($arResult["ITEMS"]) < 1) return;
+
+$arAspectRatios = array(
+	'DEFAULT' => '958/304',
+	'16_9' => '958/538',
+	'16_7' => '958/419',
+);
+$vilmedSliderAspect = $arAspectRatios[$arParams['SLIDER_ASPECT_RATIO']] ?? '958/304';
 ?>
 
-<div class="anythingContainer anythingContainer_<?=$arParams['SLIDER_ASPECT_RATIO']?>">
+<div class="anythingContainer anythingContainer_<?=$arParams['SLIDER_ASPECT_RATIO']?>" style="aspect-ratio: <?=$vilmedSliderAspect?>">
 	<ul class="anythingSlider">
-		<?foreach($arResult['ITEMS'] as $arItem) {
+		<?foreach($arResult['ITEMS'] as $slideIndex => $arItem) {
 			if(!empty($arItem['PROPERTIES']['PRODUCT_LINK']['VALUE'])) {
 				$locationProduct = ($arItem['PROPERTIES']['PRODUCT_LOCATION']['VALUE_XML_ID'] == 'right'? 'right': 'left');
 				?>
@@ -144,13 +151,26 @@ if(count($arResult["ITEMS"]) < 1) return;
 						<?=(!empty($arItem['PROPERTIES']['CODE_YOUTUBE']['VALUE'])? "id=\"video_{$arItem['ID']}\"": '')?>
 						href="<?=(!empty($arItem['PROPERTIES']['URL']['VALUE'])? $arItem['PROPERTIES']['URL']['VALUE']: 'javascript:void(0)')?>"
 						<?=(!empty($arItem['PROPERTIES']['URL']['VALUE']) && !empty($arItem["PROPERTIES"]["OPEN_URL"]['VALUE'])? 'target="_blank"': '')?>
-						<?if(!empty($sImgUrl)) {?>
+						<?if(!empty($sImgUrl) && ($slideIndex !== 0 || !empty($arItem['PROPERTIES']['CODE_YOUTUBE']['VALUE']))) {?>
                             style="background: url(<?=htmlspecialcharsbx($sImgUrl)?>) center center / cover no-repeat;"
 						<?}?>
 						<?if(!empty($arItem['PROPERTIES']['CODE_YOUTUBE']['VALUE'])) {?>
 							data-property="{videoURL: '<?=$arItem['PROPERTIES']['CODE_YOUTUBE']['VALUE']?>', mute: <?=(!empty($arItem['PROPERTIES']['MUTE_AUDIO']['VALUE'])? 'true': 'false')?>, showControls: false, quality: 'default', opacity: 1, containment: 'self', optimizeDisplay: true, loop: <?=($sAutoPlay == 'true'? 'true': 1)?>, startAt: 0, remember_last_time: false, autoPlay: <?=$sAutoPlay?>, addRaster: false, gaTrack: false}"
 						<?}?>
-					></a>
+					><?php
+					if ($slideIndex === 0 && !empty($sImgUrl) && empty($arItem['PROPERTIES']['CODE_YOUTUBE']['VALUE'])) {
+						$vilmedSlidePic = !empty($arItem['PICTURE_PREVIEW']) ? $arItem['PICTURE_PREVIEW'] : array('SRC' => $sImgUrl);
+						if (function_exists('vilmedPictureHtml')) {
+							echo vilmedPictureHtml($vilmedSlidePic, array(
+								'class' => 'slide-lcp-img',
+								'fetchpriority' => 'high',
+								'alt' => (string)$arItem['NAME'],
+							));
+						} else {
+							?><img class="slide-lcp-img" src="<?=htmlspecialcharsbx($sImgUrl)?>" fetchpriority="high" alt="<?=htmlspecialcharsbx($arItem['NAME'])?>" width="<?= (int)($vilmedSlidePic['WIDTH'] ?? 824) ?>" height="<?= (int)($vilmedSlidePic['HEIGHT'] ?? 262) ?>"><?php
+						}
+					}
+					?></a>
 				</li>
 			<?}?>
 		<?}?>

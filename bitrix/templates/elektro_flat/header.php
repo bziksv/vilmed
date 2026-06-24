@@ -35,6 +35,9 @@ Loc::loadMessages(__FILE__);
 		|| CSite::InDir(SITE_DIR . "vendors/")
 		|| CSite::InDir(SITE_DIR . "payments/");
 	$vilmedNeedsSlider = $vilmedIsHome || $vilmedIsCatalogLike;
+	$vilmedNeedsFancybox = $vilmedIsCatalogLike;
+	$vilmedNeedsCountdown = $vilmedIsHome || $vilmedIsCatalogLike;
+	$GLOBALS['vilmedIsHome'] = $vilmedIsHome;
 
 	\Bitrix\Main\Page\Asset::getInstance()->addString(
 		"<script>window.vilmedTplPath=" . \CUtil::PhpToJSObject($vilmedTplPath) . ";</script>",
@@ -59,14 +62,24 @@ Loc::loadMessages(__FILE__);
 	if ($vilmedIsCompare) {
 		Asset::getInstance()->addCss($vilmedTplPath."/css/template_styles.compare.css");
 	}
-	Asset::getInstance()->addCss($vilmedTplPath."/js/custom-forms/custom-forms.css");
+	if ($vilmedIsHome && function_exists('vilmedDeferStylesheet')) {
+		vilmedDeferStylesheet($vilmedTplPath . "/js/custom-forms/custom-forms.css");
+	} else {
+		Asset::getInstance()->addCss($vilmedTplPath."/js/custom-forms/custom-forms.css");
+	}
 
 	if($vilmedNeedsSlider) {
 		Asset::getInstance()->addCss($vilmedTplPath."/js/anythingslider/slider.css");
 		Asset::getInstance()->addJs($vilmedTplPath."/js/anythingslider/jquery.easing.1.2.js");
 		Asset::getInstance()->addJs($vilmedTplPath."/js/anythingslider/jquery.anythingslider.min.js");
+	}
+
+	if($vilmedNeedsFancybox) {
 		Asset::getInstance()->addCss($vilmedTplPath."/js/fancybox/jquery.fancybox-1.3.1.css");
 		Asset::getInstance()->addJs($vilmedTplPath."/js/fancybox/jquery.fancybox-1.3.1.pack.js");
+	}
+
+	if($vilmedNeedsCountdown) {
 		Asset::getInstance()->addJs($vilmedTplPath."/js/countdown/jquery.plugin.js");
 		Asset::getInstance()->addJs($vilmedTplPath."/js/countdown/jquery.countdown.js");
 		Asset::getInstance()->addString("
@@ -475,7 +488,7 @@ Loc::loadMessages(__FILE__);
                                 <?}?>
 							</div>
 						<?endif;?>
-						<div class="workarea<?=($hideLeftColumn ? ' workarea-order' : '');?>">
+						<main class="workarea<?=($hideLeftColumn ? ' workarea-order' : '');?>" id="main-content">
 							<?if($APPLICATION->GetCurPage(true)== SITE_DIR."index.php"):
 								if(in_array("SLIDER", $arSetting["HOME_PAGE"]["VALUE"])):?>
 									<?$APPLICATION->IncludeComponent("bitrix:main.include", "",

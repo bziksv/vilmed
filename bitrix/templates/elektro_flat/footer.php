@@ -15,7 +15,7 @@ Loc::loadMessages(__FILE__);?>
                                     array("HIDE_ICONS" => "Y")
                                 );?>
 					    	<?endif;?>
-						</div>
+						</main>
 
 						<?if(!CSite::InDir('/news/')):?>
 							<?$APPLICATION->IncludeComponent("bitrix:main.include", "",

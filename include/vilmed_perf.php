@@ -353,16 +353,97 @@ if (!function_exists('vilmedFixFontDisplay')) {
 	}
 }
 
+if (!function_exists('vilmedDeferHomeScripts')) {
+	/** Homepage: defer non-critical JS (desktop + mobile TBT). */
+	function vilmedDeferHomeScripts(string &$content): void
+	{
+		if (empty($GLOBALS['vilmedIsHome'])) {
+			return;
+		}
+
+		$deferNeedles = [
+			'countdown/',
+			'custom-forms/',
+			'/main.js',
+			'/script.js',
+			'forms/templates',
+			'pull.client',
+			'pull/protobuf',
+			'dexie.bitrix',
+			'rest.client',
+			'core_frame_cache',
+			'moremenu.js',
+			'jquery.cookie',
+		];
+
+		$content = preg_replace_callback(
+			'/<script(\s[^>]*?\ssrc="([^"]+)"[^>]*)>\s*<\/script>/i',
+			static function (array $m) use ($deferNeedles): string {
+				if (stripos($m[1], ' defer') !== false || stripos($m[1], ' async') !== false) {
+					return $m[0];
+				}
+				foreach ($deferNeedles as $needle) {
+					if (stripos($m[2], $needle) !== false) {
+						return '<script' . $m[1] . ' defer></script>';
+					}
+				}
+
+				return $m[0];
+			},
+			$content
+		);
+	}
+}
+
 if (!function_exists('vilmedOnEndBufferContent')) {
 	function vilmedOnEndBufferContent(string &$content): void
 	{
 		vilmedInjectLcpPreload($content);
 		vilmedInjectLazyImages($content);
 		vilmedFixFontDisplay($content);
+		vilmedDeferHomeScripts($content);
 	}
 }
 
 AddEventHandler('main', 'OnEndBufferContent', 'vilmedOnEndBufferContent');
+
+if (!function_exists('vilmedEnsureCssinliner')) {
+	/** One-time prod fix: stop inlining 300+ KB CSS into HTML. */
+	function vilmedEnsureCssinliner(): void
+	{
+		if (defined('ADMIN_SECTION') || $_SERVER['REQUEST_METHOD'] === 'POST') {
+			return;
+		}
+		if (\COption::GetOptionString('main', 'vilmed_cssinliner_v2', '') === 'Y') {
+			return;
+		}
+		if (!\CModule::IncludeModule('arturgolubev.cssinliner')) {
+			return;
+		}
+
+		$moduleId = 'arturgolubev.cssinliner';
+		$exceptions = implode("\n", [
+			'colors.css',
+			'template_styles.css',
+			'template_styles.catalog',
+			'template_styles.personal',
+			'template_styles.compare',
+			'font-awesome',
+			'slider.css',
+			'fancybox',
+			'slick.css',
+			'custom-forms.css',
+			'ui.font',
+			'opensans',
+		]);
+
+		\COption::SetOptionString($moduleId, 'inline_max_weight', '48');
+		\COption::SetOptionString($moduleId, 'exceptions', $exceptions);
+		\COption::SetOptionString('main', 'vilmed_cssinliner_v2', 'Y');
+	}
+}
+
+AddEventHandler('main', 'OnPageStart', 'vilmedEnsureCssinliner');
 
 if (!function_exists('vilmedDeferStylesheet')) {
 	/** Non-blocking CSS — for below-the-fold blocks (e.g. catalog cards on homepage). */

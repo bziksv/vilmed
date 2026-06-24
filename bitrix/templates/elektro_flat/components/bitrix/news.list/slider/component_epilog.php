@@ -4,7 +4,6 @@ if (!empty($arResult['LCP_PRELOAD_SRC']) && function_exists('vilmedSetLcpPreload
 	vilmedSetLcpPreload((string)$arResult['LCP_PRELOAD_SRC']);
 }
 
-$coeff = ($arParams['SLIDER_ASPECT_RATIO'] == '16_9'? 0.56: ($arParams['SLIDER_ASPECT_RATIO'] == '16_7'? 0.43: 0.30));
 $delay = (isset($arParams['SLIDER_DELAY']) && !empty($arParams['SLIDER_DELAY'])? $arParams['SLIDER_DELAY']: 3000);
 $autoplay = ($arParams['SLIDER_AUTOPLAY'] !== 'N'? 'true': 'false');
 
@@ -61,18 +60,6 @@ $APPLICATION->AddHeadString('
 					}
 				}
 			});
-			
-			$(window).resize(function () {
-				currentWidth = $(".content-wrapper").children(".center").width();
-				if(currentWidth < "768") {
-					$(".anythingContainer").css({
-						"height": currentWidth * '.$coeff.' + "px"
-					});
-				} else {
-					$(".anythingContainer").removeAttr("style");
-				}
-			});
-			$(window).resize();
 		});
 		
 		function toggleControlsSlider(slider, flag) {

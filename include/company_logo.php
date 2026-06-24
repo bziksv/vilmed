@@ -1,1 +1,1 @@
-<a href="<?=SITE_DIR?>"><img class="no-lazy" width="300" alt="vilmed-logo.png" src="/logo/Vilmed-logo-min.png" height="86" title="vilmed-logo.png" fetchpriority="high"></a>
+<a href="<?=SITE_DIR?>"><img class="no-lazy" width="300" alt="vilmed-logo.png" src="/logo/Vilmed-logo-min.png" height="86" title="vilmed-logo.png"></a>
