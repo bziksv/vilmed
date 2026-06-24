@@ -14,21 +14,30 @@ COMPOSITE_FLAG="bitrix/html_pages/.enabled"
 
 echo "== prod-checker-fixes: $ROOT =="
 
-if grep -q "initCommand" "$SETTINGS" 2>/dev/null; then
+if grep -q "initCommand" "$SETTINGS" 2>/dev/null && php -l "$SETTINGS" >/dev/null 2>&1; then
   echo "  OK: initCommand already in .settings.php"
-else
+elif grep -q "initCommand" "$SETTINGS" 2>/dev/null; then
+  echo "  WARN: broken initCommand in .settings.php — restoring from backup if present"
+  if [[ -f "${SETTINGS}.bak.checker" ]]; then
+    cp -a "${SETTINGS}.bak.checker" "$SETTINGS"
+    echo "  OK: restored ${SETTINGS} from .bak.checker"
+  fi
+fi
+
+if ! grep -q "initCommand" "$SETTINGS" 2>/dev/null; then
   cp -a "$SETTINGS" "${SETTINGS}.bak.checker"
   php -r '
     $f = "bitrix/.settings.php";
     $c = file_get_contents($f);
     $needle = "'\''options'\'' => 2,";
-    $insert = "'\''options'\'' => 2,\n        '\''initCommand'\'' => \"SET NAMES '\''utf8'\'' COLLATE '\''utf8_unicode_ci'\'',";
+    $insert = "'\''options'\'' => 2,\n        '\''initCommand'\'' => \"SET NAMES '\''utf8'\'' COLLATE '\''utf8_unicode_ci'\"\,";
     if (strpos($c, "initCommand") !== false) { echo "skip\n"; exit(0); }
     if (strpos($c, $needle) === false) { fwrite(STDERR, "ERROR: cannot find options => 2 in .settings.php\n"); exit(1); }
     $count = 1;
     file_put_contents($f, str_replace($needle, $insert, $c, $count));
     echo "  OK: added initCommand to .settings.php\n";
   '
+  php -l "$SETTINGS" >/dev/null
 fi
 
 if grep -q "BX_CRONTAB_SUPPORT" "$DBCONN" 2>/dev/null; then
