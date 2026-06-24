@@ -21,9 +21,8 @@ if ($docRoot === false || !is_dir($docRoot . '/upload')) {
 $_SERVER['DOCUMENT_ROOT'] = $docRoot;
 define('NO_KEEP_STATISTIC', true);
 define('NOT_CHECK_PERMISSIONS', true);
+define('B_PROLOG_INCLUDED', true);
 
-require $docRoot . '/bitrix/modules/main/include/prolog_before.php';
-require $docRoot . '/bitrix/modules/main/include/prolog.php';
 require_once $docRoot . '/include/vilmed_perf.php';
 
 $limit = 0;

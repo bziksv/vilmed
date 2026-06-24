@@ -22,7 +22,6 @@ define('NO_KEEP_STATISTIC', true);
 define('NOT_CHECK_PERMISSIONS', true);
 
 require $docRoot . '/bitrix/modules/main/include/prolog_before.php';
-require $docRoot . '/bitrix/modules/main/include/prolog.php';
 
 $moduleId = 'arturgolubev.cssinliner';
 if (!CModule::IncludeModule($moduleId)) {
