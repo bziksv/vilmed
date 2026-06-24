@@ -26,17 +26,7 @@ fi
 
 if ! grep -q "initCommand" "$SETTINGS" 2>/dev/null; then
   cp -a "$SETTINGS" "${SETTINGS}.bak.checker"
-  php -r '
-    $f = "bitrix/.settings.php";
-    $c = file_get_contents($f);
-    $needle = "'\''options'\'' => 2,";
-    $insert = "'\''options'\'' => 2,\n        '\''initCommand'\'' => \"SET NAMES '\''utf8'\'' COLLATE '\''utf8_unicode_ci'\"\,";
-    if (strpos($c, "initCommand") !== false) { echo "skip\n"; exit(0); }
-    if (strpos($c, $needle) === false) { fwrite(STDERR, "ERROR: cannot find options => 2 in .settings.php\n"); exit(1); }
-    $count = 1;
-    file_put_contents($f, str_replace($needle, $insert, $c, $count));
-    echo "  OK: added initCommand to .settings.php\n";
-  '
+  php "$ROOT/tools/perf/add-initcommand.php"
   php -l "$SETTINGS" >/dev/null
 fi
 
