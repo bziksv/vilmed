@@ -2,7 +2,7 @@
 <?php
 /**
  * Восстановить bitrix/html_pages/.config.php после wipe html_pages.
- * Эквивалент «Сохранить» в /bitrix/admin/composite.php (режим Авто).
+ * Без Bitrix bootstrap (CLI short_open_tag=Off на prod).
  *
  *   cd /var/www/vilmed_ru_usr/data/www/vilmed.ru
  *   php tools/perf/prod-composite-restore.php
@@ -18,22 +18,15 @@ if ($docRoot === false) {
 	exit(1);
 }
 
-$_SERVER['DOCUMENT_ROOT'] = $docRoot;
-define('NO_KEEP_STATISTIC', true);
-define('NOT_CHECK_PERMISSIONS', true);
-define('NO_AGENT_CHECK', true);
-define('BX_CRONTAB', true);
+$htmlPagesDir = $docRoot . '/bitrix/html_pages';
+$configPath = $htmlPagesDir . '/.config.php';
+$enabledPath = $htmlPagesDir . '/.enabled';
 
-require $docRoot . '/bitrix/modules/main/include/prolog_before.php';
-
-if (!CModule::IncludeModule('main')) {
-	fwrite(STDERR, "Cannot load main module\n");
+if (!is_dir($htmlPagesDir) && !mkdir($htmlPagesDir, 0755, true) && !is_dir($htmlPagesDir)) {
+	fwrite(STDERR, "Cannot create $htmlPagesDir\n");
 	exit(1);
 }
 
-use Bitrix\Main\Composite\Helper;
-
-$configPath = Helper::getConfigFilePath();
 $hadConfig = is_file($configPath);
 
 $options = [
@@ -60,16 +53,41 @@ $options = [
 	'WRITE_STATISTIC' => 'Y',
 ];
 
-Helper::setEnabled(true);
-Helper::setOptions($options);
+$content = '<?' . "\n\$arHTMLPagesOptions = array(\n";
+foreach ($options as $key => $value) {
+	if (is_array($value)) {
+		$content .= "\t\"{$key}\" => array(\n";
+		foreach ($value as $k2 => $v2) {
+			$content .= "\t\t\"{$k2}\" => \"{$v2}\",\n";
+		}
+		$content .= "\t),\n";
+		continue;
+	}
+	$content .= "\t\"{$key}\" => \"{$value}\",\n";
+}
+$content .= ");\n?>";
 
-if (!is_file($configPath)) {
-	fwrite(STDERR, "FAIL: .config.php not created at $configPath\n");
+$tmp = $configPath . '.' . bin2hex(random_bytes(4)) . '.tmp';
+if (file_put_contents($tmp, $content) === false) {
+	fwrite(STDERR, "Cannot write temp config\n");
 	exit(1);
 }
+if (!rename($tmp, $configPath)) {
+	@unlink($tmp);
+	fwrite(STDERR, "Cannot rename config to $configPath\n");
+	exit(1);
+}
+@chmod($configPath, 0664);
 
-$enabledPath = Helper::getEnabledFilePath();
+if (!is_file($enabledPath)) {
+	if (file_put_contents($enabledPath, '') === false) {
+		fwrite(STDERR, "Cannot create .enabled\n");
+		exit(1);
+	}
+}
+@chmod($enabledPath, 0664);
+
 echo 'OK: .config.php ' . ($hadConfig ? 'updated' : 'created') . ' (' . filesize($configPath) . " bytes)\n";
-echo 'OK: .enabled ' . (is_file($enabledPath) ? 'present' : 'MISSING') . "\n";
+echo "OK: .enabled present\n";
 echo "Next: bash tools/perf/prod-warmup.sh https://vilmed.ru\n";
 echo "Check: bash tools/perf/prod-composite-check.sh https://vilmed.ru\n";
