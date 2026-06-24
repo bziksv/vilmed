@@ -42,7 +42,7 @@ else
     $marker = "define(\"BX_UTF\", true);";
     $add = $marker . "\ndefine(\"BX_CRONTAB_SUPPORT\", true);";
     if (strpos($c, $marker) === false) { fwrite(STDERR, "ERROR: BX_UTF not found in dbconn.php\n"); exit(1); }
-    file_put_contents($f, str_replace($marker, $add, $c, 1));
+    file_put_contents($f, str_replace($marker, $add, $c));
     echo "  OK: added BX_CRONTAB_SUPPORT to dbconn.php\n";
   '
 fi
