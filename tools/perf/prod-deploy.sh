@@ -4,8 +4,12 @@
 #   cd /var/www/vilmed_ru_usr/data/www/vilmed.ru
 #   bash tools/perf/prod-deploy.sh
 #
-# Полная очистка композита (редко):
-#   CLEAR_HTML_PAGES=1 bash tools/perf/prod-deploy.sh
+# Быстрый деплой по умолчанию: pull + runtime cache + reload (~10–20 с).
+#
+# Опции:
+#   INVALIDATE_HOME=1  — сбросить кеш только главной (footer/header/JS)
+#   RUN_WARMUP=1       — полный прогрев композита + sitemap + webp (долго, не для каждой правки)
+#   CLEAR_HTML_PAGES=1 — полная очистка bitrix/html_pages (редко)
 set -euo pipefail
 
 ROOT="${1:-/var/www/vilmed_ru_usr/data/www/vilmed.ru}"
@@ -58,16 +62,25 @@ echo "== permissions =="
 chown -R vilmed_ru_usr:vilmed_ru_usr .
 
 if [[ -f bitrix/html_pages/.enabled ]]; then
-  echo "== composite warmup =="
-  bash "$DIR/prod-warmup.sh" "$BASE"
-  if [[ -f "$DIR/prod-warmup-sitemap.sh" ]]; then
-    bash "$DIR/prod-warmup-sitemap.sh" "$BASE" "${SITEMAP_WARMUP_LIMIT:-25}"
+  if [[ "${INVALIDATE_HOME:-0}" == "1" ]]; then
+    echo "== invalidate homepage composite =="
+    bash "$DIR/prod-invalidate-home.sh" "$BASE" "$ROOT"
   fi
-  bash "$DIR/prod-composite-check.sh" "$BASE" || true
 
-  if [[ -f "$ROOT/tools/perf/webp-warmup.php" ]]; then
-    echo "== webp batch (limit ${WEBP_LIMIT:-1000}) =="
-    php "$ROOT/tools/perf/webp-warmup.php" --limit="${WEBP_LIMIT:-1000}" || true
+  if [[ "${RUN_WARMUP:-0}" == "1" ]]; then
+    echo "== composite warmup (RUN_WARMUP=1) =="
+    bash "$DIR/prod-warmup.sh" "$BASE"
+    if [[ -f "$DIR/prod-warmup-sitemap.sh" ]]; then
+      bash "$DIR/prod-warmup-sitemap.sh" "$BASE" "${SITEMAP_WARMUP_LIMIT:-25}"
+    fi
+    bash "$DIR/prod-composite-check.sh" "$BASE" || true
+
+    if [[ -f "$ROOT/tools/perf/webp-warmup.php" ]]; then
+      echo "== webp batch (limit ${WEBP_LIMIT:-1000}) =="
+      php "$ROOT/tools/perf/webp-warmup.php" --limit="${WEBP_LIMIT:-1000}" || true
+    fi
+  else
+    echo "  skip warmup (быстрый деплой; RUN_WARMUP=1 — полный прогрев, INVALIDATE_HOME=1 — только /)"
   fi
 fi
 
