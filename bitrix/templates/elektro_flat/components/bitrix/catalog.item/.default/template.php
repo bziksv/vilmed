@@ -197,7 +197,9 @@ if(isset($arResult['ITEM'])) {
 			}?>
 
 			<script>
-				var <?=$obName?> = new JCCatalogItem(<?=CUtil::PhpToJSObject($jsParams, false, true);?>);
+				BX.ready(function() {
+					window.<?=$obName?> = new JCCatalogItem(<?=CUtil::PhpToJSObject($jsParams, false, true);?>);
+				});
 			</script>
 			<?unset($jsParams);
 		}?>

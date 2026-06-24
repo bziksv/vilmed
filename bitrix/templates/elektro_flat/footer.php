@@ -371,6 +371,18 @@ Loc::loadMessages(__FILE__);?>
 
 <script>
 (function() {
+	function vilmedHasWorkingCatalogInits() {
+		var scripts = document.querySelectorAll("script:not([src])");
+		for (var i = 0; i < scripts.length; i++) {
+			var text = scripts[i].textContent || "";
+			var match = text.match(/(?:var|window\.)\s*(ob[\w]+)\s*=\s*new\s+JCCatalog(?:Bigdata)?Item/);
+			if (match && typeof window[match[1]] !== "undefined") {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	function vilmedNeedsAdd2BasketFallback() {
 		if (!document.querySelector('form.add2basket_form[action*="add2basket.php"]')) {
 			return false;
@@ -378,8 +390,7 @@ Loc::loadMessages(__FILE__);?>
 		if (typeof JCCatalogItem === "undefined" && typeof JCCatalogBigdataItem === "undefined") {
 			return true;
 		}
-		var html = document.documentElement.innerHTML;
-		return html.indexOf("new JCCatalogItem") === -1 && html.indexOf("new JCCatalogBigdataItem") === -1;
+		return !vilmedHasWorkingCatalogInits();
 	}
 
 	function vilmedBindAdd2BasketFallback() {
@@ -472,7 +483,9 @@ Loc::loadMessages(__FILE__);?>
 		vilmedBindAdd2BasketFallback();
 	}
 
-	if (document.readyState === "loading") {
+	if (typeof BX !== "undefined" && typeof BX.ready === "function") {
+		BX.ready(vilmedInitAdd2BasketFallback);
+	} else if (document.readyState === "loading") {
 		document.addEventListener("DOMContentLoaded", vilmedInitAdd2BasketFallback);
 	} else {
 		vilmedInitAdd2BasketFallback();

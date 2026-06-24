@@ -177,7 +177,9 @@ if(isset($arResult['ITEM'])) {
 			);
 		}?>
 		<script>
-			var <?=$obName?> = new JCCatalogBigdataItem(<?=CUtil::PhpToJSObject($jsParams, false, true);?>);
+			BX.ready(function() {
+				window.<?=$obName?> = new JCCatalogBigdataItem(<?=CUtil::PhpToJSObject($jsParams, false, true);?>);
+			});
 		</script>
 	</div>
 	<?unset($arElement, $itemIds, $jsParams);
