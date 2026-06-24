@@ -13,7 +13,12 @@ if(count($arResult["ITEMS"]) < 1)
 		if($width == 0)
 			echo "<div class='banners-main__row'>";?>
 		<a class="banners-main__item" href="<?=(!empty($arItem['DISPLAY_PROPERTIES']['URL']) ? $arItem['DISPLAY_PROPERTIES']['URL']['VALUE'] : 'javascript:void(0)');?>"<?=(!empty($arItem["DISPLAY_PROPERTIES"]["WIDTH"]) ? " style='width:".$arItem["DISPLAY_PROPERTIES"]["WIDTH"]["VALUE"]."%;'" : "");?>>
-			<?php $bannerImgSrc = is_array($arItem["PREVIEW_PICTURE"]) ? $arItem["PREVIEW_PICTURE"]["SRC"] : ""; ?>
+			<?php
+			$bannerImgSrc = is_array($arItem["PREVIEW_PICTURE"]) ? $arItem["PREVIEW_PICTURE"]["SRC"] : "";
+			if ($bannerImgSrc !== '' && function_exists('vilmedBestImageSrc')) {
+				$bannerImgSrc = vilmedBestImageSrc($bannerImgSrc);
+			}
+			?>
 			<span class="banners-main__item-image"<?=($bannerImgSrc ? ' data-was-processed="true" style="background-image:url('.htmlspecialcharsbx($bannerImgSrc).');"' : '')?>></span>
 			<span class="banners-main__item-block-wrap">
 				<span class="banners-main__item-block">
