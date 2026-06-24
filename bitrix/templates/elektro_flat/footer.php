@@ -369,6 +369,113 @@ Loc::loadMessages(__FILE__);?>
 })();
 </script>
 
+<script>
+(function() {
+	function vilmedNeedsAdd2BasketFallback() {
+		if (!document.querySelector('form.add2basket_form[action*="add2basket.php"]')) {
+			return false;
+		}
+		return document.documentElement.innerHTML.indexOf("new JCCatalogItem") === -1;
+	}
+
+	function vilmedBindAdd2BasketFallback() {
+		if (window.__vilmedAdd2BasketBound || !vilmedNeedsAdd2BasketFallback()) {
+			return;
+		}
+		window.__vilmedAdd2BasketBound = true;
+
+		document.addEventListener("click", function(e) {
+			var btn = e.target.closest('a[name="add2basket"], button[name="add2basket"]');
+			if (!btn || btn.disabled || btn.classList.contains("ppp")) {
+				return;
+			}
+
+			var form = btn.closest("form.add2basket_form");
+			if (!form) {
+				return;
+			}
+
+			var action = form.getAttribute("action") || "";
+			if (action.indexOf("add2basket.php") === -1) {
+				return;
+			}
+
+			e.preventDefault();
+
+			var params = {};
+			form.querySelectorAll("input").forEach(function(input) {
+				if (input.name) {
+					params[input.name] = input.value;
+				}
+			});
+			params.sessid = BX.bitrix_sessid();
+
+			BX.ajax.post(action, params, function() {
+				var siteDir = BX.message("SITE_DIR") || "/";
+				BX.ajax.post(siteDir + "ajax/basket_line.php", "", function(data) {
+					if (typeof refreshCartLine === "function") {
+						refreshCartLine(data);
+					}
+				});
+				BX.ajax.post(siteDir + "ajax/delay_line.php", "", function(data) {
+					var delayLine = BX.findChild(document.body, {className: "delay_line"}, true, false);
+					if (delayLine) {
+						delayLine.innerHTML = data;
+					}
+				});
+
+				var addedText = BX.message("ADDITEMINCART_ADDED") || "ДОБАВЛЕНО";
+				BX.addClass(btn, "ppp");
+				BX.adjust(btn, {
+					props: {disabled: btn.tagName === "BUTTON"},
+					html: "<i class='fa fa-check'></i><span>" + addedText + "</span>"
+				});
+			});
+		});
+
+		document.addEventListener("click", function(e) {
+			var plus = e.target.closest('[id^="quantity_plus_"]');
+			var minus = e.target.closest('[id^="quantity_minus_"]');
+			var control = plus || minus;
+			if (!control) {
+				return;
+			}
+
+			var form = control.closest("form.add2basket_form");
+			if (!form) {
+				return;
+			}
+
+			var input = form.querySelector('input[name="quantity"]');
+			if (!input) {
+				return;
+			}
+
+			e.preventDefault();
+			var cur = parseFloat(String(input.value).replace(",", "."));
+			if (isNaN(cur)) {
+				cur = 1;
+			}
+			cur = plus ? cur + 1 : Math.max(1, cur - 1);
+			input.value = cur;
+		});
+	}
+
+	function vilmedInitAdd2BasketFallback() {
+		if (typeof BX === "undefined" || typeof BX.ajax === "undefined") {
+			return;
+		}
+		vilmedBindAdd2BasketFallback();
+	}
+
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", vilmedInitAdd2BasketFallback);
+	} else {
+		vilmedInitAdd2BasketFallback();
+	}
+})();
+</script>
+
 
 <script type="text/javascript">window._ab_id_=163177</script>
 <script>

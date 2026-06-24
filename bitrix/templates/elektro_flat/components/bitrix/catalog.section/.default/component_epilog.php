@@ -2,6 +2,7 @@
 
 //JS_CORE//
 CJSCore::Init(array('popup', 'ajax', 'fx'));
+\Bitrix\Main\Page\Asset::getInstance()->addJs($templateFolder . '/script.js');
 
 //LCP preload — first product image on catalog section pages (page 1)
 global $APPLICATION;
