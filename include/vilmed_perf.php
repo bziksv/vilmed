@@ -372,8 +372,14 @@ if (!function_exists('vilmedDeferHomeScripts')) {
 			'dexie.bitrix',
 			'rest.client',
 			'core_frame_cache',
+			'core_ls.min.js',
 			'moremenu.js',
 			'jquery.cookie',
+			'core_ui_widget',
+			'core_ui_etc',
+			'core_ui_autocomplete',
+			'socialservices/ss.js',
+			'kernel_main_polyfill_customevent',
 		];
 
 		$content = preg_replace_callback(

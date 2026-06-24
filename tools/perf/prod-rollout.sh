@@ -36,6 +36,10 @@ done
 if [[ -f bitrix/html_pages/.enabled ]]; then
 	rm -f bitrix/html_pages/vilmed.ru/index@.html
 	echo "  cleared: bitrix/html_pages/vilmed.ru/index@.html only"
+	if [[ ! -f bitrix/html_pages/.config.php ]] && [[ -f tools/perf/prod-composite-restore.php ]]; then
+		echo "== composite restore (.config.php missing) =="
+		php tools/perf/prod-composite-restore.php
+	fi
 else
 	echo "  WARN: composite OFF — open /bitrix/admin/composite.php → Save"
 fi
