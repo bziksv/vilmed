@@ -21,10 +21,12 @@ if ($docRoot === false) {
 $_SERVER['DOCUMENT_ROOT'] = $docRoot;
 define('NO_KEEP_STATISTIC', true);
 define('NOT_CHECK_PERMISSIONS', true);
+define('NO_AGENT_CHECK', true);
+define('BX_CRONTAB', true);
 
 require $docRoot . '/bitrix/modules/main/include/prolog_before.php';
 
-if (!\Bitrix\Main\Loader::includeModule('main')) {
+if (!CModule::IncludeModule('main')) {
 	fwrite(STDERR, "Cannot load main module\n");
 	exit(1);
 }
