@@ -10,6 +10,8 @@
 #   INVALIDATE_HOME=1  — сбросить кеш только главной (footer/header/JS)
 #   RUN_WARMUP=1       — полный прогрев композита + sitemap + webp (долго, не для каждой правки)
 #   CLEAR_HTML_PAGES=1 — полная очистка bitrix/html_pages (редко)
+#   FLUSH_REDIS=1      — сброс Bitrix cache в Redis (ВКЛ по умолчанию; кеш именно там, не в файлах)
+#                        FLUSH_REDIS=0 — пропустить (если правки не требуют сброса кеша)
 set -euo pipefail
 
 ROOT="${1:-/var/www/vilmed_ru_usr/data/www/vilmed.ru}"
@@ -30,6 +32,19 @@ echo "== restore .settings.php =="
 cp -a "$SETTINGS_BAK" bitrix/.settings.php
 
 echo "== clear Bitrix runtime cache =="
+# ВАЖНО: на этом сервере Bitrix cache хранится в Redis (bitrix/.settings.php -> cache.type=redis).
+# Файловые `find bitrix/cache -delete` НЕ сбрасывают managed/component/composite кеш — он в Redis.
+# Для применения правок шаблонов/компонентов нужен сброс Redis: FLUSH_REDIS=1 (по умолчанию ВКЛ).
+if [[ "${FLUSH_REDIS:-1}" == "1" ]] && grep -q "'type' => 'redis'" bitrix/.settings.php 2>/dev/null; then
+  if command -v redis-cli >/dev/null 2>&1; then
+    echo "  redis cache detected — FLUSHDB (sessions on files, safe)"
+    redis-cli FLUSHDB >/dev/null 2>&1 && echo "  redis FLUSHDB OK" || echo "  redis FLUSHDB FAILED"
+  else
+    echo "  WARN: redis-cli not found, cache NOT cleared (Redis)"
+  fi
+else
+  echo "  skip Redis flush (FLUSH_REDIS=0 or non-redis cache)"
+fi
 CACHE_DIRS=(bitrix/cache bitrix/managed_cache bitrix/stack_cache)
 if [[ -f bitrix/html_pages/.enabled ]]; then
   if [[ "${CLEAR_HTML_PAGES:-0}" == "1" ]]; then

@@ -33,7 +33,22 @@ if($arParams["USE_GEOLOCATION"] == "Y"):?>
 					region: <?=CUtil::PhpToJSObject($arResult["regionName"])?>,
 					city: <?=CUtil::PhpToJSObject($arResult["cityName"])?>
 				};
-				BX.Geolocation(geolocation);
+				// VILMED perf: defer geolocation XHR off the critical path (city + delivery still resolve).
+				(function() {
+					var run = function() { BX.Geolocation(geolocation); };
+					var schedule = function() {
+						if ("requestIdleCallback" in window) {
+							requestIdleCallback(run, {timeout: 3000});
+						} else {
+							setTimeout(run, 1200);
+						}
+					};
+					if (document.readyState === "complete") {
+						schedule();
+					} else {
+						window.addEventListener("load", schedule, {once: true});
+					}
+				})();
 			<?} else {?>
 				window.addEventListener('load', function() {
 					BX.loadYandexMaps(function() {

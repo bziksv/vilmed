@@ -34,10 +34,20 @@ if (isset($arResult['REQUEST_ITEMS']))
 				'site_id': '<?=CUtil::JSEscape($component->getSiteId())?>'
 			};
 
-			bx_sale_prediction_product_detail_load(
-				'<?=CUtil::JSEscape($injectId)?>',
-				giftAjaxData
-			);
+			// VILMED perf: defer prediction XHR off the critical load path.
+			(function() {
+				var run = function() {
+					bx_sale_prediction_product_detail_load(
+						'<?=CUtil::JSEscape($injectId)?>',
+						giftAjaxData
+					);
+				};
+				if ("requestIdleCallback" in window) {
+					requestIdleCallback(run, {timeout: 4000});
+				} else {
+					setTimeout(run, 1500);
+				}
+			})();
               
 			BX.addCustomEvent('onHasNewPrediction', function(html){			  
 			
