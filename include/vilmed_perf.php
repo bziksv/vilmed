@@ -396,9 +396,15 @@ if (!function_exists('vilmedInjectCriticalHomeCss')) {
 		$critical = '<style id="vilmed-critical">'
 			. 'html,body,.body,.page-wrapper{width:100%;margin:0;padding:0}'
 			. '.center{width:1234px;display:table;margin:0 auto}'
+			. 'header{width:100%;min-height:107px;padding:10px 0}'
+			. 'header .center{height:107px}'
+			. '.header_1,.header_2,.header_3,.header_4{display:table-cell;vertical-align:middle}'
+			. '.top-catalog{width:100%;height:40px;float:left;box-sizing:border-box}'
+			. '.top_panel{width:100%;height:56px;display:none;margin:0;padding:0}'
 			. '.content-wrapper{width:100%;padding:0 0 20px}'
 			. '.content{width:1185px;float:left;margin:0 0 0 24px}'
 			. '.left-column{width:203px;float:left;margin:0 24px 0 0}'
+			. '.clr{clear:both}'
 			. '.anythingContainer_DEFAULT{aspect-ratio:958/304}'
 			. '.anythingContainer_16_9{aspect-ratio:958/538}'
 			. '.anythingContainer_16_7{aspect-ratio:958/419}'
@@ -437,7 +443,7 @@ if (!function_exists('vilmedResequenceCoreScripts')) {
 }
 
 if (!function_exists('vilmedDeferHomeStylesheets')) {
-	/** Homepage: non-blocking load for aggregated template CSS and Open Sans. */
+	/** Homepage: defer Open Sans only; template_*_v1.css stays blocking (CLS). */
 	function vilmedDeferHomeStylesheets(string &$content): void
 	{
 		if (empty($GLOBALS['vilmedIsHome'])) {
@@ -446,7 +452,6 @@ if (!function_exists('vilmedDeferHomeStylesheets')) {
 
 		$patterns = [
 			'ui\\.font\\.opensans',
-			'template_.+_v1\\.css',
 		];
 
 		if (vilmedIsMobileClient()) {
