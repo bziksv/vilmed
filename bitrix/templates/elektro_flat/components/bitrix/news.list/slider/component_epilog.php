@@ -24,7 +24,7 @@ $APPLICATION->AddHeadString('
 				"hashTags": false,
 				"autoPlay": '.$autoplay.',
 				"autoPlayLocked": '.$autoplay.',
-				"resizeContents": true,
+				"resizeContents": false,
 				"onInitialized": function(e, slider) {
 					if(!!slider.$currentPage.data("prop") || (!!slider.$el.find("li").data("prop") && slider.$items.length == 1)) {
 						var prop = slider.$currentPage.data("prop")? eval("("+slider.$currentPage.data("prop")+")"): eval("("+slider.$el.find("li").data("prop")+")");

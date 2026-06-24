@@ -382,6 +382,57 @@ if (!function_exists('vilmedIsMobileClient')) {
 	}
 }
 
+if (!function_exists('vilmedInjectCriticalHomeCss')) {
+	/** Reserve layout before deferred template_*_v1.css loads (CLS on desktop). */
+	function vilmedInjectCriticalHomeCss(string &$content): void
+	{
+		if (empty($GLOBALS['vilmedIsHome'])) {
+			return;
+		}
+		if (stripos($content, 'id="vilmed-critical"') !== false) {
+			return;
+		}
+
+		$critical = '<style id="vilmed-critical">'
+			. 'html,body,.body,.page-wrapper{width:100%;margin:0;padding:0}'
+			. '.center{width:1234px;display:table;margin:0 auto}'
+			. '.anythingContainer_DEFAULT{aspect-ratio:958/304}'
+			. '.anythingContainer_16_9{aspect-ratio:958/538}'
+			. '.anythingContainer_16_7{aspect-ratio:958/419}'
+			. 'body.bg-fixed{background-attachment:scroll}'
+			. '</style>';
+
+		if (preg_match('/<head\b[^>]*>/i', $content)) {
+			$content = preg_replace('/<head\b[^>]*>/i', '$0' . $critical, $content, 1);
+		}
+	}
+}
+
+if (!function_exists('vilmedResequenceCoreScripts')) {
+	/** core_frame_cache requires BX.localStorage from core_ls — load order matters. */
+	function vilmedResequenceCoreScripts(string &$content): void
+	{
+		if (!preg_match('#<script(\s[^>]*?\ssrc="([^"]*core_ls\.min\.js[^"]*)"[^>]*)>\s*</script>#i', $content, $lsMatch)) {
+			return;
+		}
+		if (!preg_match('#<script(\s[^>]*?\ssrc="([^"]*core_frame_cache\.min\.js[^"]*)"[^>]*)>\s*</script>#i', $content, $fcMatch)) {
+			return;
+		}
+
+		$lsTag = $lsMatch[0];
+		$fcTag = $fcMatch[0];
+		$lsPos = strpos($content, $lsTag);
+		$fcPos = strpos($content, $fcTag);
+
+		if ($lsPos === false || $fcPos === false || $lsPos < $fcPos) {
+			return;
+		}
+
+		$content = str_replace($lsTag, '', $content);
+		$content = str_replace($fcTag, $lsTag . $fcTag, $content);
+	}
+}
+
 if (!function_exists('vilmedDeferHomeStylesheets')) {
 	/** Homepage: non-blocking load for aggregated template CSS and Open Sans. */
 	function vilmedDeferHomeStylesheets(string &$content): void
@@ -477,13 +528,14 @@ if (!function_exists('vilmedDeferHomeScripts')) {
 			'jquery.cookie',
 			'socialservices/ss.js',
 			'kernel_main_polyfill_customevent',
+			'TweenMax.min.js',
+			'template_.+_v1.js',
+			'search.title',
+			'geolocation',
 		];
 
 		if (vilmedIsMobileClient()) {
-			$deferNeedles[] = 'TweenMax.min.js';
-			$deferNeedles[] = 'template_.+_v1.js';
-			$deferNeedles[] = 'search.title';
-			$deferNeedles[] = 'geolocation';
+			// same needles for all clients; branch kept for future mobile-only tweaks
 		}
 
 		$content = preg_replace_callback(
@@ -498,7 +550,10 @@ if (!function_exists('vilmedDeferHomeScripts')) {
 					}
 				}
 				foreach ($deferNeedles as $needle) {
-					if (stripos($m[2], $needle) !== false) {
+					$matched = (strpos($needle, '.+') !== false || strpos($needle, '\\') !== false)
+						? preg_match('#' . $needle . '#i', $m[2])
+						: stripos($m[2], $needle) !== false;
+					if ($matched) {
 						return '<script' . $m[1] . ' defer></script>';
 					}
 				}
@@ -513,12 +568,14 @@ if (!function_exists('vilmedDeferHomeScripts')) {
 if (!function_exists('vilmedOnEndBufferContent')) {
 	function vilmedOnEndBufferContent(string &$content): void
 	{
+		vilmedInjectCriticalHomeCss($content);
 		vilmedInjectLcpPreload($content);
 		vilmedInjectLazyImages($content);
 		vilmedInjectBackgroundWebp($content);
 		vilmedFixFontDisplay($content);
 		vilmedDeferHomeStylesheets($content);
 		vilmedDeferHomeScripts($content);
+		vilmedResequenceCoreScripts($content);
 	}
 }
 

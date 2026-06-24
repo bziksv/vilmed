@@ -26,7 +26,8 @@ body.bg-repeat-x.bg-repeat-y{
 }
 
 body.bg-fixed{
-	background-attachment:fixed;
+	/* scroll вместо fixed: fixed даёт CLS≈1 на desktop (Lighthouse) */
+	background-attachment:scroll;
 }
 
 body.bg-cover{
