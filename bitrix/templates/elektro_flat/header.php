@@ -9,7 +9,6 @@ Loc::loadMessages(__FILE__);
 	<link rel="shortcut icon" type="image/x-icon" href="<?=SITE_TEMPLATE_PATH?>/favicon.ico" type="image/x-icon">
 
 	<meta name='viewport' content='width=device-width, initial-scale=1.0' />
-	<link rel="preconnect" href="https://mc.yandex.ru">
 	<title><?$APPLICATION->ShowTitle()?></title>
 	<meta property="og:title" content="<?=$APPLICATION->ShowTitle();?>"/>
     <meta property="og:description" content="<?=$APPLICATION->ShowProperty("description");?>"/>
@@ -34,10 +33,14 @@ Loc::loadMessages(__FILE__);
 	$vilmedNeedsCatalogCss = $vilmedIsCatalogLike
 		|| CSite::InDir(SITE_DIR . "vendors/")
 		|| CSite::InDir(SITE_DIR . "payments/");
-	$vilmedNeedsSlider = $vilmedIsHome || $vilmedIsCatalogLike;
+	$vilmedNeedsSlider = $vilmedIsHome || $vilmedIsCatalog;
 	$vilmedNeedsFancybox = $vilmedIsCatalogLike;
 	$vilmedNeedsCountdown = $vilmedIsHome || $vilmedIsCatalogLike;
 	$GLOBALS['vilmedIsHome'] = $vilmedIsHome;
+	$GLOBALS['vilmedIsCatalogLike'] = $vilmedIsCatalogLike;
+	if ($vilmedIsCatalogLike && !defined('BX_PULL_SKIP_INIT')) {
+		define('BX_PULL_SKIP_INIT', true);
+	}
 
 	\Bitrix\Main\Page\Asset::getInstance()->addString(
 		"<script>window.vilmedTplPath=" . \CUtil::PhpToJSObject($vilmedTplPath) . ";</script>",
@@ -300,11 +303,19 @@ Loc::loadMessages(__FILE__);
                                             "tree",
                                             array(
                                                 "ROOT_MENU_TYPE" => "left",
-                                                "MENU_CACHE_TYPE" => "N",
+                                                // VILMED perf: левое дерево каталога строится через .left.menu_ext.php
+                                                // (CIBlockSection::GetList по IBLOCK 24) на каждый хит — главный SQL в прологе
+                                                // и единственная "1-й тип" ошибка Perfmon. Включаем кеш меню.
+                                                // Глубина дерева зависит от isProductDetail() (CATALOG_VIEW vs CATALOG_VIEW_PRODUCT),
+                                                // а cache_id bitrix:menu = serialize($arParams), поэтому добавляем дискриминатор
+                                                // VILMED_MENU_CTX → два независимых кеша (товар/каталог) с корректной глубиной.
+                                                // Активный пункт считается на лету (CACHE_SELECTED_ITEMS=N), подсветка не ломается.
+                                                "MENU_CACHE_TYPE" => "A",
                                                 "MENU_CACHE_TIME" => "36000000",
                                                 "MENU_CACHE_USE_GROUPS" => "N",
                                                 "MENU_CACHE_GET_VARS" => array(
                                                 ),
+                                                "VILMED_MENU_CTX" => (function_exists('isProductDetail') && isProductDetail() ? "product" : "catalog"),
                                                 "MAX_LEVEL" => "4",
                                                 "CHILD_MENU_TYPE" => "left",
                                                 "USE_EXT" => "Y",
@@ -638,10 +649,33 @@ Loc::loadMessages(__FILE__);
 											);?>
 										</div>
 										<div class="share">
-										<script src="//yastatic.net/es5-shims/0.0.2/es5-shims.min.js"></script>
-<script src="//yastatic.net/share2/share.js"></script>
 <div class="ya-share2" data-services="vkontakte,odnoklassniki,viber,whatsapp,telegram" data-size="s"></div>
-
+<script>
+(function() {
+	function vilmedLoadShare() {
+		if (window.__vilmedShareLoaded) {
+			return;
+		}
+		window.__vilmedShareLoaded = 1;
+		var s = document.createElement("script");
+		s.src = "//yastatic.net/share2/share.js";
+		s.async = 1;
+		document.body.appendChild(s);
+	}
+	function vilmedScheduleShare() {
+		if ("requestIdleCallback" in window) {
+			requestIdleCallback(vilmedLoadShare, {timeout: 8000});
+		} else {
+			setTimeout(vilmedLoadShare, 3000);
+		}
+	}
+	if (document.readyState === "complete") {
+		vilmedScheduleShare();
+	} else {
+		window.addEventListener("load", vilmedScheduleShare, {once: true});
+	}
+})();
+</script>
 										</div>
 									</div>
 
