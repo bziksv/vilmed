@@ -789,8 +789,9 @@ if (!function_exists('vilmedDeferCatalogStylesheets')) {
 	/**
 	 * Catalog/product: defer non-blocking CSS.
 	 *  - ui.font.opensans (web font)
-	 *  - data-template-style (main compiled template_*_v1.css) — experimental,
-	 *    may cause brief FOUC; loads via media=print/onload swap.
+	 *
+	 * NB: the main compiled template_*_v1.css (data-template-style) must stay
+	 * render-blocking — deferring it caused a ~1s flash of unstyled content (FOUC).
 	 */
 	function vilmedDeferCatalogStylesheets(string &$content): void
 	{
@@ -800,7 +801,6 @@ if (!function_exists('vilmedDeferCatalogStylesheets')) {
 
 		$patterns = [
 			'ui\\.font\\.opensans',
-			'data-template-style',
 		];
 
 		$content = preg_replace_callback(
