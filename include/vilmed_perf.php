@@ -320,6 +320,82 @@ if (!function_exists('vilmedInjectLcpPreload')) {
 	}
 }
 
+if (!function_exists('vilmedInjectWebpImages')) {
+	/** Wrap <img> in <picture> when .webp exists; skip already-wrapped and tiny vendor logos. */
+	function vilmedInjectWebpImages(string &$content): void
+	{
+		if (stripos($content, '<img') === false) {
+			return;
+		}
+
+		// Collapse duplicate nested <picture> from template + buffer.
+		$prev = '';
+		while ($prev !== $content) {
+			$prev = $content;
+			$content = preg_replace(
+				'/(<picture>\s*<source[^>]+>\s*)<picture>\s*<source[^>]+>\s*(<img\b[^>]+>)\s*<\/picture>\s*<\/picture>/i',
+				'$1$2</picture>',
+				$content
+			);
+		}
+
+		$offset = 0;
+		while (preg_match('/<img\b([^>]*\ssrc="(\/[^"?]+\.(?:png|jpe?g))"[^>]*)>/i', $content, $m, PREG_OFFSET_CAPTURE, $offset)) {
+			$fullMatch = $m[0][0];
+			$pos = (int)$m[0][1];
+			$attrs = $m[1][0];
+			$src = $m[2][0];
+			$nextOffset = $pos + strlen($fullMatch);
+
+			$before = substr($content, max(0, $pos - 300), min(300, $pos));
+			if (preg_match('/<picture\b[^>]*>\s*(?:<source[^>]*>\s*)?$/i', $before)) {
+				$offset = $nextOffset;
+				continue;
+			}
+
+			if (preg_match('/\bclass="[^"]*\bno-webp\b/i', $attrs)) {
+				$offset = $nextOffset;
+				continue;
+			}
+
+			$webp = vilmedEnsureWebpSrc($src);
+			if ($webp === null) {
+				$offset = $nextOffset;
+				continue;
+			}
+
+			// Vendor logos and other tiny thumbs: one request, src=.webp (no <picture>).
+			if (preg_match('#/resize_cache/iblock/[^/]+/69_24_1/#', $src)
+				|| preg_match('#/upload/resize_cache/[^/]+/\d+_\d+_1/#', $src)) {
+				$replacement = str_replace(
+					'src="' . $src . '"',
+					'src="' . $webp . '"',
+					$fullMatch
+				);
+			} else {
+				$replacement = '<picture><source srcset="' . htmlspecialcharsbx($webp, ENT_QUOTES) . '" type="image/webp">'
+					. $fullMatch . '</picture>';
+			}
+
+			$content = substr_replace($content, $replacement, $pos, strlen($fullMatch));
+			$offset = $pos + strlen($replacement);
+		}
+	}
+}
+
+if (!function_exists('vilmedWebpOnAfterFileSave')) {
+	/** Auto-generate .webp when Bitrix saves jpg/png to /upload. */
+	function vilmedWebpOnAfterFileSave(array $arFile): void
+	{
+		$src = (string)($arFile['SRC'] ?? '');
+		if ($src === '' || $src[0] !== '/') {
+			return;
+		}
+
+		vilmedGenerateWebpSrc($src);
+	}
+}
+
 if (!function_exists('vilmedInjectLazyImages')) {
 	/** Below-the-fold images — skip logo (no-lazy / fetchpriority=high). */
 	function vilmedInjectLazyImages(string &$content): void
@@ -443,7 +519,7 @@ if (!function_exists('vilmedResequenceCoreScripts')) {
 }
 
 if (!function_exists('vilmedDeferHomeStylesheets')) {
-	/** Homepage: defer Open Sans only; template_*_v1.css stays blocking (CLS). */
+	/** Homepage: defer non-critical CSS; keep Bitrix template bundle CSS blocking for CLS. */
 	function vilmedDeferHomeStylesheets(string &$content): void
 	{
 		if (empty($GLOBALS['vilmedIsHome'])) {
@@ -452,6 +528,14 @@ if (!function_exists('vilmedDeferHomeStylesheets')) {
 
 		$patterns = [
 			'ui\\.font\\.opensans',
+			'font-awesome',
+			'custom-forms',
+			'slider\\.css',
+			'fancybox',
+			'slick\\.css',
+			'template_styles\\.css',
+			'colors\\.css',
+			'schemes/',
 		];
 
 		if (vilmedIsMobileClient()) {
@@ -508,44 +592,10 @@ if (!function_exists('vilmedFixFontDisplay')) {
 	}
 }
 
-if (!function_exists('vilmedDeferHomeScripts')) {
-	/** Homepage: defer non-critical JS (desktop + mobile TBT). */
-	function vilmedDeferHomeScripts(string &$content): void
+if (!function_exists('vilmedDeferPublicScripts')) {
+	/** Apply defer attribute to matching external script tags. */
+	function vilmedDeferPublicScripts(string &$content, array $deferNeedles, array $neverDeferNeedles): void
 	{
-		if (empty($GLOBALS['vilmedIsHome'])) {
-			return;
-		}
-
-		$neverDeferNeedles = [
-			'core_frame_cache',
-			'core_ls.min.js',
-			'pull.client',
-			'pull/protobuf',
-			'rest.client',
-			'dexie.bitrix',
-			'sale.basket.basket.line',
-		];
-
-		$deferNeedles = [
-			'countdown/',
-			'custom-forms/',
-			'/main.js',
-			'/script.js',
-			'forms/templates',
-			'moremenu.js',
-			'jquery.cookie',
-			'socialservices/ss.js',
-			'kernel_main_polyfill_customevent',
-			'TweenMax.min.js',
-			'template_.+_v1.js',
-			'search.title',
-			'geolocation',
-		];
-
-		if (vilmedIsMobileClient()) {
-			// same needles for all clients; branch kept for future mobile-only tweaks
-		}
-
 		$content = preg_replace_callback(
 			'/<script(\s[^>]*?\ssrc="([^"]+)"[^>]*)>\s*<\/script>/i',
 			static function (array $m) use ($deferNeedles, $neverDeferNeedles): string {
@@ -573,22 +623,382 @@ if (!function_exists('vilmedDeferHomeScripts')) {
 	}
 }
 
+if (!function_exists('vilmedDeferHomeScripts')) {
+	/** Homepage: defer non-critical JS (desktop + mobile TBT). */
+	function vilmedDeferHomeScripts(string &$content): void
+	{
+		if (empty($GLOBALS['vilmedIsHome'])) {
+			return;
+		}
+
+		$neverDeferNeedles = [
+			'core_frame_cache',
+			'core_ls.min.js',
+			'pull.client',
+			'pull/protobuf',
+			'rest.client',
+			'dexie.bitrix',
+			'sale.basket.basket.line',
+		];
+
+		$deferNeedles = [
+			'socialservices/ss.js',
+			'TweenMax.min.js',
+		];
+
+		vilmedDeferPublicScripts($content, $deferNeedles, $neverDeferNeedles);
+	}
+}
+
+if (!function_exists('vilmedDeferCatalogScripts')) {
+	/**
+	 * Catalog/product: defer only scripts without inline init on the same page.
+	 * Do not use broad needles like /script.js — they match basket.line and catalog.element.
+	 */
+	function vilmedDeferCatalogScripts(string &$content): void
+	{
+		if (empty($GLOBALS['vilmedIsCatalogLike'])) {
+			return;
+		}
+
+		$neverDeferNeedles = [
+			'core_frame_cache',
+			'core_ls.min.js',
+			'sale.basket.basket.line',
+			'search.title',
+			'fancybox',
+			'catalog.element',
+			'geolocation',
+		];
+
+		$deferNeedles = [
+			'socialservices/ss.js',
+			'TweenMax.min.js',
+		];
+
+		vilmedDeferPublicScripts($content, $deferNeedles, $neverDeferNeedles);
+	}
+}
+
+if (!function_exists('vilmedIsStorefrontRequest')) {
+	function vilmedIsStorefrontRequest(): bool
+	{
+		if (defined('ADMIN_SECTION') && ADMIN_SECTION) {
+			return false;
+		}
+		if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+			return false;
+		}
+
+		$uri = (string)($_SERVER['REQUEST_URI'] ?? '');
+		if (strpos($uri, '/bitrix/admin') !== false || strpos($uri, '/bitrix/tools') !== false) {
+			return false;
+		}
+
+		return true;
+	}
+}
+
+if (!function_exists('vilmedIsCatalogLikeRequest')) {
+	function vilmedIsCatalogLikeRequest(): bool
+	{
+		if (!empty($GLOBALS['vilmedIsCatalogLike'])) {
+			return true;
+		}
+		if (defined('ADMIN_SECTION') && ADMIN_SECTION) {
+			return false;
+		}
+
+		$uri = (string)($_SERVER['REQUEST_URI'] ?? '');
+		$siteDir = defined('SITE_DIR') ? SITE_DIR : '/';
+
+		return (strpos($uri, $siteDir . 'catalog/') !== false
+			|| strpos($uri, $siteDir . 'product/') !== false);
+	}
+}
+
+if (!function_exists('vilmedDisablePullOnStorefront')) {
+	/** Stop Bitrix Pull on public pages (pull.client, solid.ws). */
+	function vilmedDisablePullOnStorefront(): void
+	{
+		if (!vilmedIsStorefrontRequest()) {
+			return;
+		}
+		if (!defined('BX_PULL_SKIP_INIT')) {
+			define('BX_PULL_SKIP_INIT', true);
+		}
+		if (!\Bitrix\Main\Loader::includeModule('pull')) {
+			return;
+		}
+
+		$em = \Bitrix\Main\EventManager::getInstance();
+		$em->removeEventHandler('main', 'OnProlog', ['CPullOptions', 'OnProlog']);
+		$em->removeEventHandler('main', 'OnEpilog', ['CPullOptions', 'OnEpilog']);
+	}
+}
+
+if (!function_exists('vilmedStripPullOnStorefront')) {
+	/** Public pages: drop Bitrix Pull stack from HTML. */
+	function vilmedStripPullOnStorefront(string &$content): void
+	{
+		if (!vilmedIsStorefrontRequest()) {
+			return;
+		}
+
+		$stripNeedles = [
+			'pull.client',
+			'pull/protobuf',
+			'rest.client',
+			'dexie.bitrix',
+		];
+
+		$content = preg_replace_callback(
+			'/<script(\s[^>]*?\ssrc="([^"]+)"[^>]*)>\s*<\/script>/i',
+			static function (array $m) use ($stripNeedles): string {
+				foreach ($stripNeedles as $needle) {
+					if (stripos($m[2], $needle) !== false) {
+						return '';
+					}
+				}
+
+				return $m[0];
+			},
+			$content
+		);
+
+		$content = preg_replace(
+			'/<script[^>]*>\s*BX\.bind\(window,\s*"load",\s*function\(\)\{BX\.PULL\.start\(\);\}\);\s*<\/script>/i',
+			'',
+			$content
+		);
+
+		$content = preg_replace(
+			'#,\s*[\'"]/bitrix/js/pull/[^\'"]+[\'"]#i',
+			'',
+			$content
+		);
+		$content = preg_replace(
+			'#,\s*[\'"]/bitrix/js/rest/[^\'"]+[\'"]#i',
+			'',
+			$content
+		);
+	}
+}
+
+if (!function_exists('vilmedDeferCatalogStylesheets')) {
+	/**
+	 * Catalog/product: defer non-blocking CSS.
+	 *  - ui.font.opensans (web font)
+	 *  - data-template-style (main compiled template_*_v1.css) — experimental,
+	 *    may cause brief FOUC; loads via media=print/onload swap.
+	 */
+	function vilmedDeferCatalogStylesheets(string &$content): void
+	{
+		if (empty($GLOBALS['vilmedIsCatalogLike'])) {
+			return;
+		}
+
+		$patterns = [
+			'ui\\.font\\.opensans',
+			'data-template-style',
+		];
+
+		$content = preg_replace_callback(
+			'/<link(\s[^>]+)>/i',
+			static function (array $m) use ($patterns): string {
+				if (!preg_match('#\brel=["\']stylesheet["\']#i', $m[1])) {
+					return $m[0];
+				}
+				if (stripos($m[1], 'onload=') !== false) {
+					return $m[0];
+				}
+				foreach ($patterns as $pattern) {
+					if (preg_match('#' . $pattern . '#i', $m[1])) {
+						return '<link' . $m[1] . ' media="print" onload="this.media=\'all\'"><noscript>' . $m[0] . '</noscript>';
+					}
+				}
+
+				return $m[0];
+			},
+			$content
+		);
+	}
+}
+
+if (!function_exists('vilmedPlaceholderImg')) {
+	function vilmedPlaceholderImg(): string
+	{
+		return 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+	}
+}
+
+if (!function_exists('vilmedDeferImgSrcInFragment')) {
+	function vilmedDeferImgSrcInFragment(string $html): string
+	{
+		$ph = vilmedPlaceholderImg();
+
+		return preg_replace(
+			'/\ssrc="(\/[^"]+\.(?:webp|jpe?g|png))"/i',
+			' src="' . $ph . '" data-vilmed-src="$1" fetchpriority="low"',
+			$html
+		);
+	}
+}
+
+if (!function_exists('vilmedDeferHomeOffscreenImages')) {
+	/**
+	 * Homepage first paint: skip network for hidden catalog tabs + sidebar vendor logos.
+	 * Images load on tab click / IntersectionObserver (see main.js).
+	 */
+	function vilmedDeferHomeOffscreenImages(string &$content): void
+	{
+		if (empty($GLOBALS['vilmedIsHome'])) {
+			return;
+		}
+
+		$hasRecommend = stripos($content, 'tabs__box recommend') !== false;
+		$deferTabClasses = ['tabs__box hit', 'tabs__box discount'];
+		if ($hasRecommend) {
+			$deferTabClasses[] = 'tabs__box new';
+		}
+
+		foreach ($deferTabClasses as $boxClass) {
+			$quoted = preg_quote($boxClass, '/');
+			$content = preg_replace_callback(
+				'/(<div class="' . $quoted . '"[^>]*>)(.*?)(<\/div>\s*(?=<div class="tabs__box|<div class="clr"))/is',
+				static function (array $m): string {
+					return $m[1] . vilmedDeferImgSrcInFragment($m[2]) . $m[3];
+				},
+				$content
+			);
+		}
+
+		if (preg_match('/(<div class="left-column"[^>]*>)(.*?)(<\/div>\s*<main class="workarea)/is', $content, $leftMatch)) {
+			$inner = $leftMatch[2];
+			$vendorCount = 0;
+			$inner = preg_replace_callback(
+				'/\ssrc="(\/[^"]+\.(?:webp|jpe?g|png))"/i',
+				static function (array $m) use (&$vendorCount): string {
+					$vendorCount++;
+					if ($vendorCount <= 2) {
+						return ' src="' . $m[1] . '"';
+					}
+
+					return ' src="' . vilmedPlaceholderImg() . '" data-vilmed-src="' . $m[1] . '" fetchpriority="low"';
+				},
+				$inner
+			);
+			$content = str_replace($leftMatch[0], $leftMatch[1] . $inner . $leftMatch[3], $content);
+		}
+	}
+}
+
+if (!function_exists('vilmedDeferCatalogOffscreenImages')) {
+	/**
+	 * Catalog listing: load first N cards immediately, defer the rest
+	 * (placeholder + data-vilmed-src / data-vilmed-srcset, loaded via IntersectionObserver).
+	 * Neutralizes both <source srcset> (webp) and <img src> inside each deferred <picture>.
+	 */
+	function vilmedDeferCatalogOffscreenImages(string &$content): void
+	{
+		if (empty($GLOBALS['vilmedIsCatalogLike'])) {
+			return;
+		}
+
+		$start = strpos($content, '<div class="catalog-item-list-view"');
+		if ($start === false) {
+			return; // not a listing page (e.g. product detail)
+		}
+
+		$skip = 8; // cards above-the-fold kept eager
+		$count = 0;
+		$ph = vilmedPlaceholderImg();
+
+		$head = substr($content, 0, $start);
+		$tail = substr($content, $start);
+
+		$tail = preg_replace_callback(
+			'#<picture>(.*?)</picture>#is',
+			static function (array $m) use (&$count, $skip, $ph): string {
+				$count++;
+				if ($count <= $skip) {
+					return $m[0];
+				}
+				$inner = $m[1];
+				$inner = preg_replace(
+					'/\ssrcset="([^"]+)"/i',
+					' data-vilmed-srcset="$1"',
+					$inner
+				);
+				$inner = preg_replace(
+					'/\ssrc="(\/[^"]+\.(?:webp|jpe?g|png))"/i',
+					' src="' . $ph . '" data-vilmed-src="$1" fetchpriority="low"',
+					$inner
+				);
+
+				return '<picture>' . $inner . '</picture>';
+			},
+			$tail
+		);
+
+		$content = $head . $tail;
+	}
+}
+
+if (!function_exists('vilmedInjectHomeDeferredLoader')) {
+	function vilmedInjectHomeDeferredLoader(string &$content): void
+	{
+		if (empty($GLOBALS['vilmedIsHome']) && empty($GLOBALS['vilmedIsCatalogLike'])) {
+			return;
+		}
+		if (stripos($content, 'vilmed-deferred-images') !== false) {
+			return;
+		}
+
+		$script = '<script id="vilmed-deferred-images">'
+			. 'window.vilmedLoadDeferredImages=function(r){var s=r||document;'
+			. 's.querySelectorAll("source[data-vilmed-srcset]").forEach(function(el){var u=el.getAttribute("data-vilmed-srcset");if(u){el.setAttribute("srcset",u);el.removeAttribute("data-vilmed-srcset");}});'
+			. 's.querySelectorAll("img[data-vilmed-src]").forEach(function(i){'
+			. 'var u=i.getAttribute("data-vilmed-src");if(u&&(!i.src||i.src.indexOf("data:image/gif")!==-1)){i.src=u;i.removeAttribute("data-vilmed-src");}});};'
+			. 'document.addEventListener("DOMContentLoaded",function(){'
+			. 'if("IntersectionObserver" in window){var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){var sc=e.target.closest("picture")||e.target;vilmedLoadDeferredImages(sc);io.unobserve(e.target);}});},{rootMargin:"200px"});'
+			. 'document.querySelectorAll("img[data-vilmed-src]").forEach(function(i){io.observe(i);});}'
+			. 'else{vilmedLoadDeferredImages(document);}'
+			. 'var vb=document.querySelector(".tabs-main .tabs__box[style*=block]")||document.querySelector(".tabs-main .tabs__box");'
+			. 'if(vb){vilmedLoadDeferredImages(vb);}'
+			. '});</script>';
+
+		if (stripos($content, '</body>') !== false) {
+			$content = str_replace('</body>', $script . '</body>', $content);
+		}
+	}
+}
+
 if (!function_exists('vilmedOnEndBufferContent')) {
 	function vilmedOnEndBufferContent(string &$content): void
 	{
 		vilmedInjectCriticalHomeCss($content);
 		vilmedInjectLcpPreload($content);
 		vilmedInjectLazyImages($content);
+		vilmedInjectWebpImages($content);
 		vilmedInjectBackgroundWebp($content);
 		vilmedFixFontDisplay($content);
 		vilmedDeferHomeStylesheets($content);
+		vilmedDeferCatalogStylesheets($content);
+		vilmedDeferHomeOffscreenImages($content);
+		vilmedDeferCatalogOffscreenImages($content);
 		vilmedDeferHomeScripts($content);
+		vilmedDeferCatalogScripts($content);
+		vilmedStripPullOnStorefront($content);
 		vilmedResequenceCoreScripts($content);
+		vilmedInjectHomeDeferredLoader($content);
 	}
 }
 
 if (function_exists('AddEventHandler')) {
 	AddEventHandler('main', 'OnEndBufferContent', 'vilmedOnEndBufferContent');
+	AddEventHandler('main', 'OnPageStart', 'vilmedDisablePullOnStorefront');
+	AddEventHandler('main', 'OnAfterFileSave', 'vilmedWebpOnAfterFileSave');
 }
 
 if (!function_exists('vilmedEnsureCssinliner')) {
