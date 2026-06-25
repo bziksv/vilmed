@@ -12,6 +12,11 @@ $inMinPrice = in_array("MIN_PRICE", $arSetting["PRODUCT_TABLE_VIEW"]["VALUE"]);
 <script type="text/javascript">
 	//<![CDATA[
 	$(function() {
+		// VILMED perf: anythingSlider lib is not loaded on product pages (only home/catalog).
+		// Guard the call so the left promo slider degrades to a static first banner instead of throwing.
+		if (!$.fn || typeof $.fn.anythingSlider !== "function") {
+			return;
+		}
 		$(".leftSlider").anythingSlider({
 			"theme": "left-slider",
 			"resizeContents": false,

@@ -313,7 +313,18 @@ if (!function_exists('vilmedInjectLcpPreload')) {
 			return;
 		}
 
-		$link = '<link rel="preload" as="image" href="' . htmlspecialcharsbx($src, ENT_QUOTES) . '" fetchpriority="high">';
+		// VILMED perf: the LCP <img> is wrapped in <picture><source webp>, so browsers fetch
+		// the .webp, leaving a .jpg/.png preload unused. Preload the webp the page actually uses.
+		$type = '';
+		if (function_exists('vilmedEnsureWebpSrc') && preg_match('/\.(?:png|jpe?g)$/i', $src)) {
+			$webp = vilmedEnsureWebpSrc($src);
+			if ($webp !== null && $webp !== '') {
+				$src = $webp;
+				$type = ' type="image/webp"';
+			}
+		}
+
+		$link = '<link rel="preload" as="image" href="' . htmlspecialcharsbx($src, ENT_QUOTES) . '"' . $type . ' fetchpriority="high">';
 		if (preg_match('/<head\b[^>]*>/i', $content)) {
 			$content = preg_replace('/<head\b[^>]*>/i', '$0' . $link, $content, 1);
 		}
