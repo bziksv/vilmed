@@ -115,6 +115,11 @@ Loc::loadMessages(__FILE__);
 	}
 
 	CJSCore::Init(array("jquery", "popup"));
+	// VILMED: плавающая (sticky) шапка + перекомпоновка статичной шапки
+	// (Время работы / иконки кабинета / город / телефон, быстрый поиск).
+	// Включено на всех хостах (раньше было только на localhost).
+	Asset::getInstance()->addCss($vilmedTplPath."/css/floating-header.css");
+	Asset::getInstance()->addJs($vilmedTplPath."/js/floating-header.js");
 	Asset::getInstance()->addJs($vilmedTplPath."/js/jquery.cookie.js");
 	Asset::getInstance()->addJs($vilmedTplPath."/js/moremenu.js");
 	Asset::getInstance()->addJs($vilmedTplPath."/js/custom-forms/jquery.custom-forms.js");

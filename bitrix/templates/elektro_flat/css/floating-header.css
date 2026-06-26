@@ -1,0 +1,828 @@
+/* VILMED floating (sticky) header — LOCALHOST ONLY (gated in header.php).
+   Monochrome grey palette taken straight from the live site so nothing clashes:
+   slate #575b71 (buttons / primary), dark slate #2b2d42 (hover / badge),
+   muted #8184a1, hairline borders #dee0ee, white search box. No loud accents. */
+
+.vilmed-fh {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	z-index: 10050;
+	background: #f4f5fd;
+	box-shadow: 0 4px 16px rgba(20, 22, 48, 0.08);
+	border-bottom: 1px solid #dee0ee;
+	transform: translateY(-110%);
+	transition: transform .35s cubic-bezier(.22, .61, .36, 1);
+	will-change: transform;
+	font-family: "Open Sans", sans-serif;
+}
+
+.vilmed-fh.is-visible {
+	transform: translateY(0);
+}
+
+.vilmed-fh__in {
+	max-width: 1234px;
+	margin: 0 auto;
+	width: 100%;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	gap: 20px;
+	height: 64px;
+	padding: 0 16px;
+}
+
+/* logo — the wide brand image (icon + ВИЛМЕД + tiny tagline) turns to mush when
+   shrunk, so in the compact bar we crop to just the hexagon "V" logomark. */
+.vilmed-fh__logo {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	width: 44px;
+	height: 42px;
+	overflow: hidden;
+}
+
+.vilmed-fh__logo img {
+	height: 42px;
+	width: auto;
+	max-width: none;
+	display: block;
+}
+
+/* catalog button — flat green action (matches site btn_buy) */
+.vilmed-fh__catalog {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 9px;
+	height: 38px;
+	padding: 0 16px;
+	border-radius: 4px;
+	background: #eef0f4;
+	border: 1px solid #dde0ea;
+	color: #575b71;
+	font-size: 12px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: .3px;
+	line-height: 1;
+	text-decoration: none;
+	transition: background .2s ease, border-color .2s ease;
+	white-space: nowrap;
+}
+
+.vilmed-fh__catalog:hover {
+	background: #e3e6ee;
+	border-color: #cdd1df;
+	color: #2b2d42;
+}
+
+.vilmed-fh__burger {
+	display: inline-flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 3px;
+	width: 16px;
+}
+
+.vilmed-fh__burger span {
+	display: block;
+	height: 2px;
+	border-radius: 2px;
+	background: #8184a1;
+}
+
+/* search — white box, radius 7px, like the real header */
+.vilmed-fh__search {
+	flex: 1 1 auto;
+	position: relative;
+	display: flex;
+	align-items: center;
+	min-width: 0;
+	height: 44px;
+	background: #fff;
+	border: 1px solid #e2e3f0;
+	border-radius: 7px;
+}
+
+.vilmed-fh__search .fa-search {
+	position: absolute;
+	left: 16px;
+	top: 50%;
+	transform: translateY(-50%);
+	color: #8184a1;
+	font-size: 15px;
+	pointer-events: none;
+}
+
+.vilmed-fh__search input[type="text"] {
+	width: 100%;
+	height: 100%;
+	box-sizing: border-box;
+	padding: 0 96px 0 40px;
+	border: 0;
+	background: transparent;
+	font-size: 14px;
+	color: #2b2d42;
+	outline: none;
+}
+
+.vilmed-fh__search input[type="text"]::placeholder {
+	color: #8184a1;
+}
+
+.vilmed-fh__search button {
+	position: absolute;
+	right: 6px;
+	top: 50%;
+	transform: translateY(-50%);
+	height: 30px;
+	padding: 0 16px;
+	border: 1px solid #dee0ee;
+	border-radius: 4px;
+	background: transparent;
+	color: #8184a1;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: .3px;
+	cursor: pointer;
+	transition: border-color .2s ease, color .2s ease;
+}
+
+.vilmed-fh__search button:hover {
+	border-color: #575b71;
+	color: #575b71;
+}
+
+/* quick-search dropdown */
+.vilmed-fh__sresult {
+	position: absolute;
+	top: calc(100% + 8px);
+	left: 0;
+	right: 0;
+	background: #fff;
+	border: 1px solid #e2e3f0;
+	border-radius: 10px;
+	box-shadow: 0 12px 32px rgba(20, 22, 48, .16);
+	max-height: 72vh;
+	overflow-y: auto;
+	z-index: 9999;
+	display: none;
+	overscroll-behavior: contain;
+}
+
+/* LOCALHOST: native title-search dropdown is replaced by our super-search */
+.title-search-result {
+	display: none !important;
+}
+
+.vilmed-fh--open .vilmed-fh__sresult {
+	display: block;
+}
+
+.vilmed-fh__sfix {
+	padding: 9px 14px;
+	font-size: 12px;
+	color: #8184a1;
+	background: #f5f6f9;
+	border-bottom: 1px solid #eef0f6;
+}
+
+.vilmed-fh__sfix b {
+	color: #2b2d42;
+	font-weight: 600;
+}
+
+.vilmed-fh__sitem {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 9px 14px;
+	border-bottom: 1px solid #f1f2f8;
+	text-decoration: none;
+	transition: background .12s ease;
+}
+
+.vilmed-fh__sitem:hover,
+.vilmed-fh__sitem.is-active {
+	background: #eef0f4;
+}
+
+.vilmed-fh__sitem-pic {
+	flex: 0 0 auto;
+	width: 46px;
+	height: 46px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #fff;
+	border: 1px solid #eef0f6;
+	border-radius: 7px;
+	overflow: hidden;
+}
+
+.vilmed-fh__sitem-pic img {
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+	display: block;
+}
+
+.vilmed-fh__sitem-name {
+	flex: 1 1 auto;
+	color: #2b2d42;
+	font-size: 13.5px;
+	line-height: 1.35;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.vilmed-fh__sitem:hover .vilmed-fh__sitem-name,
+.vilmed-fh__sitem.is-active .vilmed-fh__sitem-name {
+	color: #575b71;
+}
+
+.vilmed-fh__sall {
+	display: block;
+	padding: 12px 14px;
+	text-align: center;
+	font-size: 13px;
+	font-weight: 700;
+	color: #575b71;
+	text-decoration: none;
+	background: #f5f6f9;
+	border-top: 1px solid #eef0f6;
+	border-radius: 0 0 10px 10px;
+	position: sticky;
+	bottom: 0;
+	text-transform: uppercase;
+	letter-spacing: .3px;
+}
+
+.vilmed-fh__sall:hover {
+	background: #e7e9f0;
+	color: #2b2d42;
+}
+
+.vilmed-fh__sload {
+	padding: 26px 0;
+	text-align: center;
+	color: #575b71;
+	font-size: 22px;
+}
+
+.vilmed-fh__sempty {
+	padding: 20px 16px;
+	text-align: center;
+	color: #8184a1;
+	font-size: 14px;
+}
+
+/* right cluster */
+.vilmed-fh__tools {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+
+.vilmed-fh__city {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: #575b71;
+	font-size: 14px;
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.vilmed-fh__city .fa-map-marker {
+	color: #575b71;
+}
+
+.vilmed-fh__city:hover {
+	color: #2b2d42;
+}
+
+/* phone handset → click to reveal the number (tel:) */
+.vilmed-fh__phone {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+}
+
+.vilmed-fh__phone-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: #575b71;
+	font-size: 19px;
+	cursor: pointer;
+	transition: color .2s ease;
+}
+
+.vilmed-fh__phone-toggle:hover,
+.vilmed-fh__phone.is-open .vilmed-fh__phone-toggle {
+	color: #2b2d42;
+}
+
+.vilmed-fh__phone-pop {
+	position: absolute;
+	top: calc(100% + 12px);
+	right: -6px;
+	background: #fff;
+	border: 1px solid #dee0ee;
+	border-radius: 6px;
+	box-shadow: 0 8px 24px rgba(20, 22, 48, .14);
+	padding: 9px 16px;
+	white-space: nowrap;
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(-6px);
+	transition: opacity .18s ease, transform .18s ease, visibility .18s;
+	z-index: 5;
+}
+
+.vilmed-fh__phone-pop::before {
+	content: "";
+	position: absolute;
+	top: -6px;
+	right: 12px;
+	width: 10px;
+	height: 10px;
+	background: #fff;
+	border-left: 1px solid #dee0ee;
+	border-top: 1px solid #dee0ee;
+	transform: rotate(45deg);
+}
+
+.vilmed-fh__phone.is-open .vilmed-fh__phone-pop {
+	opacity: 1;
+	visibility: visible;
+	transform: translateY(0);
+}
+
+.vilmed-fh__phone-pop a {
+	color: #2b2d42;
+	font-size: 18px;
+	font-weight: 700;
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.vilmed-fh__phone-pop a:hover {
+	color: #575b71;
+}
+
+/* relocated rail icons — flat neutral slate, teal on hover */
+.vilmed-fh__icons {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
+
+.vilmed-fh__ico {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	color: #575b71;
+	font-size: 20px;
+	text-decoration: none;
+	transition: color .2s ease;
+}
+
+.vilmed-fh__ico:hover {
+	color: #2b2d42;
+}
+
+.vilmed-fh__ico-cnt {
+	position: absolute;
+	top: -6px;
+	right: -8px;
+	min-width: 17px;
+	height: 17px;
+	padding: 0 4px;
+	box-sizing: border-box;
+	border-radius: 9px;
+	background: #2b2d42;
+	color: #fff;
+	font-size: 10px;
+	font-weight: 700;
+	line-height: 17px;
+	text-align: center;
+	display: none;
+}
+
+.vilmed-fh__ico-cnt.is-on {
+	display: block;
+}
+
+/* LOCALHOST ONLY: hide the old left rail. Its blocks stay in the DOM (display:none)
+   so AJAX counts keep updating and the floating bar mirrors them. */
+.foot_panel_all {
+	display: none !important;
+}
+
+/* static-header cluster: city on the left, account icons on the right of one
+   utility line, with clear air below so the icons don't crowd the phone. */
+.vilmed-hdr-toprow {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	min-height: 20px;
+	/* site rules reset margins on .contacts children, so force the gap */
+	margin-bottom: 13px !important;
+}
+
+.vilmed-hdr-toprow #geolocation,
+.vilmed-hdr-toprow .geolocation {
+	flex: 0 0 auto;
+	width: auto;
+}
+
+.vilmed-hdr-toprow .geolocation__link {
+	display: inline-flex;
+	align-items: center;
+	width: auto;
+}
+
+.vilmed-hdr-icons {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 13px;
+}
+
+.vilmed-hdr-ico {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	color: #575b71;
+	font-size: 16px;
+	line-height: 1;
+	text-decoration: none;
+	transition: color .2s ease;
+}
+
+.vilmed-hdr-ico-cnt {
+	position: absolute;
+	top: -7px;
+	right: -8px;
+	min-width: 15px;
+	height: 15px;
+	padding: 0 4px;
+	box-sizing: border-box;
+	border-radius: 8px;
+	background: #2b2d42;
+	color: #fff;
+	font-size: 9px;
+	font-weight: 700;
+	line-height: 15px;
+	text-align: center;
+	display: none;
+}
+
+.vilmed-hdr-ico-cnt.is-on {
+	display: block;
+}
+
+/* ===== static-header layout: search | Время работы | icons | contacts =====
+   The search field is shortened so the working-hours block can sit beside it,
+   and the account icons take the freed schedule cell to the right of the hours. */
+/* LOCALHOST ONLY: hide the "Заказать звонок" button in the static header */
+header .header_4 .callback_anch {
+	display: none !important;
+}
+
+/* right side: [icons 2×2] + [city / phone] in one tight flex row */
+header .header_4 {
+	width: 1%;
+}
+header .header_4 .contacts {
+	display: flex !important;
+	flex-direction: row !important;
+	align-items: center !important;
+	gap: 20px;
+	width: max-content !important;
+	padding-left: 20px;
+	text-align: right !important;
+}
+header .header_4 .vilmed-hdr-contact-col {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 6px;
+}
+header .header_4 .vilmed-hdr-contact-col .telephone,
+header .header_4 .vilmed-hdr-contact-col #geolocation {
+	width: auto !important;
+	text-align: right !important;
+}
+header .header_4 #geolocation .geolocation__link {
+	display: inline-flex !important;
+	width: auto !important;
+}
+
+/* the old schedule cell is empty once hours move into the search row */
+header .header_3.vilmed-hdr-empty {
+	width: 0 !important;
+	padding: 0 !important;
+	overflow: hidden;
+}
+
+.vilmed-hdr-search-host { position: relative; }
+/* schedule ≈109px + 20px breathing gap (measured against the search cell) */
+.vilmed-hdr-search-host #altop_search { width: calc(100% - 99px) !important; }
+
+/* working-hours block moved into the right of the search cell */
+.vilmed-hdr-sched-moved {
+	position: absolute !important;
+	right: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	float: none !important;
+	margin: 0 !important;
+}
+
+/* account icons — equal 2×2 grid beside the city/phone column */
+.vilmed-hdr-icons--sched {
+	display: inline-grid;
+	grid-template-columns: repeat(2, 26px);
+	grid-template-rows: repeat(2, 26px);
+	gap: 12px 18px;
+	flex: 0 0 auto;
+}
+.vilmed-hdr-icons--sched .vilmed-hdr-ico {
+	width: 26px;
+	height: 26px;
+	font-size: 21px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+.vilmed-hdr-icons--sched .vilmed-hdr-ico-cnt {
+	top: -8px;
+	right: -10px;
+	min-width: 16px;
+	height: 16px;
+	font-size: 10px;
+	line-height: 16px;
+}
+
+/* ===== sliding catalog drawer ===== */
+html.vilmed-drawer-lock {
+	overflow: hidden;
+}
+
+.vilmed-drawer {
+	position: fixed;
+	inset: 0;
+	z-index: 10060;
+	visibility: hidden;
+	transition: visibility 0s linear .34s;
+	font-family: "Open Sans", sans-serif;
+}
+
+.vilmed-drawer.is-open {
+	visibility: visible;
+	transition-delay: 0s;
+}
+
+.vilmed-drawer__overlay {
+	position: absolute;
+	inset: 0;
+	background: rgba(18, 20, 44, .5);
+	opacity: 0;
+	transition: opacity .34s ease;
+}
+
+.vilmed-drawer.is-open .vilmed-drawer__overlay {
+	opacity: 1;
+}
+
+.vilmed-drawer__panel {
+	position: absolute;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	width: 380px;
+	max-width: 86vw;
+	background: #fff;
+	box-shadow: 6px 0 40px rgba(18, 20, 44, .28);
+	transform: translateX(-100%);
+	transition: transform .36s cubic-bezier(.22, .61, .36, 1);
+	display: flex;
+	flex-direction: column;
+}
+
+.vilmed-drawer.is-open .vilmed-drawer__panel {
+	transform: translateX(0);
+}
+
+.vilmed-drawer__head {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: 62px;
+	padding: 0 14px 0 20px;
+	background: #575b71;
+	color: #fff;
+}
+
+.vilmed-drawer__title {
+	display: flex;
+	align-items: center;
+	gap: 11px;
+	font-size: 17px;
+	font-weight: 700;
+}
+
+.vilmed-drawer__close {
+	width: 38px;
+	height: 38px;
+	border: 0;
+	border-radius: 8px;
+	background: rgba(255, 255, 255, .16);
+	color: #fff;
+	font-size: 18px;
+	cursor: pointer;
+	transition: background .2s ease;
+}
+
+.vilmed-drawer__close:hover {
+	background: rgba(255, 255, 255, .3);
+}
+
+.vilmed-drawer__body {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	-webkit-overflow-scrolling: touch;
+	overscroll-behavior: contain;
+	padding: 4px 0 18px;
+}
+
+.vilmed-dm__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.vilmed-dm__item > .vilmed-dm__list {
+	display: none;
+	background: #fafbfd;
+	border-top: 1px solid #f3f4f9;
+}
+
+.vilmed-dm__item.is-open > .vilmed-dm__list {
+	display: block;
+	animation: vilmedDmIn .2s ease;
+}
+
+@keyframes vilmedDmIn {
+	from { opacity: 0; transform: translateY(-4px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+.vilmed-dm__row {
+	display: flex;
+	align-items: stretch;
+	border-bottom: 1px solid #f3f4f9;
+}
+
+.vilmed-dm__link {
+	flex: 1 1 auto;
+	padding: 11px 10px 11px 20px;
+	color: #3b3f54;
+	font-size: 14px;
+	line-height: 1.3;
+	text-decoration: none;
+	transition: color .15s ease;
+}
+
+.vilmed-dm__link:hover {
+	color: #2b2d42;
+}
+
+.vilmed-drawer__body > .vilmed-dm__list > .vilmed-dm__item > .vilmed-dm__row > .vilmed-dm__link {
+	font-weight: 600;
+	color: #2b2d42;
+}
+
+/* nested indentation */
+.vilmed-dm__list .vilmed-dm__list .vilmed-dm__link { padding-left: 34px; font-size: 13.5px; color: #5a5c70; }
+.vilmed-dm__list .vilmed-dm__list .vilmed-dm__list .vilmed-dm__link { padding-left: 48px; }
+.vilmed-dm__list .vilmed-dm__list .vilmed-dm__list .vilmed-dm__list .vilmed-dm__link { padding-left: 62px; }
+
+.vilmed-dm__toggle {
+	flex: 0 0 auto;
+	width: 48px;
+	border: 0;
+	border-left: 1px solid #f3f4f9;
+	background: transparent;
+	color: #aab0c9;
+	font-size: 15px;
+	cursor: pointer;
+	transition: color .2s ease, background .2s ease;
+}
+
+.vilmed-dm__toggle:hover {
+	color: #2b2d42;
+	background: #eef0f4;
+}
+
+.vilmed-dm__toggle i {
+	display: inline-block;
+	transition: transform .25s ease;
+}
+
+.vilmed-dm__item.is-open > .vilmed-dm__row > .vilmed-dm__toggle {
+	color: #575b71;
+}
+
+.vilmed-dm__item.is-open > .vilmed-dm__row > .vilmed-dm__toggle i {
+	transform: rotate(180deg);
+}
+
+.vilmed-dm__load {
+	padding: 40px 0;
+	text-align: center;
+	color: #575b71;
+	font-size: 24px;
+}
+
+.vilmed-dm__empty {
+	padding: 24px 20px;
+	color: #8184a1;
+	font-size: 14px;
+}
+
+.vilmed-dm__empty a {
+	color: #575b71;
+	font-weight: 600;
+}
+
+/* responsive */
+@media (max-width: 1180px) {
+	.vilmed-fh__city { display: none; }
+}
+
+@media (max-width: 820px) {
+	.vilmed-fh__catalog span:not(.vilmed-fh__burger) { display: none; }
+	.vilmed-fh__catalog { padding: 0 13px; }
+}
+
+@media (max-width: 600px) {
+	.vilmed-fh__in { gap: 10px; height: 56px; padding: 0 10px; }
+	.vilmed-fh__logo { width: 38px; height: 36px; }
+	.vilmed-fh__logo img { height: 36px; }
+	.vilmed-fh__search { height: 40px; }
+	.vilmed-fh__search input[type="text"] { padding-right: 44px; }
+	.vilmed-fh__search button { padding: 0; width: 30px; font-size: 0; }
+	.vilmed-fh__search button::before { content: "\f002"; font-family: FontAwesome; font-size: 12px; }
+}
+
+/* The site sets a:link/a:visited { color:#660901 } (specificity 0,1,1), which
+   beats our single-class rules and paints our anchors maroon. Re-assert the
+   grey palette with higher priority so links/icons stay slate, not red. */
+.vilmed-fh__catalog,
+.vilmed-fh__catalog:focus { color: #575b71 !important; }
+.vilmed-fh__catalog:hover { color: #2b2d42 !important; }
+.vilmed-hdr-ico { color: #575b71 !important; }
+.vilmed-hdr-ico:hover { color: #2b2d42 !important; }
+/* kill the site's a:link underline on all of our anchors */
+.vilmed-fh a,
+.vilmed-fh__catalog,
+.vilmed-fh__city,
+.vilmed-fh__sall,
+.vilmed-fh__sitem,
+.vilmed-hdr-ico,
+.vilmed-drawer a { text-decoration: none !important; }
+.vilmed-fh__ico,
+.vilmed-fh__city,
+.vilmed-fh__sall,
+.vilmed-dm__empty a { color: #575b71 !important; }
+.vilmed-fh__ico:hover,
+.vilmed-fh__city:hover,
+.vilmed-fh__phone-pop a,
+.vilmed-fh__sall:hover { color: #2b2d42 !important; }
+.vilmed-dm__link { color: #3b3f54 !important; }
+.vilmed-dm__link:hover { color: #2b2d42 !important; }
+.vilmed-drawer__body > .vilmed-dm__list > .vilmed-dm__item > .vilmed-dm__row > .vilmed-dm__link { color: #2b2d42 !important; }
+.vilmed-dm__list .vilmed-dm__list .vilmed-dm__link { color: #5a5c70 !important; }
