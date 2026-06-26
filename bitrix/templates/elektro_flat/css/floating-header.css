@@ -1237,6 +1237,14 @@ html.vilmed-drawer-lock {
 	.vilmed-product .breadcrumb-share .breadcrumb {
 		display: flex;
 		flex-wrap: nowrap;
+		/* float:left у темы + nowrap-контент даёт shrink-to-fit на всю ширину
+		   крошек (≈700px) и распирает страницу вбок. Жёстко ограничиваем
+		   шириной родителя — длинные крошки скроллятся внутри блока. */
+		float: none;
+		width: 100%;
+		max-width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
 		overflow-x: auto;
 		-webkit-overflow-scrolling: touch;
 		white-space: nowrap;
