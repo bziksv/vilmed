@@ -118,12 +118,18 @@ Loc::loadMessages(__FILE__);
 	// VILMED: плавающая (sticky) шапка + перекомпоновка статичной шапки
 	// (Время работы / иконки кабинета / город / телефон, быстрый поиск).
 	// Включено на всех хостах (раньше было только на localhost).
-	Asset::getInstance()->addCss($vilmedTplPath."/css/floating-header.css");
-	Asset::getInstance()->addJs($vilmedTplPath."/js/floating-header.js");
+	// Авто-версия ассета по времени изменения файла: при любой правке URL меняется,
+	// браузерный кеш (max-age=7д) сбрасывается сам, без ручного бампа.
+	$vilmedAssetVer = function($webPath){
+		$mt = @filemtime($_SERVER['DOCUMENT_ROOT'].$webPath);
+		return $mt ? $webPath."?v=".$mt : $webPath;
+	};
+	Asset::getInstance()->addCss($vilmedAssetVer($vilmedTplPath."/css/floating-header.css"));
+	Asset::getInstance()->addJs($vilmedAssetVer($vilmedTplPath."/js/floating-header.js"));
 	// Современный лайтбокс галереи — только на карточке товара (вместо fancybox 1.3.1).
 	if(function_exists('isProductDetail') && isProductDetail()) {
-		Asset::getInstance()->addCss($vilmedTplPath."/css/product-lightbox.css");
-		Asset::getInstance()->addJs($vilmedTplPath."/js/product-lightbox.js");
+		Asset::getInstance()->addCss($vilmedAssetVer($vilmedTplPath."/css/product-lightbox.css"));
+		Asset::getInstance()->addJs($vilmedAssetVer($vilmedTplPath."/js/product-lightbox.js"));
 	}
 	Asset::getInstance()->addJs($vilmedTplPath."/js/jquery.cookie.js");
 	Asset::getInstance()->addJs($vilmedTplPath."/js/moremenu.js");
