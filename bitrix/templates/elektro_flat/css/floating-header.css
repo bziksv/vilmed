@@ -1486,6 +1486,44 @@ html.vilmed-drawer-lock {
 }
 
 /* ============================================================
+   КАТАЛОГ-СПИСОК: «сравнить/избранное» и корзина — на одной нижней линии.
+   Тема прижимала корзину по центру (vertical-align:middle), а иконки шли в
+   потоке под заголовком → разные уровни. На 450–787px тема и вовсе уводила
+   иконки за экран (position:absolute без позиционированного предка).
+   Делаем единый нижний ряд действий: иконки слева, корзина справа.
+   Scoped под .catalog-item-list-view, чтобы не задеть offers/collections/
+   price-view/set-constructor.
+   ============================================================ */
+@media (max-width: 787px) {
+	.catalog-item-list-view .catalog-item .catalog-item-info {
+		position: relative !important;
+		padding-bottom: 44px !important;
+		box-sizing: border-box;
+	}
+	.catalog-item-list-view .catalog-item .compare_delay {
+		position: absolute !important;
+		left: 140px !important;
+		right: auto !important;
+		bottom: 9px !important;
+		top: auto !important;
+		width: auto !important;
+		margin: 0 !important;
+	}
+	.catalog-item-list-view .catalog-item .buy_more {
+		position: absolute !important;
+		right: 8px !important;
+		left: auto !important;
+		bottom: 7px !important;
+		top: auto !important;
+		display: block !important;
+		width: auto !important;
+		height: auto !important;
+		vertical-align: baseline !important;
+		margin: 0 !important;
+	}
+}
+
+/* ============================================================
    КОНТЕНТНЫЕ КАРТИНКИ (.body_text) — адаптивность.
    В описаниях (бренды /vendors/, новости, статьи) встречаются <img>
    с собственной шириной (напр. 500px) без max-width — на узких экранах
