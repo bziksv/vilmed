@@ -474,21 +474,7 @@ if(!($arParams["AJAX_OPTION_HISTORY"] == "Y" && $arParams["AJAX_MODE"] == "Y")) 
 			$obCache->EndDataCache($arResult["REVIEWS"]["IBLOCK_ID"]);
 		}
 	endif;?>
-	<div id="catalog-reviews-from" style="display:none;">
-		<?$APPLICATION->IncludeComponent("altop:catalog.reviews.list", "",
-			array(
-				"IBLOCK_TYPE" => $arParams["IBLOCK_TYPE"],
-				"IBLOCK_ID" => $arResult["REVIEWS"]["IBLOCK_ID"],
-				"ELEMENT_ID" => $arResult["ID"],
-				"ELEMENT_AREA_ID" => $arResult["STR_MAIN_ID"],
-				"CACHE_TYPE" => $arParams["CACHE_TYPE"],
-				"CACHE_TIME" => $arParams["CACHE_TIME"],
-				"COUNT_REVIEW" => $arParams["COUNT_REVIEW"]
-			),
-			false,
-			array("HIDE_ICONS" => "Y")
-		);?>
-	</div>
+	<?//VILMED: блок отзывов (catalog-reviews-from + форма «Добавить свой отзыв») убран как неактуальный?>
 
 	<?//STORES//
 	if($arParams["USE_STORE"] == "Y" && !$arResult["COLLECTION"]["THIS"]):

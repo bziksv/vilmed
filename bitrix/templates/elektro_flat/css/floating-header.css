@@ -158,6 +158,10 @@
 	color: #575b71;
 }
 
+/* лупа-переключатель и крестик закрытия — только в компактном (мобильном) режиме */
+.vilmed-fh__search-toggle,
+.vilmed-fh__search-hide { display: none; }
+
 /* quick-search dropdown */
 .vilmed-fh__sresult {
 	position: absolute;
@@ -547,17 +551,20 @@ header .header_3.vilmed-hdr-empty {
 }
 
 .vilmed-hdr-search-host { position: relative; }
-/* schedule ≈109px + 20px breathing gap (measured against the search cell) */
-.vilmed-hdr-search-host #altop_search { width: calc(100% - 99px) !important; }
+/* schedule ≈134px + breathing room: keep the search field clear of the hours */
+.vilmed-hdr-search-host #altop_search { width: calc(100% - 170px) !important; }
 
-/* working-hours block moved into the right of the search cell */
+/* working-hours block moved into the right of the search cell.
+   right:14px leaves a clear gap before the account icons so the longest
+   line ("В ПН с 09:00 до 19:00") never touches them. */
 .vilmed-hdr-sched-moved {
 	position: absolute !important;
-	right: 0;
+	right: 14px;
 	top: 50%;
 	transform: translateY(-50%);
 	float: none !important;
 	margin: 0 !important;
+	white-space: nowrap;
 }
 
 /* account icons — equal 2×2 grid beside the city/phone column */
@@ -678,6 +685,66 @@ html.vilmed-drawer-lock {
 	padding: 4px 0 18px;
 }
 
+/* --- фильтр по категориям (вверху drawer) --- */
+.vilmed-drawer__filter {
+	flex: 0 0 auto;
+	position: relative;
+	display: flex;
+	align-items: center;
+	padding: 10px 12px;
+	border-bottom: 1px solid #eef0f4;
+	background: #fff;
+}
+.vilmed-drawer__filter .fa-search {
+	position: absolute;
+	left: 25px;
+	color: #8184a1;
+	font-size: 14px;
+	pointer-events: none;
+}
+.vilmed-dm__filter {
+	width: 100%;
+	height: 40px;
+	box-sizing: border-box;
+	padding: 0 40px;
+	border: 1px solid #e2e3f0;
+	border-radius: 8px;
+	background: #f7f8fa;
+	font-size: 14px;
+	color: #2b2d42;
+	outline: none;
+	-webkit-appearance: none;
+}
+.vilmed-dm__filter:focus { border-color: #b9bcd0; background: #fff; }
+.vilmed-dm__filter::placeholder { color: #8184a1; }
+.vilmed-dm__filter-clear {
+	position: absolute;
+	right: 21px;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: #eceef3;
+	color: #6b6e85;
+	font-size: 12px;
+	cursor: pointer;
+}
+.vilmed-dm__filter-clear:hover { background: #dfe2ea; color: #2b2d42; }
+
+/* режим фильтрации: раскрываем все вложенные списки, прячем стрелки */
+.vilmed-dm--filtering .vilmed-dm__item > .vilmed-dm__list { display: block; }
+.vilmed-dm--filtering .vilmed-dm__toggle { visibility: hidden; }
+.vilmed-dm__nores {
+	padding: 24px 20px;
+	color: #8184a1;
+	font-size: 14px;
+	text-align: center;
+}
+
 .vilmed-dm__list {
 	list-style: none;
 	margin: 0;
@@ -784,18 +851,93 @@ html.vilmed-drawer-lock {
 }
 
 @media (max-width: 820px) {
-	.vilmed-fh__catalog span:not(.vilmed-fh__burger) { display: none; }
+	/* hide only the text label — NOT the nested burger lines (they are
+	   <span> without a class and would match a descendant :not selector) */
+	.vilmed-fh__catalog > span:not(.vilmed-fh__burger) { display: none; }
 	.vilmed-fh__catalog { padding: 0 13px; }
+
+	/* --- поиск сворачивается в лупу (меньше планшета) --- */
+	.vilmed-fh__search { display: none; }
+	.vilmed-fh__search-toggle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		flex: 0 0 auto;
+		margin-left: auto;          /* прижимаем лупу к правому кластеру */
+		padding: 0;
+		border: 0;
+		background: transparent;
+		color: #575b71;
+		font-size: 18px;
+		cursor: pointer;
+	}
+	.vilmed-fh--search .vilmed-fh__search-toggle { color: #2b2d42; }
+
+	/* раскрытая полоса поиска — на всю ширину под шапкой */
+	.vilmed-fh--search .vilmed-fh__search {
+		display: flex;
+		position: absolute !important;
+		top: 100%;
+		left: 0;
+		right: 0;
+		height: 56px;
+		margin: 0;
+		padding: 0 12px;
+		box-sizing: border-box;
+		border-radius: 0;
+		border-left: 0;
+		border-right: 0;
+		border-top: 1px solid #e2e3f0;
+		box-shadow: 0 10px 24px rgba(20, 22, 48, .14);
+		background: #fff;
+		z-index: 10060;
+		animation: vfhSearchDrop .18s ease;
+	}
+	.vilmed-fh--search .vilmed-fh__search .fa-search { left: 18px; font-size: 16px; }
+	.vilmed-fh--search .vilmed-fh__search input[type="text"] {
+		padding: 0 130px 0 44px;
+		font-size: 15px;
+	}
+	.vilmed-fh--search .vilmed-fh__search button[type="submit"] {
+		right: 48px;
+		width: auto;
+		padding: 0 14px;
+		font-size: 11px;
+	}
+	.vilmed-fh--search .vilmed-fh__search button[type="submit"]::before { content: none; }
+	.vilmed-fh__search-hide {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		position: absolute;
+		right: 8px;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 32px;
+		height: 32px;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		color: #8184a1;
+		font-size: 17px;
+		cursor: pointer;
+	}
+	.vilmed-fh__search-hide:hover { color: #2b2d42; }
+	/* выпадашка результатов — во всю ширину раскрытой полосы */
+	.vilmed-fh--search .vilmed-fh__sresult { top: calc(100% + 1px); border-radius: 0 0 10px 10px; }
+}
+
+@keyframes vfhSearchDrop {
+	from { opacity: 0; transform: translateY(-6px); }
+	to   { opacity: 1; transform: none; }
 }
 
 @media (max-width: 600px) {
 	.vilmed-fh__in { gap: 10px; height: 56px; padding: 0 10px; }
 	.vilmed-fh__logo { width: 38px; height: 36px; }
 	.vilmed-fh__logo img { height: 36px; }
-	.vilmed-fh__search { height: 40px; }
-	.vilmed-fh__search input[type="text"] { padding-right: 44px; }
-	.vilmed-fh__search button { padding: 0; width: 30px; font-size: 0; }
-	.vilmed-fh__search button::before { content: "\f002"; font-family: FontAwesome; font-size: 12px; }
 }
 
 /* The site sets a:link/a:visited { color:#660901 } (specificity 0,1,1), which
@@ -826,3 +968,394 @@ html.vilmed-drawer-lock {
 .vilmed-dm__link:hover { color: #2b2d42 !important; }
 .vilmed-drawer__body > .vilmed-dm__list > .vilmed-dm__item > .vilmed-dm__row > .vilmed-dm__link { color: #2b2d42 !important; }
 .vilmed-dm__list .vilmed-dm__list .vilmed-dm__link { color: #5a5c70 !important; }
+
+/* ============================================================
+   VILMED — мобильная шапка + карточка товара (добавлено 06.2026)
+   На телефонах плавающая шапка становится основной шапкой
+   (вместо тёмной .top_panel и крупного статичного хедера),
+   возвращаются хлебные крошки, убирается промо-баннер над
+   товаром, читаемо оформляется вкладка «Комплектация».
+   ============================================================ */
+
+/* --- главное меню сайта в каталог-меню (только мобайл) --- */
+.vilmed-dm__nav { display: none; }
+.vilmed-dm__nav .vilmed-dm__navlink {
+	display: block;
+	padding: 12px 20px;
+	color: #2b2d42 !important;
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: none !important;
+	border-bottom: 1px solid #f3f4f9;
+}
+.vilmed-dm__nav .vilmed-dm__navlink:hover { background: #eef0f4; }
+
+/* --- вкладка «Комплектация»: список + уведомление --- */
+.vilmed-komplekt .vilmed-komplekt__alert .text { color: #6b4e00; }
+.vilmed-komplekt__intro { margin: 0 0 12px; font-weight: 600; color: #2b2d42; }
+.vilmed-komplekt__list { margin: 0 0 14px; padding: 0; list-style: none; }
+.vilmed-komplekt__list li {
+	position: relative;
+	padding: 7px 0 7px 24px;
+	border-bottom: 1px solid #f0f1f6;
+	line-height: 1.45;
+	color: #3b3f54;
+}
+.vilmed-komplekt__list li::before {
+	content: "";
+	position: absolute;
+	left: 6px;
+	top: 14px;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: #8184a1;
+}
+.vilmed-komplekt__note { margin: 12px 0 0; font-size: 12px; color: #8a8da3; font-style: italic; }
+
+/* --- способы оплаты на карточке товара (безнал / QR-СБП / карты) ---
+   Десктоп: вертикальный стек (иконка + подпись в строку), на всю ширину
+   узкой колонки. Ряд из 3 компактных карточек — только на мобиле (≤787px). */
+.vilmed-paymethods {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 16px 0 6px;
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+.vilmed-paymethods__item {
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 10px;
+	padding: 10px 14px;
+	border: 1px solid #e3e6ec;
+	border-radius: 12px;
+	background: #f7f8fa;
+	color: #3b3f54 !important;
+	text-align: left;
+	font-size: 13px;
+	line-height: 1.25;
+	text-decoration: none !important;
+	transition: border-color .15s, background .15s;
+}
+.vilmed-paymethods__item:hover {
+	border-color: #c7ccd6;
+	background: #fff;
+	color: #2b2d42 !important;
+}
+.vilmed-paymethods__ico {
+	width: 24px;
+	height: 24px;
+	fill: #5b6075;
+	flex: 0 0 auto;
+}
+
+/* --- карточка товара: убираем неиспользуемый рейтинг (звёзды) --- */
+.vilmed-product .article_rating .rating { display: none !important; }
+
+/* --- артикул, аккуратно встроенный в блок с ценой --- */
+.catalog-detail-price .vilmed-article-inprice,
+.catalog-detail-price .vilmed-article-inprice .article {
+	display: block;
+	font-size: 13px;
+	line-height: 1.3;
+	color: #8a8da3;
+	margin: 0 0 6px;
+	padding: 0;
+	font-weight: 400;
+}
+.catalog-detail-price .vilmed-article-inprice { margin-bottom: 8px; }
+
+/* --- кнопки «в сравнение / в избранное» (были скрыты) --- */
+/* десктоп: две кнопки в один ряд 50/50 на всю ширину блока «Купить»
+   (тема по умолчанию ужимает их по содержимому и роняет вправо пустоту) */
+.compare_delay {
+	display: flex !important;
+	flex-wrap: nowrap;
+	gap: 10px;
+	margin: 14px 0 4px;
+}
+.compare_delay > .compare,
+.compare_delay > .catalog-detail-delay { flex: 1 1 0; min-width: 0; }
+.compare_delay .compare,
+.compare_delay .catalog-detail-delay,
+.compare_delay .delay { margin: 0; }
+.compare_delay .delay { width: 100%; }
+.compare_delay .catalog-item-compare,
+.compare_delay .catalog-item-delay {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	box-sizing: border-box;
+	gap: 7px;
+	font-size: 13px;
+	color: #5b6075 !important;
+	text-decoration: none !important;
+	transition: color .15s;
+}
+.compare_delay .catalog-item-compare:hover,
+.compare_delay .catalog-item-delay:hover { color: #2b2d42 !important; }
+.compare_delay .catalog-item-compare .fa,
+.compare_delay .catalog-item-delay .fa { font-size: 15px; }
+.compare_delay .catalog-item-compare .fa-check,
+.compare_delay .catalog-item-delay .fa-check { display: none; }
+.compare_delay .catalog-item-compare.active .fa-bar-chart,
+.compare_delay .catalog-item-delay.active .fa-heart-o { display: none; }
+.compare_delay .catalog-item-compare.active .fa-check,
+.compare_delay .catalog-item-delay.active .fa-check { display: inline-block; color: #3aa564; }
+
+/* на мобиле — две кнопки в один ряд на всю ширину (тема центрирует и ужимает блок) */
+@media (max-width: 787px) {
+	/* «Купить» и «Купить в 1 клик»: тема центрирует их через display:table + auto-margin
+	   и ужимает по содержимому. На мобиле растягиваем на всю ширину блока покупки,
+	   чтобы «Сравнить»/«Отложить» совпадали с ними по ширине. */
+	.catalog-detail .catalog-detail-buy {
+		display: block !important;
+		width: 100% !important;
+		margin-left: 0 !important;
+		margin-right: 0 !important;
+	}
+	.catalog-detail .catalog-detail-buy .buy_more_detail,
+	.catalog-detail .catalog-detail-buy .add2basket_form,
+	.catalog-detail .catalog-detail-buy .btn_buy {
+		width: 100% !important;
+		box-sizing: border-box !important;
+	}
+	.compare_delay {
+		width: 100% !important;
+		margin: 14px 0 4px !important;
+		gap: 10px;
+	}
+	.compare_delay > .compare,
+	.compare_delay > .catalog-detail-delay { flex: 1 1 0; min-width: 0; }
+	.compare_delay .delay { width: 100%; }
+	.compare_delay .catalog-item-compare,
+	.compare_delay .catalog-item-delay {
+		display: flex !important;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		box-sizing: border-box;
+		padding: 9px 8px !important;
+	}
+}
+
+/* на узких экранах кнопки лучше друг под дружкой (каждая на всю ширину) */
+@media (max-width: 600px) {
+	.compare_delay { flex-direction: column; }
+	.compare_delay > .compare,
+	.compare_delay > .catalog-detail-delay { flex: 0 0 auto; width: 100%; }
+}
+
+/* ============================================================
+   КАРТОЧКА ТОВАРА (десктоп): миниатюры — вертикальной лентой
+   справа от главного фото, а не строкой под ним. Колонку галереи
+   расширяем, чтобы заполнить пустоту рядом с блоком покупки.
+   ============================================================ */
+@media (min-width: 992px) {
+	.catalog-detail .column.first:not(.colletion) { width: 500px; }
+
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures {
+		display: flex;
+		align-items: flex-start;
+		gap: 14px;
+		width: 100%;
+		float: none;
+	}
+	/* главное фото — слева, занимает оставшееся место */
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .catalog-detail-picture {
+		order: 1;
+		flex: 1 1 auto;
+		width: auto;
+		min-width: 0;
+		float: none;
+	}
+	/* лента миниатюр — справа, вертикально */
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo {
+		order: 2;
+		flex: 0 0 96px;
+		width: 96px;
+		margin: 0;
+		float: none;
+	}
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo ul {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		width: 100%;
+		float: none;
+	}
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo ul li {
+		float: none;
+		margin: 0 !important;
+	}
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .clr { display: none; }
+}
+
+/* блок «Популярные категории» (.tag_menu) из левого сайдбара на мобиле
+   сваливается наверх и выглядит пусто — убираем его на узких экранах */
+@media (max-width: 787px) {
+	.tag_menu { display: none !important; }
+}
+
+/* ============================================================
+   МОБИЛЬНЫЙ РЕЖИМ (≤787px): плавающая шапка = шапка сайта
+   ============================================================ */
+@media (max-width: 787px) {
+	/* прячем «трешовую» статичную мобильную шапку */
+	header,
+	.top_panel,
+	.top-catalog,
+	.top-menu { display: none !important; }
+
+	/* плавающая шапка теперь постоянная, закреплена сверху */
+	.vilmed-fh {
+		transform: translateY(0) !important;
+		box-shadow: 0 2px 10px rgba(20, 22, 48, 0.10);
+	}
+	/* сдвигаем контент из-под фиксированной шапки (бьём базовое padding:0) */
+	.page-wrapper { padding-top: 64px !important; }
+
+	/* чёткий гамбургер (кнопка каталога сворачивается до иконки ≤820) */
+	.vilmed-fh__catalog {
+		background: transparent;
+		border-color: transparent;
+		padding: 0 8px;
+	}
+	.vilmed-fh__burger { width: 22px; gap: 4px; }
+	.vilmed-fh__burger span { height: 2.5px; background: #2b2d42; }
+
+	/* возвращаем хлебные крошки в карточке товара (скрыты на мобиле сайтом) */
+	.vilmed-product .breadcrumb-share { display: block !important; }
+	.vilmed-product .breadcrumb-share .share { display: none !important; }
+	.vilmed-product .breadcrumb-share .breadcrumb {
+		display: flex;
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+		white-space: nowrap;
+		padding-bottom: 4px;
+		font-size: 12px;
+	}
+	.vilmed-product .breadcrumb .breadcrumb-dropdown { display: none !important; }
+	.vilmed-product .breadcrumb__item { flex: 0 0 auto; }
+
+	/* убираем промо-баннер/слайдер, всплывающий над товаром на мобиле */
+	.vilmed-product .left-column { display: none !important; }
+
+	/* меню сайта под каталогом в drawer */
+	.vilmed-dm__nav { display: block; border-top: 6px solid #eef0f4; }
+
+	/* способы оплаты на карточке: ряд из 3 компактных карточек, без вылетов */
+	.vilmed-paymethods { flex-direction: row; flex-wrap: nowrap; gap: 6px; }
+	.vilmed-paymethods__item {
+		flex: 1 1 0;
+		min-width: 0;
+		flex-direction: column;
+		justify-content: center;
+		text-align: center;
+		gap: 5px;
+		padding: 9px 4px;
+		font-size: 11px;
+		line-height: 1.2;
+		border-radius: 10px;
+		word-break: break-word;
+		hyphens: auto;
+	}
+	.vilmed-paymethods__ico { width: 24px; height: 24px; }
+
+	/* промо-баннер из сайдбара, перенесённый в блок «Акции и скидки» */
+	.promotions-block .vilmed-promo-banner {
+		display: flex !important;
+		justify-content: center;
+		float: none !important;
+		width: 100%;
+		box-sizing: border-box;
+		margin: 4px 0 16px;
+		padding: 0;
+		text-indent: 0;
+	}
+	.promotions-block .vilmed-promo-banner a { display: block; line-height: 0; margin: 0; padding: 0; }
+	.promotions-block .vilmed-promo-banner img {
+		display: block;
+		max-width: 220px;
+		width: 100%;
+		height: auto;
+		margin: 0;
+	}
+}
+
+@media (max-width: 600px) {
+	.page-wrapper { padding-top: 56px !important; }
+}
+
+/* ============================================================
+   КАТАЛОГ: список подкатегорий — «первые 10 + Показать ещё» + фильтр
+   ============================================================ */
+.vilmed-cats-title { margin: 26px 0 12px; }
+
+/* свёрнутый список: показываем только первые 12 карточек */
+.catalog-section-childs.vilmed-cats-collapsed > .catalog-section-child:nth-child(n+13) {
+	display: none;
+}
+
+.vilmed-cats-more {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin: 6px 0 10px;
+	padding: 10px 18px;
+	border: 1px solid #d7dae2;
+	border-radius: 10px;
+	background: #f4f5f8;
+	color: #3b3f54;
+	font-size: 14px;
+	cursor: pointer;
+	transition: background .15s, border-color .15s;
+}
+.vilmed-cats-more:hover { background: #eceef3; border-color: #c2c7d2; }
+.vilmed-cats-more span { color: #8a8da3; }
+
+/* поле-фильтр по категориям — на десктопе не нужно, показываем на мобиле */
+.vilmed-cats-filter { display: none; }
+
+@media (max-width: 787px) {
+	.vilmed-cats-filter {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 4px 0 14px;
+		padding: 0 12px;
+		border: 1px solid #d7dae2;
+		border-radius: 10px;
+		background: #fff;
+	}
+	.vilmed-cats-filter > .fa-search { color: #9aa0b3; font-size: 15px; flex: 0 0 auto; }
+	.vilmed-cats-filter input {
+		flex: 1 1 auto;
+		min-width: 0;
+		border: 0;
+		outline: none;
+		background: transparent;
+		padding: 12px 0;
+		font-size: 15px;
+		color: #2b2d42;
+	}
+	.vilmed-cats-filter__clear {
+		display: none;
+		border: 0;
+		background: transparent;
+		color: #9aa0b3;
+		font-size: 16px;
+		cursor: pointer;
+		padding: 6px;
+		flex: 0 0 auto;
+	}
+	.vilmed-cats-filter.is-filled .vilmed-cats-filter__clear { display: inline-flex; }
+}

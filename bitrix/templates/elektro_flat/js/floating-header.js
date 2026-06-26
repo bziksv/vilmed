@@ -271,6 +271,11 @@
 					'<span class="vilmed-drawer__title"><i class="fa fa-th-list"></i> Каталог товаров</span>' +
 					'<button type="button" class="vilmed-drawer__close" aria-label="Закрыть"><i class="fa fa-times"></i></button>' +
 				"</div>" +
+				'<div class="vilmed-drawer__filter">' +
+					'<i class="fa fa-search"></i>' +
+					'<input type="text" class="vilmed-dm__filter" autocomplete="off" placeholder="Поиск по категориям">' +
+					'<button type="button" class="vilmed-dm__filter-clear" aria-label="Очистить"><i class="fa fa-times"></i></button>' +
+				"</div>" +
 				'<div class="vilmed-drawer__body"></div>' +
 			"</aside>";
 		document.body.appendChild(drawer);
@@ -307,18 +312,58 @@
 			return count ? '<ul class="vilmed-dm__list">' + html + "</ul>" : "";
 		}
 
+		// Main site nav (Главная / Производители / Акции / Контакты …) harvested
+		// from the existing mobile menu, shown atop the drawer on mobile so that
+		// replacing the static mobile header doesn't lose top-level navigation.
+		function buildSiteNav() {
+			var anchors = document.querySelectorAll(
+				".top_panel .panel_2 ul.submenu > li > a, " +
+				".top_panel .panel_2 ul.submenu > li > span.text > a"
+			);
+			if (!anchors.length) { return ""; }
+			var html = "", seen = {}, n = 0;
+			for (var i = 0; i < anchors.length; i++) {
+				var a = anchors[i];
+				var href = a.getAttribute("href") || "";
+				var name = (a.textContent || "").trim();
+				if (!name || /^javascript:/i.test(href)) { continue; }
+				var key = name.toLowerCase();
+				if (seen[key]) { continue; }
+				seen[key] = 1;
+				html += '<a class="vilmed-dm__navlink" href="' + href + '">' + escapeHtml(name) + "</a>";
+				n++;
+			}
+			return n ? '<nav class="vilmed-dm__nav">' + html + "</nav>" : "";
+		}
+
 		function renderFrom(ul) {
 			var markup = ul ? buildList(ul) : "";
-			body.innerHTML = markup ||
+			var nav = buildSiteNav();
+			// categories first, the site menu (Главная / Производители / …) below
+			body.innerHTML = (markup ||
 				'<div class="vilmed-dm__empty">Не удалось загрузить каталог. ' +
-				'<a href="/catalog/">Открыть каталог</a></div>';
+				'<a href="/catalog/">Открыть каталог</a></div>') + nav;
 			built = true;
+		}
+
+		// Some pages (product cards) render ul.left-menu as a CSS-sprite menu
+		// where category names live in background images, so textContent is
+		// empty. In that case fall back to loading the homepage menu (text).
+		function menuHasText(ul) {
+			var as = ul.querySelectorAll("a");
+			for (var i = 0; i < as.length && i < 40; i++) {
+				var c = as[i].cloneNode(true);
+				var ar = c.querySelector(".arrow");
+				if (ar) { ar.parentNode.removeChild(ar); }
+				if ((c.textContent || "").trim()) { return true; }
+			}
+			return false;
 		}
 
 		function ensureBuilt() {
 			if (built) { return; }
 			var ul = document.querySelector("ul.left-menu");
-			if (ul) { renderFrom(ul); return; }
+			if (ul && menuHasText(ul)) { renderFrom(ul); return; }
 			body.innerHTML = '<div class="vilmed-dm__load"><i class="fa fa-spinner fa-pulse"></i></div>';
 			fetch("/", { headers: { "X-Requested-With": "XMLHttpRequest" } })
 				.then(function (r) { return r.text(); })
@@ -359,6 +404,69 @@
 			e.preventDefault();
 			var item = btn.closest(".vilmed-dm__item");
 			if (item) { item.classList.toggle("is-open"); }
+		});
+
+		// --- live filter over the category tree ---
+		var filterInput = drawer.querySelector(".vilmed-dm__filter");
+		var filterClear = drawer.querySelector(".vilmed-dm__filter-clear");
+		var noRes = null;
+
+		function applyFilter(raw) {
+			var q = (raw || "").trim().toLowerCase();
+			var items = body.querySelectorAll(".vilmed-dm__item");
+			var nav = body.querySelector(".vilmed-dm__nav");
+			var i, li, p;
+			if (filterClear) { filterClear.style.display = q ? "flex" : "none"; }
+			if (!q) {
+				body.classList.remove("vilmed-dm--filtering");
+				for (i = 0; i < items.length; i++) { items[i].style.display = ""; }
+				if (nav) { nav.style.display = ""; }
+				if (noRes) { noRes.style.display = "none"; }
+				return;
+			}
+			body.classList.add("vilmed-dm--filtering");
+			if (nav) { nav.style.display = "none"; }
+			for (i = 0; i < items.length; i++) { items[i].style.display = "none"; }
+			var links = body.querySelectorAll(".vilmed-dm__link");
+			var any = false;
+			for (i = 0; i < links.length; i++) {
+				if ((links[i].textContent || "").toLowerCase().indexOf(q) > -1) {
+					any = true;
+					li = links[i].closest(".vilmed-dm__item");
+					while (li) {
+						li.style.display = "";
+						p = li.parentElement;
+						li = p ? p.closest(".vilmed-dm__item") : null;
+					}
+				}
+			}
+			if (!noRes) {
+				noRes = document.createElement("div");
+				noRes.className = "vilmed-dm__nores";
+				noRes.textContent = "Ничего не найдено";
+				body.appendChild(noRes);
+			}
+			noRes.style.display = any ? "none" : "block";
+		}
+
+		if (filterInput) {
+			filterInput.addEventListener("input", function () { applyFilter(this.value); });
+			filterInput.addEventListener("keydown", function (e) {
+				if (e.key === "Escape" || e.keyCode === 27) {
+					if (this.value) { e.stopPropagation(); this.value = ""; applyFilter(""); }
+				}
+			});
+		}
+		if (filterClear) {
+			filterClear.style.display = "none";
+			filterClear.addEventListener("click", function () {
+				if (filterInput) { filterInput.value = ""; filterInput.focus(); }
+				applyFilter("");
+			});
+		}
+		// reset filter each time the drawer opens
+		trigger.addEventListener("click", function () {
+			if (filterInput && filterInput.value) { filterInput.value = ""; applyFilter(""); }
 		});
 	}
 
@@ -591,7 +699,9 @@
 					'<input type="text" name="q" maxlength="50" autocomplete="off" ' +
 						'placeholder="Поиск по товарам, брендам, категориям">' +
 					"<button type=\"submit\">Найти</button>" +
+					'<button type="button" class="vilmed-fh__search-hide" aria-label="Закрыть поиск"><i class="fa fa-times"></i></button>' +
 				"</form>" +
+				'<button type="button" class="vilmed-fh__search-toggle" aria-label="Поиск" aria-expanded="false"><i class="fa fa-search"></i></button>' +
 				'<div class="vilmed-fh__tools">' +
 					(cityName
 						? '<a class="vilmed-fh__city" href="javascript:void(0)">' +
@@ -646,6 +756,49 @@
 
 		// --- quick search (autocomplete) reusing the server altop:search.title ---
 		initQuickSearch(bar.querySelector(".vilmed-fh__search"));
+
+		// --- mobile: collapse search to a loupe; tap opens a full-width bar ---
+		(function () {
+			var toggle = bar.querySelector(".vilmed-fh__search-toggle");
+			var searchForm = bar.querySelector(".vilmed-fh__search");
+			var hideBtn = bar.querySelector(".vilmed-fh__search-hide");
+			if (!toggle || !searchForm) { return; }
+			var searchInput = searchForm.querySelector('input[name="q"]');
+
+			function openSearch() {
+				bar.classList.add("vilmed-fh--search");
+				toggle.setAttribute("aria-expanded", "true");
+				if (searchInput) { setTimeout(function () { searchInput.focus(); }, 30); }
+			}
+			function closeSearch() {
+				bar.classList.remove("vilmed-fh--search");
+				toggle.setAttribute("aria-expanded", "false");
+				if (searchInput) { searchInput.blur(); }
+			}
+			toggle.addEventListener("click", function (e) {
+				e.preventDefault();
+				e.stopPropagation();
+				if (bar.classList.contains("vilmed-fh--search")) { closeSearch(); }
+				else { openSearch(); }
+			});
+			if (hideBtn) {
+				hideBtn.addEventListener("click", function (e) {
+					e.preventDefault();
+					closeSearch();
+				});
+			}
+			document.addEventListener("click", function (e) {
+				if (!bar.classList.contains("vilmed-fh--search")) { return; }
+				if (!searchForm.contains(e.target) && e.target !== toggle && !toggle.contains(e.target)) {
+					closeSearch();
+				}
+			});
+			document.addEventListener("keydown", function (e) {
+				if ((e.key === "Escape" || e.keyCode === 27) && bar.classList.contains("vilmed-fh--search")) {
+					closeSearch();
+				}
+			});
+		})();
 
 		// --- replace the native static-header search with the same super-search ---
 		var nativeInput = document.getElementById("title-search-input");
@@ -750,6 +903,48 @@
 
 		placeStaticIcons();
 
+		// --- mobile homepage: relocate the sidebar promo banner into the
+		//     "Акции и скидки" block (on desktop it stays in the left sidebar).
+		//     On phones the left-column floats to the very top and the lone
+		//     banner looks out of place above the hero slider. ---------------
+		(function relocateHomeBanner() {
+			var banner = document.querySelector(".left-column .banners_left");
+			var promo = document.querySelector(".promotions-block");
+			if (!banner || !promo) { return; }
+			var origParent = banner.parentNode;
+			var origNext = banner.nextSibling;
+			var title = promo.querySelector(".promotions-block__title");
+			var anchor = title || promo.firstChild;
+			var mq = window.matchMedia("(max-width: 787px)");
+			function apply() {
+				if (mq.matches) {
+					if (banner.parentNode !== promo) {
+						banner.classList.add("vilmed-promo-banner");
+						promo.insertBefore(banner, anchor ? anchor.nextSibling : promo.firstChild);
+					}
+				} else if (banner.parentNode !== origParent) {
+					banner.classList.remove("vilmed-promo-banner");
+					origParent.insertBefore(banner, origNext);
+				}
+			}
+			apply();
+			if (mq.addEventListener) { mq.addEventListener("change", apply); }
+			else if (mq.addListener) { mq.addListener(apply); }
+		})();
+
+		// --- product card: pull the article number into the price block ----
+		//     (rating stars are hidden via CSS; the lonely "Артикул: …" line
+		//     reads better integrated right above the price.) ----------------
+		(function placeArticleInPrice() {
+			var article = document.querySelector(".catalog-detail .catalog-detail-article");
+			var price = document.querySelector(".catalog-detail .catalog-detail-price");
+			if (!article || !price || article.closest(".catalog-detail-price")) { return; }
+			var wrap = article.closest(".article_rating");
+			article.classList.add("vilmed-article-inprice");
+			price.insertBefore(article, price.firstChild);
+			if (wrap) { wrap.style.display = "none"; }
+		})();
+
 		// --- mirror live counts (cart / compare / favorites) to both clusters ---
 		function syncCounts() {
 			var vals = {
@@ -802,5 +997,111 @@
 			update();
 		});
 		update();
+	});
+})();
+
+/* VILMED — каталог: список подкатегорий «первые 10 + Показать ещё»
+   + мобильный фильтр-поиск по категориям и подкатегориям. */
+(function () {
+	"use strict";
+	function ready(fn) {
+		if (document.readyState !== "loading") { fn(); }
+		else { document.addEventListener("DOMContentLoaded", fn, { once: true }); }
+	}
+	var LIMIT = 12;
+
+	ready(function () {
+		var list = document.getElementById("catalog-section-list");
+		if (!list) { return; }
+
+		function norm(s) { return (s || "").toLowerCase().replace(/ё/g, "е").replace(/\s+/g, " ").trim(); }
+		function directChildren(wrap) {
+			var out = [], n = wrap.children;
+			for (var i = 0; i < n.length; i++) {
+				if (n[i].classList && n[i].classList.contains("catalog-section-child")) { out.push(n[i]); }
+			}
+			return out;
+		}
+
+		// --- свёртка каждой группы до 10 карточек + кнопка «Показать ещё» ---
+		var collapses = [];
+		var wraps = list.querySelectorAll(".catalog-section-childs");
+		for (var w = 0; w < wraps.length; w++) {
+			(function (wrap) {
+				if (directChildren(wrap).length <= LIMIT) { return; }
+				wrap.classList.add("vilmed-cats-collapsed");
+				var btn = document.createElement("button");
+				btn.type = "button";
+				btn.className = "vilmed-cats-more";
+				btn.innerHTML = "Показать ещё <span>(" + (directChildren(wrap).length - LIMIT) + ")</span>";
+				wrap.parentNode.insertBefore(btn, wrap.nextSibling);
+				var entry = { wrap: wrap, btn: btn, expanded: false };
+				btn.addEventListener("click", function () {
+					entry.expanded = true;
+					wrap.classList.remove("vilmed-cats-collapsed");
+					btn.style.display = "none";
+				});
+				collapses.push(entry);
+			})(wraps[w]);
+		}
+
+		// --- поле-фильтр (на десктопе скрыто через CSS, активно на мобиле) ---
+		var filterWrap = document.createElement("div");
+		filterWrap.className = "vilmed-cats-filter";
+		filterWrap.innerHTML =
+			'<i class="fa fa-search"></i>' +
+			'<input type="text" autocomplete="off" placeholder="Поиск по категориям">' +
+			'<button type="button" class="vilmed-cats-filter__clear" aria-label="Очистить"><i class="fa fa-times"></i></button>';
+		list.parentNode.insertBefore(filterWrap, list);
+		var input = filterWrap.querySelector("input");
+		var clearBtn = filterWrap.querySelector(".vilmed-cats-filter__clear");
+
+		var sections = list.querySelectorAll(".catalog-section");
+		var allKids = list.querySelectorAll(".catalog-section-child");
+
+		function apply(raw) {
+			var q = norm(raw);
+			var filtering = q.length > 0;
+			filterWrap.classList.toggle("is-filled", filtering);
+
+			var i;
+			if (!filtering) {
+				for (i = 0; i < allKids.length; i++) { allKids[i].style.display = ""; }
+				for (i = 0; i < sections.length; i++) { sections[i].style.display = ""; }
+				for (i = 0; i < collapses.length; i++) {
+					if (collapses[i].expanded) {
+						collapses[i].wrap.classList.remove("vilmed-cats-collapsed");
+						collapses[i].btn.style.display = "none";
+					} else {
+						collapses[i].wrap.classList.add("vilmed-cats-collapsed");
+						collapses[i].btn.style.display = "";
+					}
+				}
+				return;
+			}
+
+			for (i = 0; i < collapses.length; i++) {
+				collapses[i].wrap.classList.remove("vilmed-cats-collapsed");
+				collapses[i].btn.style.display = "none";
+			}
+			for (i = 0; i < allKids.length; i++) {
+				allKids[i].style.display = norm(allKids[i].textContent).indexOf(q) !== -1 ? "" : "none";
+			}
+			for (i = 0; i < sections.length; i++) {
+				var title = sections[i].querySelector(".catalog-section-title");
+				var kids = sections[i].querySelectorAll(".catalog-section-child");
+				var k, any = false;
+				if (title && norm(title.textContent).indexOf(q) !== -1) {
+					any = true;
+					for (k = 0; k < kids.length; k++) { kids[k].style.display = ""; }
+				} else {
+					for (k = 0; k < kids.length; k++) { if (kids[k].style.display !== "none") { any = true; break; } }
+				}
+				sections[i].style.display = any ? "" : "none";
+			}
+		}
+
+		input.addEventListener("input", function () { apply(this.value); });
+		clearBtn.addEventListener("click", function () { input.value = ""; apply(""); input.focus(); });
 	});
 })();

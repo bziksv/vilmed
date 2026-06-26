@@ -182,7 +182,7 @@ $APPLICATION->SetTitle("Каталог медицинского оборудов
 		"USER_FIELDS" => array(0=>"",1=>"",),
 		"USE_ALSO_BUY" => "N",
 		"USE_BIG_DATA" => "Y",
-		"USE_COMPARE" => "N",
+		"USE_COMPARE" => "Y",
 		"USE_ELEMENT_COUNTER" => "Y",
 		"USE_FILTER" => "Y",
 		"USE_FILTER_SEO" => "Y",

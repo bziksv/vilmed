@@ -90,13 +90,7 @@ $templateData = array(
 			if(!!BX("accessories-to"))
 				BX("accessories-to").appendChild(BX.style(BX("accessories-from"), "display", ""));
 
-			//REVIEWS//
-			BX("catalog-reviews-to").appendChild(BX.style(BX("catalog-reviews-from"), "display", ""));
-			var tabReviewsCount = BX.findChild(BX("<?=$arItemIDs['ID']?>"), {"className": "reviews_count"}, true, false);
-				catalogReviewsList = BX.findChild(BX("catalog-reviews-to"), {"className": "catalog-reviews-list"}, true, false);
-			if(!!catalogReviewsList)
-				var catalogReviewsCount = catalogReviewsList.getAttribute("data-count");
-			tabReviewsCount.innerHTML = "(" + (!!catalogReviewsCount ? catalogReviewsCount : 0) + ")";
+			//REVIEWS// VILMED: вкладка отзывов убрана как неактуальная
 
 			//STORES//
 			if(!!BX("catalog-detail-stores-from"))
@@ -139,13 +133,7 @@ $templateData = array(
 			if(!!BX("accessories-to"))
 				BX("accessories-to").appendChild(BX.style(BX("accessories-from"), "display", ""));
 
-			//REVIEWS//
-			BX("catalog-reviews-to").appendChild(BX.style(BX("catalog-reviews-from"), "display", ""));
-			var tabReviewsCount = BX.findChild(BX("reviews_count"), {"className": "reviews_count"}, true, false),
-				catalogReviewsList = BX.findChild(BX("catalog-reviews-to"), {"className": "catalog-reviews-list"}, true, false);
-			if(!!catalogReviewsList)
-				var catalogReviewsCount = catalogReviewsList.getAttribute("data-count");
-			tabReviewsCount.innerHTML = "(" + (!!catalogReviewsCount ? catalogReviewsCount : 0) + ")";
+			//REVIEWS// VILMED: вкладка отзывов убрана как неактуальная
 
 			//STORES//
 			if(!!BX("catalog-detail-stores-from"))
@@ -200,8 +188,7 @@ $templateData = array(
 </script>
 
 <style>
-    .geolocation-delivery__title,
-    .compare_delay {
+    .geolocation-delivery__title {
         display: none!important;
     }
 </style>
@@ -1302,7 +1289,21 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 							"!PROPERTY_SHOW_PRODUCT_DETAIL" => false,
 							"HIDE_ICONS" => "Y"
 						);?>
-						<?$APPLICATION->IncludeComponent("bitrix:main.include", "", array("AREA_FILE_SHOW" => "file", "PATH" => SITE_DIR."include/payments_icons.php"), false, array("HIDE_ICONS" => "Y"));?>
+						<?//VILMED: способы оплаты на карточке — безналичный расчёт, QR (СБП), банковские карты?>
+						<div class="vilmed-paymethods">
+							<a class="vilmed-paymethods__item" href="/payments/" title="Безналичный расчёт по счёту">
+								<svg class="vilmed-paymethods__ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 2 7v2h20V7L12 2zM4 11v7H3v2h18v-2h-1v-7h-2v7h-3v-7h-2v7H9v-7H7v7H6v-7H4z"/></svg>
+								<span class="vilmed-paymethods__label">Безналичный расчёт</span>
+							</a>
+							<a class="vilmed-paymethods__item" href="/payments/" title="Оплата по QR-коду (СБП)">
+								<svg class="vilmed-paymethods__ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm-2 8h8v8H3v-8zm2 2v4h4v-4H5zM13 3h8v8h-8V3zm2 2v4h4V5h-4zm-2 8h2v2h-2v-2zm2 2h2v2h-2v-2zm2-2h2v2h-2v-2zm0 4h2v2h-2v-2zm2-2h2v2h-2v-2zm0 4h2v2h-2v-2z"/></svg>
+								<span class="vilmed-paymethods__label">Оплата по QR (СБП)</span>
+							</a>
+							<a class="vilmed-paymethods__item" href="/payments/" title="Банковские карты">
+								<svg class="vilmed-paymethods__ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+								<span class="vilmed-paymethods__label">Банковские карты</span>
+							</a>
+						</div>
 						<?//DETAIL_BUTTONS//
 						if($inBtnPayments || $inBtnCredit) {?>
 							<div class="catalog-detail-buttons">
@@ -2166,10 +2167,7 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 				</li>
 				<?$i++;
 			}?>
-			<li class="tabs__tab">
-				<a <?=($arParams["AJAX_MODE"] == "Y") ? "id='reviews_count'" : ""?> href="<?=($arParams["AJAX_OPTION_HISTORY"] !== "Y") ? "#tab".$i : "javascript:void(0)"?>"><span><?=GetMessage("CATALOG_ELEMENT_REVIEWS")?> <span class="reviews_count"><?=($arParams["AJAX_OPTION_HISTORY"] == "Y" && $arParams["AJAX_MODE"] == "Y") ? "(".$arResult["REVIEWS"]["COUNT"].")" : ""?></span></span></a>
-			</li>
-			<?$i++;
+			<?//VILMED: вкладка «Отзывы и вопросы» убрана как неактуальная
 			if($arParams["USE_STORE"] == "Y" && ((isset($arResult["OFFERS"]) && !empty($arResult["OFFERS"]) && $arSetting["OFFERS_VIEW"]["VALUE"] != "LIST") || (!isset($arResult["OFFERS"]) || empty($arResult["OFFERS"]))) && !$arResult["COLLECTION"]["THIS"]) {?>
 				<li class="tabs__tab">
 					<a href="<?=($arParams["AJAX_OPTION_HISTORY"] !== "Y") ? "#tab".$i : "javascript:void(0)"?>"><span><?=GetMessage("CATALOG_ELEMENT_SHOPS")?></span></a>
@@ -2288,6 +2286,11 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 		if(!$arResult["COLLECTION"]["THIS"] && (!empty($arResult["DISPLAY_PROPERTIES"]) || $strMainOffersProps)) {?>
 			<div class="tabs__box">
 				<div id="<?=$arItemIDs['PROPERTIES']?>">
+					<?//VILMED: уведомление по аналогии с комплектацией?>
+					<div class="alertMsg info vilmed-spec__alert" style="margin: 0 0 20px 0; background: #fff9e6; border-left: 4px solid #ff9800; border-radius: 8px;">
+						<i class="fa fa-info-circle" style="color: #ff9800;"></i>
+						<span class="text"><strong>Обращаем внимание:</strong> технические характеристики товара могут изменяться производителем без уведомления. Для уточнения актуальных характеристик свяжитесь с нашим менеджером — напишите на <a href="mailto:info@vilmed.ru">info@vilmed.ru</a>.</span>
+					</div>
 					<div class="catalog-detail-properties">
 						<?//DETAIL_PROPERTIES//
 						if(!empty($arResult["DISPLAY_PROPERTIES"])) {
@@ -2355,10 +2358,58 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 				</div>
 			</div>
 		<?}
-		if(!empty($arResult["PROPERTIES"]["CML2_COMPLECT"]["VALUE"])) {?>
+		if(!empty($arResult["PROPERTIES"]["CML2_COMPLECT"]["VALUE"])) {
+			// VILMED: читаемое оформление комплектации + уведомление (стиль как в корзине).
+			// Если значение — простой текст (без HTML-разметки), разбиваем сплошную
+			// строку на список по позициям, заканчивающимся «… N шт.».
+			$vilmedKomplektRaw = (string)$arResult["PROPERTIES"]["CML2_COMPLECT"]["~VALUE"]["TEXT"];
+			$vilmedKomplektHasHtml = (bool)preg_match('/<(p|ul|ol|li|br|div|table)\b/iu', $vilmedKomplektRaw);
+			$vilmedKomplektBody = "";
+			if(trim($vilmedKomplektRaw) !== "" && !$vilmedKomplektHasHtml) {
+				$work = $vilmedKomplektRaw;
+				// вынесем заводскую сноску («* Комплектация … уточняйте у менеджера»)
+				$footnote = "";
+				if(preg_match('/\*\s*Комплектаци.*$/us', $work, $m)) {
+					$footnote = trim($m[0]);
+					$work = trim(preg_replace('/\*\s*Комплектаци.*$/us', '', $work));
+				}
+				$intro = "";
+				$items = array();
+				// 1) исходник часто хранит позиции с переносами строк
+				$lines = preg_split('/[\r\n]+/u', $work);
+				$cleanLines = array();
+				foreach((array)$lines as $ln) { $ln = trim($ln); if($ln !== "") { $cleanLines[] = $ln; } }
+				if(count($cleanLines) >= 3) {
+					if(preg_match('/:$/u', $cleanLines[0])) { $intro = array_shift($cleanLines); }
+					$items = $cleanLines;
+				} else {
+					// 2) сплошная строка — режем по «… N шт.», иначе по «;»
+					$blob = trim(preg_replace('/\s+/u', ' ', $work));
+					if(preg_match('/^(.{0,220}?:)\s+(.+)$/us', $blob, $m)) {
+						$intro = trim($m[1]);
+						$blob = trim($m[2]);
+					}
+					$parts = preg_split('/(?<=шт\.)\s+(?=[А-ЯA-ZЁ])/u', $blob);
+					if(count($parts) < 2) { $parts = preg_split('/;\s*/u', $blob); }
+					foreach((array)$parts as $p) { $p = trim($p); if($p !== "") { $items[] = $p; } }
+				}
+				if(count($items) >= 2) {
+					if($intro !== "") { $vilmedKomplektBody .= '<p class="vilmed-komplekt__intro">'.htmlspecialcharsbx($intro).'</p>'; }
+					$vilmedKomplektBody .= '<ul class="vilmed-komplekt__list">';
+					foreach($items as $it) { $it = rtrim(trim($it), ';'); if($it !== "") { $vilmedKomplektBody .= '<li>'.htmlspecialcharsbx($it).'</li>'; } }
+					$vilmedKomplektBody .= '</ul>';
+					if($footnote !== "") { $vilmedKomplektBody .= '<p class="vilmed-komplekt__note">'.htmlspecialcharsbx($footnote).'</p>'; }
+				}
+			}
+			if($vilmedKomplektBody === "") { $vilmedKomplektBody = $vilmedKomplektRaw; }
+			?>
 			<div class="tabs__box">
-				<div class="tabs__box-content">
-					<?=$arResult["PROPERTIES"]["CML2_COMPLECT"]["~VALUE"]["TEXT"];?>
+				<div class="tabs__box-content vilmed-komplekt">
+					<div class="alertMsg info vilmed-komplekt__alert" style="margin: 0 0 20px 0; background: #fff9e6; border-left: 4px solid #ff9800; border-radius: 8px;">
+						<i class="fa fa-info-circle" style="color: #ff9800;"></i>
+						<span class="text"><strong>Обращаем внимание:</strong> комплектация и технические характеристики товара могут изменяться производителем без уведомления. Для уточнения актуальной комплектации и характеристик свяжитесь с нашим менеджером — напишите на <a href="mailto:info@vilmed.ru">info@vilmed.ru</a>.</span>
+					</div>
+					<?=$vilmedKomplektBody?>
 				</div>
 			</div>
 		<?}
@@ -2498,27 +2549,8 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 			---></div>
 			</div>
 		<?}
-		//REVIEWS_TAB//?>
-		<div class="tabs__box" id="catalog-reviews-to">
-			<?if($arParams["AJAX_OPTION_HISTORY"] == "Y" && $arParams["AJAX_MODE"] == "Y") {?>
-				<div id="catalog-reviews-from">
-					<?$APPLICATION->IncludeComponent("altop:catalog.reviews.list", "",
-						array(
-							"IBLOCK_TYPE" => $arParams["IBLOCK_TYPE"],
-							"IBLOCK_ID" => $arResult["REVIEWS"]["IBLOCK_ID"],
-							"ELEMENT_ID" => $arResult["ID"],
-							"ELEMENT_AREA_ID" => $arResult["STR_MAIN_ID"],
-							"CACHE_TYPE" => $arParams["CACHE_TYPE"],
-							"CACHE_TIME" => $arParams["CACHE_TIME"],
-							"COUNT_REVIEW" => $arParams["COUNT_REVIEW"]
-						),
-						$component,
-						array("HIDE_ICONS" => "Y")
-					);?>
-				</div>
-			<?}?>
-		</div>
-		<?//STORES_TAB//
+		//REVIEWS_TAB// VILMED: блок отзывов убран как неактуальный
+		//STORES_TAB//
 		if($arParams["USE_STORE"] == "Y" && ((isset($arResult["OFFERS"]) && !empty($arResult["OFFERS"]) && $arSetting["OFFERS_VIEW"]["VALUE"] != "LIST") || (!isset($arResult["OFFERS"]) || empty($arResult["OFFERS"]))) && !$arResult["COLLECTION"]["THIS"]) {?>
 			<div class="tabs__box">
 				<div id="<?=$arItemIDs['STORE'];?>">

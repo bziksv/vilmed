@@ -120,6 +120,11 @@ Loc::loadMessages(__FILE__);
 	// Включено на всех хостах (раньше было только на localhost).
 	Asset::getInstance()->addCss($vilmedTplPath."/css/floating-header.css");
 	Asset::getInstance()->addJs($vilmedTplPath."/js/floating-header.js");
+	// Современный лайтбокс галереи — только на карточке товара (вместо fancybox 1.3.1).
+	if(function_exists('isProductDetail') && isProductDetail()) {
+		Asset::getInstance()->addCss($vilmedTplPath."/css/product-lightbox.css");
+		Asset::getInstance()->addJs($vilmedTplPath."/js/product-lightbox.js");
+	}
 	Asset::getInstance()->addJs($vilmedTplPath."/js/jquery.cookie.js");
 	Asset::getInstance()->addJs($vilmedTplPath."/js/moremenu.js");
 	Asset::getInstance()->addJs($vilmedTplPath."/js/custom-forms/jquery.custom-forms.js");
@@ -154,7 +159,7 @@ Loc::loadMessages(__FILE__);
 		<?$APPLICATION->IncludeComponent("bitrix:main.include", "", array("AREA_FILE_SHOW" => "file", "PATH" => ""), false);?>
 	</div>
 	<div class="body<?=($arSetting['CATALOG_LOCATION']['VALUE'] == 'HEADER') ? ' clvh' : ''?><?=($arSetting['CART_LOCATION']['VALUE'] == 'TOP') ? ' clvt' : ''?><?=($arSetting['CART_LOCATION']['VALUE'] == 'RIGHT') ? ' clvr' : ''?><?=($arSetting['CART_LOCATION']['VALUE'] == 'LEFT') ? ' clvl' : ''?>">
-<div class="page-wrapper">
+<div class="page-wrapper<?=(function_exists('isProductDetail') && isProductDetail() ? ' vilmed-product' : '')?>">
 			<?if($arSetting["SITE_BACKGROUND"]["VALUE"] == "Y"){?>
 				<div id="for-quick-view-header" class="center outer">
 			<?}else{?>
