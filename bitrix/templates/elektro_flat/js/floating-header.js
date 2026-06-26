@@ -661,6 +661,15 @@
 		var phoneText = phoneEl ? text(phoneEl).replace(/\s+/g, " ") : "";
 		var phoneHref = phoneText ? "tel:" + phoneText.replace(/[^\d+]/g, "") : "";
 
+		// Залогинен ли пользователь — по виджету входа .kabinet (рендерится per-user
+		// даже на композитных страницах): гость → .login_anch, авторизован → .personal/.exit.
+		function isAuthed() {
+			return !!document.querySelector(".kabinet .personal, .kabinet a.exit, .foot_panel_all a.exit");
+		}
+		// Иконка кабинета: гостя ведём сразу на авторизацию, авторизованного — в кабинет.
+		function accountHref() { return isAuthed() ? "/personal/" : "/personal/private/"; }
+		function accountTitle() { return isAuthed() ? "Личный кабинет" : "Войти"; }
+
 		// --- reusable icon cluster (account / compare / favorites / cart) ---
 		function clusterHTML(ns) {
 			function ico(kind, href, icon, title) {
@@ -672,7 +681,7 @@
 				);
 			}
 			return (
-				ico("account", "/personal/", "fa-user", "Личный кабинет") +
+				ico("account", accountHref(), "fa-user", accountTitle()) +
 				ico("compare", "/catalog/compare/", "fa-bar-chart", "Сравнение") +
 				ico("delay", "/personal/cart/?delay=Y", "fa-heart", "Отложенные") +
 				ico("cart", "/personal/cart/", "fa-shopping-cart", "Корзина")
