@@ -106,8 +106,13 @@ $(function() {
 
 	//CHANGE_TAB//
 	$("body").on("click", ".tabs__tab:not(.current)", function() {
+		var $box = $(this).parent().siblings(".tabs__box").eq($(this).index());
 		$(this).addClass("current").siblings().removeClass("current")
 			.parent().siblings(".tabs__box").eq($(this).index()).fadeIn(150).siblings(".tabs__box").hide();
+
+		if (window.vilmedLoadDeferredImages && $box.length) {
+			window.vilmedLoadDeferredImages($box[0]);
+		}
 
 		//ITEMS_HEIGHT//
 		var itemsTable = $(this).parent().siblings(".tabs__box").eq($(this).index()).find(".catalog-item-card");

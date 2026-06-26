@@ -1,11 +1,12 @@
 #!/usr/bin/env php
 <?php
 /**
- * Batch WebP for homepage images — run on server after deploy.
+ * Batch WebP — run on server (cron weekly or after deploy).
  *
  *   cd /var/www/vilmed_ru_usr/data/www/vilmed.ru
  *   php tools/perf/webp-warmup.php
  *   php tools/perf/webp-warmup.php --limit=500
+ *   nohup php tools/perf/webp-warmup.php >> /var/log/vilmed-webp.log 2>&1 &
  */
 if (PHP_SAPI !== 'cli') {
 	fwrite(STDERR, "CLI only\n");
@@ -36,11 +37,20 @@ $scanRoots = [
 	$docRoot . '/logo',
 	$docRoot . '/upload/iblock',
 	$docRoot . '/upload/resize_cache',
+	$docRoot . '/upload/medialibrary',
+	$docRoot . '/upload/uf',
+	$docRoot . '/bitrix/templates/elektro_flat/images',
+];
+
+$skipDirNames = [
+	'.git',
+	'webp',
 ];
 
 $created = 0;
 $skipped = 0;
 $errors = 0;
+$started = microtime(true);
 
 $processFile = static function (string $path) use ($docRoot, &$created, &$skipped, &$errors, $limit): bool {
 	$ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
@@ -60,7 +70,7 @@ $processFile = static function (string $path) use ($docRoot, &$created, &$skippe
 	$result = vilmedGenerateWebpSrc($relative);
 	if ($result !== null) {
 		$created++;
-		if ($created <= 30 || $created % 100 === 0) {
+		if ($created <= 20 || $created % 200 === 0) {
 			echo "+ $result\n";
 		}
 	} else {
@@ -79,7 +89,7 @@ foreach ($scanRoots as $root) {
 		continue;
 	}
 
-	echo "== scan: " . str_replace($docRoot, '', $root) . " ==\n";
+	echo '== scan: ' . str_replace($docRoot, '', $root) . " ==\n";
 
 	$iterator = new RecursiveIteratorIterator(
 		new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS)
@@ -90,10 +100,17 @@ foreach ($scanRoots as $root) {
 			continue;
 		}
 
+		foreach ($skipDirNames as $skipName) {
+			if (strpos($file->getPathname(), '/' . $skipName . '/') !== false) {
+				continue 2;
+			}
+		}
+
 		if (!$processFile($file->getPathname())) {
 			break 2;
 		}
 	}
 }
 
-echo "Done. created=$created skipped=$skipped errors=$errors\n";
+$elapsed = round(microtime(true) - $started, 1);
+echo "Done in {$elapsed}s. created=$created skipped=$skipped errors=$errors\n";
