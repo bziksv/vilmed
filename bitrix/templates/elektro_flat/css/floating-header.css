@@ -413,6 +413,15 @@
 	color: #2b2d42;
 }
 
+/* Единый размер глифов в плавающей шапке: лупа (рендерилась ~13px) и телефон
+   (19px) были мельче рельсовых иконок (20px) — при общем центрировании это
+   читалось как «разный уровень». Приводим к одному размеру. */
+.vilmed-fh__search-toggle i,
+.vilmed-fh__phone-toggle i {
+	font-size: 20px;
+	line-height: 1;
+}
+
 .vilmed-fh__ico-cnt {
 	position: absolute;
 	top: -6px;
