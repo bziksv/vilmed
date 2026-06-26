@@ -1359,3 +1359,83 @@ html.vilmed-drawer-lock {
 	}
 	.vilmed-cats-filter.is-filled .vilmed-cats-filter__clear { display: inline-flex; }
 }
+
+/* ============================================================
+   КАТАЛОГ — СПИСОК ТОВАРОВ НА МОБИЛЕ (≤787px)
+   Тема даёт фото 70×70 (не видно на телефоне), а глобальное правило
+   .compare_delay из этого файла «протекало» в список и растягивало
+   «Сравнить»/«Избранное» в две серые полосы. Здесь:
+   1) увеличиваем превью; 2) делаем иконки компактными кнопками.
+   Всё scoped под .catalog-item, чтобы не задеть карточку товара.
+   ============================================================ */
+@media (max-width: 787px) {
+	/* --- крупнее превью --- */
+	.catalog-item .catalog-item-image-cont {
+		width: 124px !important;
+		padding: 0 14px 0 0 !important;
+	}
+	.catalog-item .catalog-item-image {
+		width: 110px !important;
+		height: 110px !important;
+	}
+	.catalog-item .catalog-item-image a img,
+	.catalog-item .catalog-item-image img.item_img {
+		max-width: 110px !important;
+		max-height: 110px !important;
+	}
+
+	/* --- цена крупнее --- */
+	.catalog-item .item-price .catalog-item-price {
+		font-size: 19px;
+		font-weight: 700;
+	}
+
+	/* --- «Сравнить»/«Избранное»: компактные иконки-кнопки, не полосы --- */
+	.catalog-item .compare_delay {
+		display: flex !important;
+		flex-direction: row !important;
+		flex-wrap: nowrap !important;
+		gap: 8px !important;
+		width: auto !important;
+		margin: 10px 0 0 !important;
+	}
+	.catalog-item .compare_delay > .compare,
+	.catalog-item .compare_delay > .delay {
+		flex: 0 0 auto !important;
+		width: auto !important;
+		min-width: 0 !important;
+		margin: 0 !important;
+	}
+	.catalog-item .compare_delay .catalog-item-compare,
+	.catalog-item .compare_delay .catalog-item-delay,
+	.catalog-item .compare_delay .catalog-item-compared,
+	.catalog-item .compare_delay .catalog-item-delayed {
+		display: flex !important;
+		align-items: center;
+		justify-content: center;
+		width: 36px !important;
+		height: 36px !important;
+		padding: 0 !important;
+		box-sizing: border-box;
+		border: 1px solid #d9dde6;
+		border-radius: 8px;
+		background: #fff;
+		color: #7a8094 !important;
+	}
+	.catalog-item .compare_delay .catalog-item-compare .fa,
+	.catalog-item .compare_delay .catalog-item-delay .fa,
+	.catalog-item .compare_delay .catalog-item-compared .fa,
+	.catalog-item .compare_delay .catalog-item-delayed .fa {
+		font-size: 15px;
+		padding: 0 !important;
+	}
+	.catalog-item .compare_delay .catalog-item-compare span,
+	.catalog-item .compare_delay .catalog-item-delay span {
+		display: none !important;
+	}
+	/* состояние «добавлено» — зелёная галочка */
+	.catalog-item .compare_delay .catalog-item-compared .fa-check,
+	.catalog-item .compare_delay .catalog-item-delayed .fa-check {
+		color: #3aa564 !important;
+	}
+}
