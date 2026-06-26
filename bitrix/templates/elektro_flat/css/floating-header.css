@@ -1504,22 +1504,48 @@ html.vilmed-drawer-lock {
 		position: absolute !important;
 		left: 140px !important;
 		right: auto !important;
-		bottom: 9px !important;
+		bottom: 8px !important;
 		top: auto !important;
 		width: auto !important;
 		margin: 0 !important;
+		display: flex !important;
+		align-items: center !important;
 	}
 	.catalog-item-list-view .catalog-item .buy_more {
 		position: absolute !important;
 		right: 8px !important;
 		left: auto !important;
-		bottom: 7px !important;
+		bottom: 8px !important;
 		top: auto !important;
 		display: block !important;
 		width: auto !important;
 		height: auto !important;
 		vertical-align: baseline !important;
 		margin: 0 !important;
+	}
+	/* Единая высота кнопок ряда: иконки и корзина строго на одном уровне
+	   (верх/низ совпадают). Высоты темы (30 vs 29) и разные bottom давали
+	   рассинхрон в 2–3px — заметно глазу. */
+	.catalog-item-list-view .catalog-item .compare_delay .catalog-item-compare,
+	.catalog-item-list-view .catalog-item .compare_delay .catalog-item-compared,
+	.catalog-item-list-view .catalog-item .compare_delay .catalog-item-delay,
+	.catalog-item-list-view .catalog-item .compare_delay .catalog-item-delayed,
+	.catalog-item-list-view .catalog-item .buy_more .btn_buy,
+	.catalog-item-list-view .catalog-item .buy_more button[name="add2basket"],
+	.catalog-item-list-view .catalog-item .buy_more .btn_href,
+	.catalog-item-list-view .catalog-item .buy_more .apuo {
+		height: 34px !important;
+		min-height: 34px !important;
+		display: flex !important;
+		align-items: center !important;
+		justify-content: center !important;
+		box-sizing: border-box !important;
+	}
+	.catalog-item-list-view .catalog-item .compare_delay .catalog-item-compare,
+	.catalog-item-list-view .catalog-item .compare_delay .catalog-item-compared,
+	.catalog-item-list-view .catalog-item .compare_delay .catalog-item-delay,
+	.catalog-item-list-view .catalog-item .compare_delay .catalog-item-delayed {
+		width: 34px !important;
 	}
 }
 

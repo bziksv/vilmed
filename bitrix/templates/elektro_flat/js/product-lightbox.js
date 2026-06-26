@@ -13,6 +13,13 @@
 
 	var IMG_RE = /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i;
 
+	// Схлопываем resize_cache к оригиналу: одно и то же фото в разных размерах
+	// (главное фото vs «ещё фото») не должно дублироваться в просмотре.
+	// /upload/resize_cache/iblock/553/390_390_1/file.jpg -> /upload/iblock/553/file.jpg
+	function normKey(href) {
+		return href.replace(/\/resize_cache\/(.*?)\/\d+_\d+(?:_\d+)?\//, "/$1/");
+	}
+
 	ready(function () {
 		var gallery = document.querySelector(".catalog-detail-pictures");
 		if (!gallery) { return; }
@@ -27,11 +34,13 @@
 				var a = anchors[i];
 				var href = a.getAttribute("href") || "";
 				if (!IMG_RE.test(href)) { continue; }
-				if (seen[href]) { continue; }
-				seen[href] = 1;
+				var key = normKey(href);
+				if (seen[key]) { continue; }
+				seen[key] = 1;
 				var thumbImg = a.querySelector("img");
 				out.push({
 					src: href,
+					key: key,
 					thumb: thumbImg ? (thumbImg.getAttribute("src") || href) : href,
 					alt: (thumbImg && thumbImg.getAttribute("alt")) || ""
 				});
@@ -141,8 +150,9 @@
 			if (!items.length) { return; }
 			renderThumbs();
 			var start = 0;
+			var startKey = normKey(startSrc);
 			for (var i = 0; i < items.length; i++) {
-				if (items[i].src === startSrc) { start = i; break; }
+				if (items[i].key === startKey) { start = i; break; }
 			}
 			go(start);
 			document.documentElement.classList.add("vlb-lock");
