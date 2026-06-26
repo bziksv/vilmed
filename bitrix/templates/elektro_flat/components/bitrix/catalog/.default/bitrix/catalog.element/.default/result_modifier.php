@@ -462,6 +462,35 @@ if(is_array($arResult["DETAIL_PICTURE"])) {
 if(is_array($arResult["MORE_PHOTO"]) && count($arResult["MORE_PHOTO"]) > 0) {
 	unset($arResult["DISPLAY_PROPERTIES"]["MORE_PHOTO"]);
 
+	//VILMED_MORE_PHOTO_DEDUP//
+	// Главное фото часто повторно загружено как первое «доп. фото»: это РАЗНЫЕ файлы
+	// (разные iblock-пути) с одинаковым содержимым — по URL не отличить, в галерее дубль.
+	// Дедуп по md5 содержимого: убираем из MORE_PHOTO всё, что совпадает с DETAIL_PICTURE
+	// и внутренние повторы. md5_file считается на оригиналах; страница композитно кешируется.
+	$vilmedPhotoPath = function($f) {
+		if(is_array($f)) {
+			if(!empty($f["SRC"])) { return $_SERVER["DOCUMENT_ROOT"].$f["SRC"]; }
+			if(!empty($f["SUBDIR"]) && !empty($f["FILE_NAME"])) { return $_SERVER["DOCUMENT_ROOT"]."/upload/".$f["SUBDIR"]."/".$f["FILE_NAME"]; }
+		}
+		return null;
+	};
+	$vilmedSeenHash = array();
+	if(is_array($arResult["DETAIL_PICTURE"]) && !empty($arResult["DETAIL_PICTURE"]["SRC"])) {
+		$vilmedDetailPath = $_SERVER["DOCUMENT_ROOT"].$arResult["DETAIL_PICTURE"]["SRC"];
+		if(is_file($vilmedDetailPath)) { $vilmedSeenHash[@md5_file($vilmedDetailPath)] = true; }
+	}
+	foreach($arResult["MORE_PHOTO"] as $key => $arFile) {
+		$vilmedPath = $vilmedPhotoPath($arFile);
+		if($vilmedPath && is_file($vilmedPath)) {
+			$vilmedHash = @md5_file($vilmedPath);
+			if($vilmedHash) {
+				if(isset($vilmedSeenHash[$vilmedHash])) { unset($arResult["MORE_PHOTO"][$key]); continue; }
+				$vilmedSeenHash[$vilmedHash] = true;
+			}
+		}
+	}
+	unset($vilmedPhotoPath, $vilmedSeenHash, $vilmedDetailPath, $vilmedPath, $vilmedHash);
+
 	//MORE_PICTURES//
 	foreach($arResult["MORE_PHOTO"] as $key => $arFile) {
 		//MORE_PICTURES_WATERMARK//
