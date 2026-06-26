@@ -1398,14 +1398,15 @@ html.vilmed-drawer-lock {
 		font-weight: 700;
 	}
 
-	/* --- «Сравнить»/«Избранное»: компактные иконки-кнопки, не полосы --- */
+	/* --- «Сравнить»/«Избранное»: мелкие вторичные иконки-кнопки.
+	   Меньше корзины (главный CTA) — ~30px против ~37px кнопки покупки. --- */
 	.catalog-item .compare_delay {
 		display: flex !important;
 		flex-direction: row !important;
 		flex-wrap: nowrap !important;
-		gap: 8px !important;
+		gap: 6px !important;
 		width: auto !important;
-		margin: 10px 0 0 !important;
+		margin: 8px 0 0 !important;
 	}
 	.catalog-item .compare_delay > .compare,
 	.catalog-item .compare_delay > .delay {
@@ -1421,20 +1422,20 @@ html.vilmed-drawer-lock {
 		display: flex !important;
 		align-items: center;
 		justify-content: center;
-		width: 36px !important;
-		height: 36px !important;
+		width: 30px !important;
+		height: 30px !important;
 		padding: 0 !important;
 		box-sizing: border-box;
-		border: 1px solid #d9dde6;
-		border-radius: 8px;
+		border: 1px solid #e3e7ee;
+		border-radius: 7px;
 		background: #fff;
-		color: #7a8094 !important;
+		color: #8b91a3 !important;
 	}
 	.catalog-item .compare_delay .catalog-item-compare .fa,
 	.catalog-item .compare_delay .catalog-item-delay .fa,
 	.catalog-item .compare_delay .catalog-item-compared .fa,
 	.catalog-item .compare_delay .catalog-item-delayed .fa {
-		font-size: 15px;
+		font-size: 13px;
 		padding: 0 !important;
 	}
 	.catalog-item .compare_delay .catalog-item-compare span,
