@@ -60,28 +60,7 @@
 							<?}?>
 						</script>
 					</div>
-					<?if($arResult["AUTH_SERVICES"] && COption::GetOptionString("main", "allow_socserv_authorization", "Y") != "N"):?>
-						<p class="login_as"><?=GetMessage("LOGIN_AS_USER")?></p>
-						<?$APPLICATION->IncludeComponent("bitrix:socserv.auth.form", "icons", 
-							array(
-								"AUTH_SERVICES"=>$arResult["AUTH_SERVICES"],
-								"SUFFIX"=>"form", 
-							), 
-							$component, 
-							array("HIDE_ICONS"=>"Y")
-						);?>
-						<?$APPLICATION->IncludeComponent("bitrix:socserv.auth.form", "",
-							array(
-								"AUTH_SERVICES"=>$arResult["AUTH_SERVICES"],
-								"AUTH_URL"=>$arResult["AUTH_URL"],
-								"POST"=>$arResult["POST"],
-								"POPUP"=>"Y",
-								"SUFFIX"=>"form",
-							),
-							$component,
-							array("HIDE_ICONS"=>"Y")
-						);?>
-					<?endif?>					
+					<?// VILMED: блок «Войти как пользователь» (соцсети) убран — только стандартный вход.?>					
 				</div>
 			</div>
 			<a class="register" href="<?=SITE_DIR?>personal/private/?register=yes" title="<?=GetMessage("REGISTRATION")?>" rel="nofollow"><i class="fa fa-user-plus"></i><span><?=GetMessage("REGISTRATION")?></span></a>

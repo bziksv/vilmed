@@ -55,34 +55,5 @@ $arMessage = $params["MESS"];?>
 			<?}?>
 		</script>
 	</div>
-	<?
-	$arResult["AUTH_SERVICES"] = false;
-	if(CModule::IncludeModule("socialservices")) {
-		$oAuthManager = new CSocServAuthManager();
-		$arServices = $oAuthManager->GetActiveAuthServices($arResult);
-		if(!empty($arServices)) $arResult["AUTH_SERVICES"] = $arServices;
-	}
-	?>
-	<?if($arResult["AUTH_SERVICES"] && COption::GetOptionString("main", "allow_socserv_authorization", "Y") != "N") {?>
-		<p class="login_as"><?=$arMessage["LOGIN_AS_USER"]?></p>
-		<?$APPLICATION->IncludeComponent("bitrix:socserv.auth.form", "icons", 
-			array(
-				"AUTH_SERVICES" => $arResult["AUTH_SERVICES"],
-				"SUFFIX" => "form", 
-			), 
-			$component, 
-			array("HIDE_ICONS"=>"Y")
-		);?>
-		<?$APPLICATION->IncludeComponent("bitrix:socserv.auth.form", "",
-			array(
-				"AUTH_SERVICES" => $arResult["AUTH_SERVICES"],
-				"AUTH_URL" => $arResult["AUTH_URL"],
-				"POST" => $arResult["POST"],
-				"POPUP" => "Y",
-				"SUFFIX" => "form",
-			),
-			$component,
-			array("HIDE_ICONS"=>"Y")
-		);?>
-	<?}?>					
+	<?// VILMED: блок «Войти как пользователь» (соцсети) убран — только стандартный вход.?>
 </div>
