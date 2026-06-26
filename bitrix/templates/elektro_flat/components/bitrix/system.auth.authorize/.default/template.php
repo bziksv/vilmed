@@ -72,26 +72,5 @@
 			<?}?>
 		</script>
 	</div>	
-	<?if($arResult["AUTH_SERVICES"]):?>
-		<p class="login_as"><?=GetMessage("AUTH_LOGIN_AS_USER")?></p>
-		<?$APPLICATION->IncludeComponent("bitrix:socserv.auth.form", "icons", 
-			array(
-				"AUTH_SERVICES"=>$arResult["AUTH_SERVICES"],
-				"SUFFIX"=>"form", 
-			), 
-			$component, 
-			array("HIDE_ICONS"=>"Y")
-		);?>
-		<?$APPLICATION->IncludeComponent("bitrix:socserv.auth.form", "",
-			array(
-				"AUTH_SERVICES"=>$arResult["AUTH_SERVICES"],
-				"AUTH_URL"=>$arResult["AUTH_URL"],
-				"POST"=>$arResult["POST"],
-				"POPUP"=>"Y",
-				"SUFFIX"=>"form",
-			),
-			$component,
-			array("HIDE_ICONS"=>"Y")
-		);?>
-	<?endif?>
+	<?// VILMED: блок «Войти как пользователь» (соцсети) убран — оставляем только стандартный вход.?>
 </div>
