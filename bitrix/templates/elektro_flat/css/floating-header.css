@@ -1055,6 +1055,42 @@ html.vilmed-drawer-lock {
 	flex: 0 0 auto;
 }
 
+/* --- способы оплаты в подвале — современные чипы (как на карточке) --- */
+.vilmed-footer-pay__list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 6px 0 0;
+	padding: 0;
+}
+.vilmed-footer-pay__item {
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	padding: 7px 11px;
+	border: 1px solid #e3e6ec;
+	border-radius: 10px;
+	background: #f7f8fa;
+	color: #3b3f54 !important;
+	font-size: 12px;
+	line-height: 1;
+	white-space: nowrap;
+	text-decoration: none !important;
+	transition: border-color .15s, background .15s;
+}
+.vilmed-footer-pay__item:hover {
+	border-color: #c7ccd6;
+	background: #fff;
+	color: #2b2d42 !important;
+}
+.vilmed-footer-pay__item svg {
+	width: 18px;
+	height: 18px;
+	fill: #5b6075;
+	flex: 0 0 auto;
+}
+
 /* --- карточка товара: убираем неиспользуемый рейтинг (звёзды) --- */
 .vilmed-product .article_rating .rating { display: none !important; }
 
