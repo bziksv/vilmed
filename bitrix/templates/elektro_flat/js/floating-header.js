@@ -1114,3 +1114,58 @@
 		clearBtn.addEventListener("click", function () { input.value = ""; apply(""); input.focus(); });
 	});
 })();
+
+/* ============================================================
+   VILMED: страница товара — цена и выбор количества в один ряд,
+   артикул выводим строкой ПОД ценой.
+   Кнопки −/+ навешиваются через BX.bind на конкретные узлы по ID,
+   а «Купить» читает количество по id="quantity_<id>" — поэтому
+   перенос .qnt_cont из .catalog-detail-buy к цене безопасен
+   (слушатели остаются на узле при перемещении в DOM).
+   ============================================================ */
+(function () {
+	function arrange() {
+		// Якорь — .catalog-detail-price (уникальный узел). На странице бывает
+		// два вложенных .catalog-detail (внешний/внутренний), поэтому от цены
+		// идём через closest, чтобы обработать ровно один раз.
+		var prices = document.querySelectorAll(".catalog-detail-price");
+		for (var i = 0; i < prices.length; i++) {
+			var price = prices[i];
+			if (price.getAttribute("data-vmd-done") === "1") continue;
+			price.setAttribute("data-vmd-done", "1");
+			if (price.closest(".vmd-price-row")) continue;
+
+			var root = price.closest(".catalog-detail") || price.parentNode;
+
+			// Товары с торговыми предложениями (SKU) пропускаем: блок цены/покупки
+			// перерисовывается при смене предложения и содержит несколько .qnt_cont,
+			// перенос количества сломал бы переключение.
+			var buy = root.querySelector(".catalog-detail-buy");
+			var qntCount = buy ? buy.querySelectorAll(".qnt_cont").length : 0;
+			if (root.querySelector(".catalog-detail-offers-cont") ||
+				root.querySelector(".catalog-detail-offers") ||
+				qntCount > 1) {
+				continue;
+			}
+
+			// ряд «цена + количество»
+			var row = document.createElement("div");
+			row.className = "vmd-price-row";
+			price.parentNode.insertBefore(row, price);
+			row.appendChild(price);
+
+			var qnt = buy ? buy.querySelector(".qnt_cont") : null;
+			if (qnt) row.appendChild(qnt);
+
+			// артикул строкой под ценой (именно .catalog-detail-article;
+			// .article_rating на детальной держит только рейтинг — его не трогаем)
+			var art = root.querySelector(".catalog-detail-article");
+			if (art) {
+				art.classList.add("vmd-article-below");
+				row.parentNode.insertBefore(art, row.nextSibling);
+			}
+		}
+	}
+	if (document.readyState !== "loading") arrange();
+	else document.addEventListener("DOMContentLoaded", arrange);
+})();

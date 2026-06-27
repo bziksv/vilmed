@@ -1116,6 +1116,69 @@ html.vilmed-drawer-lock {
 }
 .catalog-detail-price .vilmed-article-inprice { margin-bottom: 8px; }
 
+/* --- VILMED: страница товара — цена и выбор количества в один ряд,
+   артикул строкой под ценой. .qnt_cont переносится сюда из .catalog-detail-buy
+   скриптом floating-header.js (слушатели −/+ навешаны по ID и сохраняются). --- */
+.catalog-detail .vmd-price-row {
+	width: 100%;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: nowrap;
+	gap: 10px;
+	margin: 0 0 2px;
+}
+.catalog-detail .vmd-price-row .catalog-detail-price {
+	width: auto;
+	min-width: 0;
+	display: block;
+	margin: 0;
+	flex: 1 1 auto;
+	text-align: left;
+}
+.catalog-detail .vmd-price-row .catalog-detail-price .catalog-detail-item-price,
+.catalog-detail .vmd-price-row .catalog-detail-price .catalog-detail-item-price-current {
+	text-align: left;
+}
+.catalog-detail .vmd-price-row .qnt_cont {
+	margin: 0 !important;
+	flex: 0 0 auto;
+}
+.catalog-detail .vmd-price-row .qnt_cont .quantity {
+	width: 44px;
+	min-width: 0;
+	text-align: center;
+	box-sizing: border-box;
+}
+/* тема в мобильном медиа задаёт .price_buy_detail > div { width:209px; margin:auto },
+   а наш ряд и артикул — прямые потомки .price_buy_detail; перебиваем на всю ширину */
+.catalog-detail .price_buy_detail > .vmd-price-row,
+.catalog-detail .price_buy_detail > .catalog-detail-article.vmd-article-below {
+	width: 100%;
+	margin-left: 0;
+	margin-right: 0;
+}
+
+/* десктоп: правая колонка покупки узкая (208px контента) — длинная цена и
+   количество в один ряд не помещались. В .column.three есть свободное место
+   справа, поэтому слегка расширяем блок покупки, чтобы цена не дробилась. */
+@media (min-width: 788px) {
+	.catalog-detail .column.three .price_buy_detail {
+		width: 300px;
+	}
+}
+.catalog-detail .catalog-detail-article.vmd-article-below {
+	width: 100%;
+	float: none;
+	margin: 0 0 12px;
+	padding: 0;
+}
+.catalog-detail .catalog-detail-article.vmd-article-below .article {
+	float: none;
+	margin: 0;
+}
+
 /* --- кнопки «в сравнение / в избранное» (были скрыты) --- */
 /* десктоп: две кнопки в один ряд 50/50 на всю ширину блока «Купить»
    (тема по умолчанию ужимает их по содержимому и роняет вправо пустоту).
