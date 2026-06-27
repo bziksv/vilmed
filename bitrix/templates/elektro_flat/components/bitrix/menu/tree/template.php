@@ -18,15 +18,21 @@ $JS_HIDE = explode("\r\n", str_replace([' ', '.'], '', $arResult['PROPERTIES']['
 ?>
 
 <style>
-<? foreach($arResult as &$arItem): ?>
+<? foreach($arResult as $vilmedKey => &$arItem): ?>
 	<? if(in_array($arItem["PARAMS"]["ID"], $JS_HIDE) || $moveTextInAttr): ?>
-	<? $arItem["CODE"] = explode('/',$arItem["LINK"])[2]; ?>
+	<? // VILMED: CODE из сегмента пути не уникален (orders vs orders?filter_history,
+	   //  cart vs cart?delay → одинаковый show_orders/show_cart). Один и тот же CSS-селектор
+	   //  :before объявлялся дважды, побеждало последнее правило → «Текущие заказы» подписывался
+	   //  как «Архив заказов», «Моя корзина» как «Отложенные товары». Делаем класс уникальным. ?>
+	<? $arItem["CODE"] = explode('/',$arItem["LINK"])[2].'_'.$vilmedKey; ?>
 	
 		.show_<?=$arItem["CODE"]?>:before{
 					content:'<?=$arItem["TEXT"]?>';
 		}
 	<? endif; ?>
 <? endforeach; ?>
+<? unset($arItem); // VILMED: гасим висячую ссылку foreach-by-reference — иначе следующий
+                   //  foreach($arResult as $arItem) перезаписывает последний пункт меню и он дублируется ?>
 </style>
 
 <ul class="left-menu">
