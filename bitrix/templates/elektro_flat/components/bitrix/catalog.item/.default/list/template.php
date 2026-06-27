@@ -127,7 +127,10 @@ $arElement['DETAIL_PAGE_URL'] = "/product/".$arElement['CODE']."/";
 			<?}
 			//OFFERS_DELAY//
 			if($haveOffers) {
-				if($arElement["TOTAL_OFFERS"]["MIN_PRICE"]["CAN_BUY"] && $arElement["TOTAL_OFFERS"]["MIN_PRICE"]["RATIO_PRICE"] > 0) {
+				// VILMED: «Отложить» и у товаров без цены (цена по запросу). Было CAN_BUY && RATIO_PRICE>0 —
+				//  у бесценовых кнопка пропадала. Add2BasketByProductID кладёт позицию с PRICE=0 (проверено), отложенные работают.
+				//  Для предложений достаточно валидного offer-id.
+				if($arElement["TOTAL_OFFERS"]["MIN_PRICE"]["ID"] > 0) {
 					$props = array();
 					if(!empty($arElement["TOTAL_OFFERS"]["MIN_PRICE"]["PROPERTIES"]["ARTNUMBER"]["VALUE"])) {
 						$props[] = array(
@@ -154,7 +157,8 @@ $arElement['DETAIL_PAGE_URL'] = "/product/".$arElement['CODE']."/";
 				<?}
 			//ITEM_DELAY//
 			} else {
-				if($arElement["CAN_BUY"] && $arElement["MIN_PRICE"]["RATIO_PRICE"] > 0) {
+				// VILMED: простой товар можно отложить всегда (id валиден), в т.ч. без цены.
+				if($arElement["ID"] > 0) {
 					$props = "";
 					if(!empty($arElement["PROPERTIES"]["ARTNUMBER"]["VALUE"])) {
 						$props = array();

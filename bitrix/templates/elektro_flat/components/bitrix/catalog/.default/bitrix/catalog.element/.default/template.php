@@ -1231,7 +1231,8 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 									if(isset($arResult["OFFERS"]) && !empty($arResult["OFFERS"])) {
 										if($arSetting["OFFERS_VIEW"]["VALUE"] != "LIST") {
 											foreach($arResult["OFFERS"] as $key => $arOffer) {
-												if($arOffer["CAN_BUY"] && $arOffer["MIN_PRICE"]["RATIO_PRICE"] > 0) {
+												// VILMED: «Отложить» и у предложений без цены — достаточно валидного id предложения.
+												if($arOffer["ID"] > 0) {
 													$props = array();
 													if(!empty($arOffer["PROPERTIES"]["ARTNUMBER"]["VALUE"])) {
 														$props[] = array(
@@ -1258,7 +1259,8 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 										}
 									//DETAIL_DELAY//
 									} else {
-										if($arResult["CAN_BUY"] && $arResult["MIN_PRICE"]["RATIO_PRICE"] > 0) {
+										// VILMED: «Отложить» доступно и у товара без цены (цена по запросу) — id всегда валиден.
+										if($arResult["ID"] > 0) {
 											$props = array();
 											if(!empty($arResult["PROPERTIES"]["ARTNUMBER"]["VALUE"])) {
 												$props[] = array(

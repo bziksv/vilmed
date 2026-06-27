@@ -321,7 +321,8 @@ use \Bitrix\Main\Localization\Loc;?>
 		<?}
 		//OFFERS_DELAY//
 		if($haveOffers) {
-			if($arElement["TOTAL_OFFERS"]["MIN_PRICE"]["CAN_BUY"] && $arElement["TOTAL_OFFERS"]["MIN_PRICE"]["RATIO_PRICE"] > 0) {
+			// VILMED: «Отложить» и у товаров без цены (цена по запросу). Достаточно валидного offer-id.
+			if($arElement["TOTAL_OFFERS"]["MIN_PRICE"]["ID"] > 0) {
 				$props = array();
 				if(!empty($arElement["TOTAL_OFFERS"]["MIN_PRICE"]["PROPERTIES"]["ARTNUMBER"]["VALUE"])) {
 					$props[] = array(
@@ -346,7 +347,8 @@ use \Bitrix\Main\Localization\Loc;?>
 			<?}
 		//ITEM_DELAY//
 		} else {
-			if($arElement["CAN_BUY"] && $arElement["MIN_PRICE"]["RATIO_PRICE"] > 0) {
+			// VILMED: простой товар можно отложить всегда (id валиден), в т.ч. без цены.
+			if($arElement["ID"] > 0) {
 				$props = "";
 				if(!empty($arElement["PROPERTIES"]["ARTNUMBER"]["VALUE"])) {
 					$props = array();
