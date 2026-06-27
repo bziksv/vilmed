@@ -1,0 +1,121 @@
+/* ============================================================
+   VILMED — оформление описания товара (.vmd-desc)
+   Переносимый, полностью изолированный (scoped) CSS: все правила
+   начинаются с .vmd-desc, поэтому файл не влияет на остальной сайт
+   и его можно подключать где угодно. Подключается на карточке товара
+   (header.php → isProductDetail()).
+
+   Контент с этими классами кладётся в детальный текст товара
+   (вкладка «Описание»). Документация по классам и готовый промт:
+   bitrix/templates/elektro_flat/css/VMD-DESCRIPTION.md
+
+   Иконки: инлайновые SVG в стиле Lucide (lucide.dev, MIT),
+   24×24, stroke="currentColor", fill="none", stroke-width 2,
+   round caps/joins. Цвет берётся из текущего блока (currentColor).
+   ============================================================ */
+
+.vmd-desc {
+	--accent: #b21001;        /* фирменный красный VILMED (кнопка «Купить») */
+	--accent-dark: #8a0d01;
+	--ink: #1f2430;
+	--muted: #6a6f80;
+	--line: #e6e9f0;
+	--bg-soft: #f6f8fb;
+	color: var(--ink);
+	font-size: 16px;
+	line-height: 1.7;
+	-webkit-font-smoothing: antialiased;
+}
+.vmd-desc * { box-sizing: border-box; }
+
+/* --- общий контейнер иконок: красим SVG через currentColor --- */
+.vmd-desc .ic svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+	stroke: currentColor;
+	fill: none;
+}
+
+/* --- Заголовки h1–h3 --- */
+.vmd-desc h1 { font-size: 28px; line-height: 1.25; font-weight: 800; margin: 0 0 6px; letter-spacing: -.01em; }
+.vmd-desc .vmd-subtitle { font-size: 17px; color: var(--muted); margin: 0 0 26px; font-weight: 400; }
+.vmd-desc h2 { font-size: 22px; font-weight: 700; margin: 34px 0 14px; padding-bottom: 10px; position: relative; letter-spacing: -.01em; }
+.vmd-desc h2::after { content: ""; position: absolute; left: 0; bottom: 0; width: 54px; height: 3px; background: var(--accent); border-radius: 3px; }
+.vmd-desc h3 { font-size: 18px; font-weight: 700; margin: 24px 0 10px; color: #2a3040; }
+.vmd-desc p { margin: 0 0 14px; }
+.vmd-desc a { color: var(--accent); text-decoration: none; }
+.vmd-desc a:hover { text-decoration: underline; }
+.vmd-desc strong { font-weight: 700; color: #171b26; }
+.vmd-desc mark { background: linear-gradient(transparent 55%, #ffe07a 55%); padding: 0 2px; color: inherit; }
+
+/* --- Списки с кастомными маркерами --- */
+.vmd-desc ul.vmd-list { list-style: none; margin: 14px 0 18px; padding: 0; }
+.vmd-desc ul.vmd-list li { position: relative; padding: 6px 0 6px 30px; border-bottom: 1px solid var(--line); }
+.vmd-desc ul.vmd-list li:last-child { border-bottom: 0; }
+.vmd-desc ul.vmd-list li::before { content: ""; position: absolute; left: 4px; top: 14px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px rgba(178, 16, 1, .12); }
+
+/* --- Карточки преимуществ (сетка 2×2, на мобиле 1 колонка) --- */
+.vmd-desc .vmd-features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 18px 0 6px; }
+.vmd-desc .vmd-feature { background: var(--bg-soft); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+.vmd-desc .vmd-feature .ic { width: 38px; height: 38px; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: #fff; border: 1px solid var(--line); margin-bottom: 10px; color: var(--accent); }
+.vmd-desc .vmd-feature .ic svg { width: 21px; height: 21px; }
+.vmd-desc .vmd-feature h3 { margin: 0 0 4px; font-size: 16px; }
+.vmd-desc .vmd-feature p { margin: 0; font-size: 14.5px; color: var(--muted); line-height: 1.55; }
+
+/* --- Таблица характеристик (zebra) --- */
+.vmd-desc .vmd-table-wrap { margin: 16px 0 8px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.vmd-desc table.vmd-spec { width: 100%; border-collapse: collapse; font-size: 15px; }
+.vmd-desc table.vmd-spec td { padding: 12px 18px; vertical-align: top; border-top: 1px solid var(--line); }
+.vmd-desc table.vmd-spec tr:first-child td { border-top: 0; }
+.vmd-desc table.vmd-spec tr:nth-child(even) { background: var(--bg-soft); }
+.vmd-desc table.vmd-spec td.k { width: 44%; color: var(--muted); font-weight: 600; }
+.vmd-desc table.vmd-spec td.v { color: var(--ink); font-weight: 500; }
+
+/* --- Примечания-callout (info / warn / accent) --- */
+.vmd-desc .vmd-note { display: flex; gap: 12px; border-radius: 12px; padding: 14px 16px; margin: 18px 0; font-size: 14.5px; line-height: 1.6; }
+.vmd-desc .vmd-note .ic { width: 22px; height: 22px; flex: 0 0 auto; margin-top: 1px; }
+.vmd-desc .vmd-note--info { background: #eef5ff; border: 1px solid #cfe1ff; color: #234e8c; }
+.vmd-desc .vmd-note--warn { background: #fff6e9; border: 1px solid #ffe0b0; color: #8a5a14; }
+.vmd-desc .vmd-note--accent { background: #fcefef; border: 1px solid #f1cbc6; color: var(--accent-dark); }
+.vmd-desc .vmd-note strong { color: inherit; }
+
+/* --- FAQ на нативном <details> (раскрывается без JS) --- */
+.vmd-desc .vmd-faq { margin: 14px 0 6px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.vmd-desc .vmd-faq details { border-top: 1px solid var(--line); }
+.vmd-desc .vmd-faq details:first-child { border-top: 0; }
+.vmd-desc .vmd-faq summary { cursor: pointer; list-style: none; padding: 14px 46px 14px 18px; position: relative; font-weight: 650; font-size: 15.5px; background: #fff; }
+.vmd-desc .vmd-faq summary::-webkit-details-marker { display: none; }
+.vmd-desc .vmd-faq summary::after { content: "+"; position: absolute; right: 18px; top: 50%; transform: translateY(-50%); font-size: 22px; color: var(--accent); font-weight: 400; transition: transform .2s; }
+.vmd-desc .vmd-faq details[open] summary::after { content: "\2013"; }
+.vmd-desc .vmd-faq .vmd-faq__a { padding: 0 18px 16px; color: var(--muted); font-size: 14.5px; line-height: 1.65; }
+
+/* --- CTA-форма (особенно для «цена по запросу») — спокойная светлая
+   карточка с красной акцентной полосой, без сплошной заливки --- */
+.vmd-desc .vmd-cta { margin: 30px 0 6px; border-radius: 16px; padding: 24px 26px; color: var(--ink); background: #f7f8fb; border: 1px solid var(--line); border-left: 4px solid var(--accent); }
+.vmd-desc .vmd-cta__badge { display: inline-block; background: #fcefef; border: 1px solid #f1cbc6; border-radius: 30px; padding: 4px 12px; font-size: 12.5px; font-weight: 600; letter-spacing: .02em; margin-bottom: 10px; color: var(--accent-dark); }
+.vmd-desc .vmd-cta h2 { color: var(--ink); margin: 0 0 6px; padding: 0; font-size: 22px; }
+.vmd-desc .vmd-cta h2::after { display: none; }
+.vmd-desc .vmd-cta p { margin: 0 0 18px; color: var(--muted); font-size: 15px; max-width: 560px; }
+.vmd-desc .vmd-cta form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; }
+.vmd-desc .vmd-cta input { border: 1px solid #d8dce6; border-radius: 10px; padding: 13px 14px; font-size: 15px; background: #fff; color: var(--ink); width: 100%; }
+.vmd-desc .vmd-cta input::placeholder { color: #9aa0b0; }
+.vmd-desc .vmd-cta button { border: 0; border-radius: 10px; padding: 13px 24px; font-size: 15px; font-weight: 700; cursor: pointer; background: var(--accent); color: #fff; white-space: nowrap; transition: background .15s; }
+.vmd-desc .vmd-cta button:hover { background: var(--accent-dark); }
+.vmd-desc .vmd-cta__hint { margin: 12px 0 0; font-size: 12.5px; color: #9aa0b0; }
+.vmd-desc .vmd-cta__hint a { color: var(--accent); text-decoration: underline; }
+
+/* --- Финальное контактное примечание --- */
+.vmd-desc .vmd-manager { display: flex; align-items: center; gap: 14px; margin-top: 26px; padding: 16px 18px; background: var(--bg-soft); border: 1px solid var(--line); border-radius: 12px; font-size: 14.5px; color: var(--muted); }
+.vmd-desc .vmd-manager .ic { width: 24px; height: 24px; flex: 0 0 auto; color: #9aa0b0; }
+
+/* --- Адаптив под мобайл --- */
+@media (max-width: 680px) {
+	.vmd-desc { font-size: 15.5px; }
+	.vmd-desc h1 { font-size: 23px; }
+	.vmd-desc h2 { font-size: 19px; }
+	.vmd-desc .vmd-features { grid-template-columns: 1fr; }
+	.vmd-desc .vmd-cta { padding: 20px 18px; }
+	.vmd-desc .vmd-cta form { grid-template-columns: 1fr; }
+	.vmd-desc table.vmd-spec td.k { width: 50%; }
+}
