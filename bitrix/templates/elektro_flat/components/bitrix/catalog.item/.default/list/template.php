@@ -282,6 +282,17 @@ $arElement['DETAIL_PAGE_URL'] = "/product/".$arElement['CODE']."/";
 				<meta content="OutOfStock" itemprop="availability" />
 			<?}
 		}?>
+		<?//VILMED: артикул под ценой (десктоп). Рейтинг (звёзды) убран, а «Артикул: …»
+		//  из .article_rating перенесён сюда; .article_rating скрыт через CSS.
+		//  На ≤787px .vilmed-article-inprice скрыт (на мобиле артикул не показываем).?>
+		<?if($inArticle) {
+			$vilmedArt = !empty($arElement["PROPERTIES"]["ARTNUMBER"]["VALUE"]) ? $arElement["PROPERTIES"]["ARTNUMBER"]["VALUE"] : $arElement["PROPERTIES"]["CML2_ARTICLE"]["VALUE"];
+			if($arElement["SHOW_ARTICUL"]) {?>
+				<div class="article vilmed-article-inprice"><?=Loc::getMessage("CT_BCS_ELEMENT_ARTNUMBER")?><?=$vilmedArt?></div>
+			<?} else {?>
+				<div class="article vilmed-article-inprice" data-text_script="<?=Loc::getMessage("CT_BCS_ELEMENT_ARTNUMBER")?><?=$vilmedArt?>"></div>
+			<?}
+		}?>
 	</div>
 	<?//TIME_BUY//
 	if(array_key_exists("TIME_BUY", $arElement["PROPERTIES"]) && !$arElement["PROPERTIES"]["TIME_BUY"]["VALUE"] == false) {

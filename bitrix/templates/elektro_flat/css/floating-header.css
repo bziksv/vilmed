@@ -1562,6 +1562,29 @@ html.vilmed-drawer-lock {
 }
 
 /* ============================================================
+   КАТАЛОГ-СПИСОК: убираем рейтинг (звёзды) и переносим артикул под цену.
+   Рейтинг не используем; одинокая строка «Артикул: …» лучше читается под ценой.
+   .article_rating (старое место артикула + звёзды) скрыт; артикул рендерится
+   в .item-price как .vilmed-article-inprice (см. list/template.php).
+   На ≤787px артикул в списке не показываем (как было).
+   ============================================================ */
+/* Рейтинг (звёзды) в каталоге не показываем нигде (в grid/card артикул остаётся). */
+.catalog-item .article_rating .rating { display: none !important; }
+.catalog-item-list-view .catalog-item .article_rating { display: none !important; }
+.catalog-item-list-view .catalog-item .item-price .vilmed-article-inprice {
+	display: block;
+	font-size: 13px;
+	line-height: 1.3;
+	color: #8a8da3;
+	font-weight: 400;
+	margin: 6px 0 0;
+	text-transform: none;
+}
+@media (max-width: 787px) {
+	.catalog-item-list-view .catalog-item .item-price .vilmed-article-inprice { display: none !important; }
+}
+
+/* ============================================================
    КОНТЕНТНЫЕ КАРТИНКИ (.body_text) — адаптивность.
    В описаниях (бренды /vendors/, новости, статьи) встречаются <img>
    с собственной шириной (напр. 500px) без max-width — на узких экранах
