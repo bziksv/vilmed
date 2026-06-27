@@ -1509,14 +1509,17 @@ html.vilmed-drawer-lock {
 @media (max-width: 787px) {
 	.catalog-item-list-view .catalog-item .catalog-item-info {
 		position: relative !important;
-		padding-bottom: 44px !important;
+		/* было 44px — ряд иконок/корзины прибит к низу, и при картинке 110px
+		   под ней оставалась большая пустота. Поджали до 26px: ряд поднимается
+		   ~на 16px, но даже самый длинный заголовок не перекрывается. */
+		padding-bottom: 26px !important;
 		box-sizing: border-box;
 	}
 	.catalog-item-list-view .catalog-item .compare_delay {
 		position: absolute !important;
 		left: 140px !important;
 		right: auto !important;
-		bottom: 8px !important;
+		bottom: 6px !important;
 		top: auto !important;
 		width: auto !important;
 		margin: 0 !important;
@@ -1527,7 +1530,7 @@ html.vilmed-drawer-lock {
 		position: absolute !important;
 		right: 8px !important;
 		left: auto !important;
-		bottom: 8px !important;
+		bottom: 6px !important;
 		top: auto !important;
 		display: block !important;
 		width: auto !important;
