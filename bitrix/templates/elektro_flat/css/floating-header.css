@@ -1141,15 +1141,67 @@ html.vilmed-drawer-lock {
 .catalog-detail .vmd-price-row .catalog-detail-price .catalog-detail-item-price-current {
 	text-align: left;
 }
+/* степпер количества: вид (серые пилюли −/+ + инпут с рамкой) в теме привязан
+   к .buy_more_detail, а мы вынесли .qnt_cont в свой ряд — стили отвалились и
+   кнопки схлопывались в крошечный текст («два минуса/±»). Воссоздаём степпер
+   здесь, цвета берём из темы (#dee0ee / #575b71). Слушатели −/+ навешаны по id. */
 .catalog-detail .vmd-price-row .qnt_cont {
 	margin: 0 !important;
+	padding: 0;
 	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	height: 36px;
 }
-.catalog-detail .vmd-price-row .qnt_cont .quantity {
-	width: 44px;
+.catalog-detail .vmd-price-row .qnt_cont a.minus,
+.catalog-detail .vmd-price-row .qnt_cont a.plus {
+	float: none;
+	width: 32px;
+	height: 36px;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #dee0ee;
+	color: #575b71;
+	font-size: 18px;
+	line-height: 1;
+	text-decoration: none;
+	transition: background .15s ease, color .15s ease;
+}
+.catalog-detail .vmd-price-row .qnt_cont a.minus { border-radius: 9px 0 0 9px; }
+.catalog-detail .vmd-price-row .qnt_cont a.plus { border-radius: 0 9px 9px 0; }
+.catalog-detail .vmd-price-row .qnt_cont a.minus span,
+.catalog-detail .vmd-price-row .qnt_cont a.plus span {
+	display: block;
+	color: inherit;
+	line-height: 1;
+}
+.catalog-detail .vmd-price-row .qnt_cont a.minus:hover,
+.catalog-detail .vmd-price-row .qnt_cont a.plus:hover { background: #575b71; }
+.catalog-detail .vmd-price-row .qnt_cont a.minus:hover span,
+.catalog-detail .vmd-price-row .qnt_cont a.plus:hover span { color: #fff; }
+.catalog-detail .vmd-price-row .qnt_cont .quantity,
+.catalog-detail .vmd-price-row .qnt_cont input[class="quantity"] {
+	width: 46px;
 	min-width: 0;
+	height: 36px;
+	margin: 0;
+	padding: 0;
+	float: none;
 	text-align: center;
 	box-sizing: border-box;
+	border: 2px solid #dee0ee;
+	border-left: 0;
+	border-right: 0;
+	border-radius: 0;
+	background: #fff;
+	color: #575b71;
+	font-size: 15px;
+	font-weight: 600;
+	-webkit-appearance: none;
+	appearance: none;
 }
 /* тема в мобильном медиа задаёт .price_buy_detail > div { width:209px; margin:auto },
    а наш ряд и артикул — прямые потомки .price_buy_detail; перебиваем на всю ширину */
