@@ -1118,21 +1118,24 @@ html.vilmed-drawer-lock {
 
 /* --- кнопки «в сравнение / в избранное» (были скрыты) --- */
 /* десктоп: две кнопки в один ряд 50/50 на всю ширину блока «Купить»
-   (тема по умолчанию ужимает их по содержимому и роняет вправо пустоту) */
-.compare_delay {
+   (тема по умолчанию ужимает их по содержимому и роняет вправо пустоту).
+   ВАЖНО: scoped под .catalog-detail (страница товара). Раньше селектор был
+   глобальным .compare_delay и «протекал» в каталог-список — на десктопе
+   .delay{width:100%} растягивал «Избранное» в широкую полосу. */
+.catalog-detail .compare_delay {
 	display: flex !important;
 	flex-wrap: nowrap;
 	gap: 10px;
 	margin: 14px 0 4px;
 }
-.compare_delay > .compare,
-.compare_delay > .catalog-detail-delay { flex: 1 1 0; min-width: 0; }
-.compare_delay .compare,
-.compare_delay .catalog-detail-delay,
-.compare_delay .delay { margin: 0; }
-.compare_delay .delay { width: 100%; }
-.compare_delay .catalog-item-compare,
-.compare_delay .catalog-item-delay {
+.catalog-detail .compare_delay > .compare,
+.catalog-detail .compare_delay > .catalog-detail-delay { flex: 1 1 0; min-width: 0; }
+.catalog-detail .compare_delay .compare,
+.catalog-detail .compare_delay .catalog-detail-delay,
+.catalog-detail .compare_delay .delay { margin: 0; }
+.catalog-detail .compare_delay .delay { width: 100%; }
+.catalog-detail .compare_delay .catalog-item-compare,
+.catalog-detail .compare_delay .catalog-item-delay {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -1144,16 +1147,16 @@ html.vilmed-drawer-lock {
 	text-decoration: none !important;
 	transition: color .15s;
 }
-.compare_delay .catalog-item-compare:hover,
-.compare_delay .catalog-item-delay:hover { color: #2b2d42 !important; }
-.compare_delay .catalog-item-compare .fa,
-.compare_delay .catalog-item-delay .fa { font-size: 15px; }
-.compare_delay .catalog-item-compare .fa-check,
-.compare_delay .catalog-item-delay .fa-check { display: none; }
-.compare_delay .catalog-item-compare.active .fa-bar-chart,
-.compare_delay .catalog-item-delay.active .fa-heart-o { display: none; }
-.compare_delay .catalog-item-compare.active .fa-check,
-.compare_delay .catalog-item-delay.active .fa-check { display: inline-block; color: #3aa564; }
+.catalog-detail .compare_delay .catalog-item-compare:hover,
+.catalog-detail .compare_delay .catalog-item-delay:hover { color: #2b2d42 !important; }
+.catalog-detail .compare_delay .catalog-item-compare .fa,
+.catalog-detail .compare_delay .catalog-item-delay .fa { font-size: 15px; }
+.catalog-detail .compare_delay .catalog-item-compare .fa-check,
+.catalog-detail .compare_delay .catalog-item-delay .fa-check { display: none; }
+.catalog-detail .compare_delay .catalog-item-compare.active .fa-bar-chart,
+.catalog-detail .compare_delay .catalog-item-delay.active .fa-heart-o { display: none; }
+.catalog-detail .compare_delay .catalog-item-compare.active .fa-check,
+.catalog-detail .compare_delay .catalog-item-delay.active .fa-check { display: inline-block; color: #3aa564; }
 
 /* на мобиле — две кнопки в один ряд на всю ширину (тема центрирует и ужимает блок) */
 @media (max-width: 787px) {
@@ -1172,16 +1175,16 @@ html.vilmed-drawer-lock {
 		width: 100% !important;
 		box-sizing: border-box !important;
 	}
-	.compare_delay {
+	.catalog-detail .compare_delay {
 		width: 100% !important;
 		margin: 14px 0 4px !important;
 		gap: 10px;
 	}
-	.compare_delay > .compare,
-	.compare_delay > .catalog-detail-delay { flex: 1 1 0; min-width: 0; }
-	.compare_delay .delay { width: 100%; }
-	.compare_delay .catalog-item-compare,
-	.compare_delay .catalog-item-delay {
+	.catalog-detail .compare_delay > .compare,
+	.catalog-detail .compare_delay > .catalog-detail-delay { flex: 1 1 0; min-width: 0; }
+	.catalog-detail .compare_delay .delay { width: 100%; }
+	.catalog-detail .compare_delay .catalog-item-compare,
+	.catalog-detail .compare_delay .catalog-item-delay {
 		display: flex !important;
 		align-items: center;
 		justify-content: center;
@@ -1193,9 +1196,9 @@ html.vilmed-drawer-lock {
 
 /* на узких экранах кнопки лучше друг под дружкой (каждая на всю ширину) */
 @media (max-width: 600px) {
-	.compare_delay { flex-direction: column; }
-	.compare_delay > .compare,
-	.compare_delay > .catalog-detail-delay { flex: 0 0 auto; width: 100%; }
+	.catalog-detail .compare_delay { flex-direction: column; }
+	.catalog-detail .compare_delay > .compare,
+	.catalog-detail .compare_delay > .catalog-detail-delay { flex: 0 0 auto; width: 100%; }
 }
 
 /* ============================================================
