@@ -44,7 +44,7 @@ $arRecomPrFilter = array(
 		"PAGE_ELEMENT_COUNT" => "24",
 		"LINE_ELEMENT_COUNT" => "4",
 		"VMD_RANDOM" => "Y",
-		"VMD_RANDOM_COUNT" => "4",
+		"VMD_RANDOM_COUNT" => "8",
 		"PRICE_CODE" => array(
 			0 => "BASE",
 		),
