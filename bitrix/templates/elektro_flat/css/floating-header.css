@@ -1719,21 +1719,27 @@ html.vilmed-drawer-lock {
 }
 
 /* ============================================================
-   КАТАЛОГ-СПИСОК (плиточный вид): 4 товара в ряд на десктопе.
-   Контентная колонка раздела ≈958px. Базовая карточка .catalog-item-card
+   КАТАЛОГ: 4 товара в ряд на десктопе.
+   Контентная колонка ≈958px. Базовая карточка .catalog-item-card
    = 236px + рамки ≈239px; 4×239 + межкарточные отступы (6px) = 962px —
    перелёт на ~4px, из-за чего 4-я карточка переносилась (по 3 в ряд).
-   Сужаем карточку только в плиточном виде (.catalog-item-table-view) и
-   только на десктопе (≥1254px): 4×(232+рамки) + 6 = ~946px ≤ 958px → 4 в ряд.
-   Главную не затрагивает (там контейнер .catalog-item-cards), планшет/мобайл
-   (<1254px) — тоже (там своя сетка из template_styles.css).
+   Сужаем карточку до 232px только на десктопе (≥1254px):
+   4×(232+рамки) + 6 = ~946px ≤ 958px → 4 в ряд.
+   Контейнеры:
+     - .catalog-item-table-view — список раздела (плиточный вид);
+     - .catalog-item-cards — блоки главной (Рекомендуем/Новинки/Хиты/Скидки,
+       .filtered-items / .bigdata-items) и связанные товары на карточке.
+   Планшет/мобайл (<1254px) — не трогаем (там своя сетка из template_styles.css).
    ============================================================ */
 @media (min-width: 1254px) {
-	.catalog-item-table-view .catalog-item-card {
+	.catalog-item-table-view .catalog-item-card,
+	.catalog-item-cards .catalog-item-card {
 		width: 232px;
 	}
 	.catalog-item-table-view .catalog-item-card.item-tb:hover .catalog-item-info,
-	.catalog-item-table-view .catalog-item-card.item-pm:hover .catalog-item-info {
+	.catalog-item-table-view .catalog-item-card.item-pm:hover .catalog-item-info,
+	.catalog-item-cards .catalog-item-card.item-tb:hover .catalog-item-info,
+	.catalog-item-cards .catalog-item-card.item-pm:hover .catalog-item-info {
 		width: 234px;
 	}
 }
