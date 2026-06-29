@@ -657,6 +657,14 @@
 
 		var logoHref = logoLink ? logoLink.getAttribute("href") : "/";
 		var logoSrc = logoImg ? logoImg.getAttribute("src") : "";
+		// Берём WebP вместо тяжёлого PNG-фолбэка (если есть <source> в <picture>)
+		var logoPic = logoLink ? logoLink.querySelector("picture source[type='image/webp']") : null;
+		var logoWebp = logoPic ? (logoPic.getAttribute("srcset") || logoPic.getAttribute("src")) : "";
+		if (logoWebp) {
+			logoSrc = logoWebp.split(",")[0].trim().split(" ")[0];
+		} else if (logoSrc) {
+			logoSrc = logoSrc.replace(/\.png(\?.*)?$/i, ".webp$1");
+		}
 		var cityName = text(cityLink) || "";
 		var phoneText = phoneEl ? text(phoneEl).replace(/\s+/g, " ") : "";
 		var phoneHref = phoneText ? "tel:" + phoneText.replace(/[^\d+]/g, "") : "";
@@ -697,7 +705,7 @@
 		bar.innerHTML =
 			'<div class="vilmed-fh__in">' +
 				'<a class="vilmed-fh__logo" href="' + logoHref + '">' +
-					(logoSrc ? '<img src="' + logoSrc + '" alt="Vilmed">' : "Vilmed") +
+					(logoSrc ? '<img class="no-lazy" src="' + logoSrc + '" alt="Vilmed" width="124" height="36" decoding="async">' : "Vilmed") +
 				"</a>" +
 				'<a class="vilmed-fh__catalog" href="/catalog/">' +
 					'<span class="vilmed-fh__burger"><span></span><span></span><span></span></span>' +
