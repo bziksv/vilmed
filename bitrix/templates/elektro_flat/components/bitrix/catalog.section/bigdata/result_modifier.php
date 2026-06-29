@@ -3,6 +3,23 @@
 $component = $this->getComponent();
 $arParams = $component->applyTemplateModifications();
 
+// VILMED (вариант 1): случайная выборка N товаров из закэшированного пула вместо ORDER BY RAND().
+// Гейтится параметром VMD_RANDOM из include-файла (recommend.php).
+if(isset($arParams["VMD_RANDOM"]) && $arParams["VMD_RANDOM"] === "Y" && is_array($arResult["ITEMS"]) && !empty($arResult["ITEMS"])) {
+	$vmdCount = isset($arParams["VMD_RANDOM_COUNT"]) ? (int)$arParams["VMD_RANDOM_COUNT"] : 4;
+	if($vmdCount > 0 && count($arResult["ITEMS"]) > $vmdCount) {
+		$vmdKeys = array_keys($arResult["ITEMS"]);
+		shuffle($vmdKeys);
+		$vmdKeys = array_slice($vmdKeys, 0, $vmdCount);
+		$vmdItems = array();
+		foreach($vmdKeys as $vmdKey) {
+			$vmdItems[$vmdKey] = $arResult["ITEMS"][$vmdKey];
+		}
+		$arResult["ITEMS"] = $vmdItems;
+		unset($vmdKeys, $vmdItems, $vmdKey);
+	}
+}
+
 $arSetting = CElektroinstrument::GetFrontParametrsValues(SITE_ID);
 $arResult["SETTING"] = $arSetting;
 

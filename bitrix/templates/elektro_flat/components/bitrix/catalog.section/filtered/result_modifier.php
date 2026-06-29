@@ -1,5 +1,22 @@
 <?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true) die();
 
+// VILMED (вариант 1): случайная выборка N товаров из закэшированного пула вместо ORDER BY RAND().
+// Гейтится параметром VMD_RANDOM из include-файла, чтобы не затрагивать другие вызовы шаблона "filtered" (например, linked.php).
+if(isset($arParams["VMD_RANDOM"]) && $arParams["VMD_RANDOM"] === "Y" && is_array($arResult["ITEMS"]) && !empty($arResult["ITEMS"])) {
+	$vmdCount = isset($arParams["VMD_RANDOM_COUNT"]) ? (int)$arParams["VMD_RANDOM_COUNT"] : 4;
+	if($vmdCount > 0 && count($arResult["ITEMS"]) > $vmdCount) {
+		$vmdKeys = array_keys($arResult["ITEMS"]);
+		shuffle($vmdKeys);
+		$vmdKeys = array_slice($vmdKeys, 0, $vmdCount);
+		$vmdItems = array();
+		foreach($vmdKeys as $vmdKey) {
+			$vmdItems[$vmdKey] = $arResult["ITEMS"][$vmdKey];
+		}
+		$arResult["ITEMS"] = $vmdItems;
+		unset($vmdKeys, $vmdItems, $vmdKey);
+	}
+}
+
 global $arSetting;
 
 //USE_PRICE_RATIO//
