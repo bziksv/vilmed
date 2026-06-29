@@ -1745,13 +1745,63 @@ html.vilmed-drawer-lock {
 }
 
 /* ============================================================
-   ПОДРАЗДЕЛЫ КАТАЛОГА: перенос длинных названий.
-   Длинные слова без пробелов (напр. «Электроофтальмостимуляторы») не имели
-   точки переноса и вылезали за плитку подраздела, наезжая на соседнюю.
-   Разрешаем перенос внутри слова, чтобы название оставалось в пределах плитки.
+   ПОДРАЗДЕЛЫ КАТАЛОГА: ровная сетка плиток (desktop/планшет).
+   Тема жёстко задаёт height:58px на плитке и height:56px на .text-cont
+   (table-cell). Длинные названия в 3 строки («Электроофтальмостимуляторы»,
+   «Осветители таблиц для исследования остроты зрения») не влезали в 58px
+   и вылезали вниз, наезжая на соседний ряд — при float это давало «скачущие»
+   плитки и слипшиеся отступы.
+   Переводим грид на flex с переносом и равной высотой ряда: плитки авто-
+   растягиваются под контент, ряды остаются ровными, ничего не вылезает.
+   Скоуп — только внутри .catalog-section-list (грид на странице раздела),
+   чтобы не задеть выпадающее мегаменю (ul.left-menu > … > .catalog-section-childs).
+   Только ≥788px: ниже тема раскладывает плитки в один столбец.
    ============================================================ */
-.catalog-section-list .text-cont,
-.catalog-section-list .text-cont .text {
-	overflow-wrap: break-word;
-	word-break: break-word;
+@media (min-width: 788px) {
+	.catalog-section-list .catalog-section-childs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 2px;
+		align-items: stretch;
+	}
+	.catalog-section-list .catalog-section-child {
+		float: none !important;
+		margin: 0 !important;
+		width: auto !important;
+		display: flex;
+	}
+	.catalog-section-list .catalog-section-child a {
+		width: 236px;
+		height: auto !important;
+		min-height: 58px;
+		display: flex !important;
+		align-items: center;
+		box-sizing: border-box;
+	}
+	.catalog-section-list .catalog-section-child a .child {
+		display: flex !important;
+		align-items: center;
+		width: 100%;
+	}
+	.catalog-section-list .catalog-section-child a .child .graph {
+		display: flex !important;
+		align-items: center;
+		justify-content: center;
+		flex: 0 0 66px;
+		height: auto !important;
+	}
+	.catalog-section-list .catalog-section-child a .child .text-cont {
+		display: flex !important;
+		align-items: center;
+		flex: 1 1 auto;
+		height: auto !important;
+		min-width: 0;
+		padding: 6px 12px;
+	}
+	.catalog-section-list .catalog-section-child a .child .text {
+		max-height: none !important;
+		overflow: visible !important;
+		overflow-wrap: break-word;
+		word-break: break-word;
+	}
 }
