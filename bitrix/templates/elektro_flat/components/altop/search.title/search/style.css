@@ -31,7 +31,7 @@
 	box-sizing:border-box;
 	font-family:"Open Sans", sans-serif;
 	font-size:14px;
-	color:#8184a1;
+	color:#5e6178;
 	border:1px solid #fff;
 	-moz-border-radius:7px;
 	-webkit-border-radius:7px;
@@ -54,7 +54,7 @@
 	padding:0px;
 	font-family:"Open Sans", sans-serif;
 	font-size:11px;
-	color:#8184a1;
+	color:#5e6178;
 	text-transform:uppercase;
 	border:1px solid #dee0ee;
 	-moz-border-radius:4px;
@@ -164,7 +164,7 @@
 }
 
 .title-search-result #catalog_search .search_all{
-	color:#a0a4bc;
+	color:#6a6d84;
 	text-decoration:underline;
 	float:right;
 	margin:6px 11px 0px 0px;
@@ -238,7 +238,7 @@
 .title-search-result .tvr_search .item_title .article,
 .title-search-result .tvr_search .item_title .property{	
 	font-size:12px;
-	color:#a0a4bc;
+	color:#6a6d84;
 }
 
 .title-search-result .tvr_search .item_title a,
@@ -276,7 +276,7 @@
 .title-search-result .tvr_search .search_price .unit{
 	font-size:12px;
 	font-weight:400;
-	color:#8184a1;
+	color:#5e6178;
 }
 
 .title-search-result .tvr_search .search_price .price-reference{
