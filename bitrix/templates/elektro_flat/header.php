@@ -342,8 +342,9 @@ Loc::loadMessages(__FILE__);
                                                 "ALLOW_MULTI_SELECT" => "N",
                                                 "CACHE_SELECTED_ITEMS" => "N",
                                                 "COMPONENT_TEMPLATE" => "tree",
-                                                "COMPOSITE_FRAME_MODE" => "A",
-                                                "COMPOSITE_FRAME_TYPE" => "AUTO"
+                                                // Композит: меню всегда в статическом HTML (AUTO давало пустой sidebar)
+                                                "COMPOSITE_FRAME_MODE" => "N",
+                                                "COMPOSITE_FRAME_TYPE" => "STATIC"
                                             ),
                                             false
                                         );?>
