@@ -69,7 +69,8 @@ fi
 
 echo
 echo "Crontab (vilmed_ru_usr, если ещё нет):"
-echo '  * * * * * /usr/bin/php -f /var/www/vilmed_ru_usr/data/www/vilmed.ru/bitrix/modules/main/tools/cron_events.php'
+echo '  * * * * * /opt/php74/bin/php -f /var/www/vilmed_ru_usr/data/www/vilmed.ru/bitrix/modules/main/tools/cron_events.php'
+echo '  (НЕ /usr/bin/php — на сервере это PHP 8.1, cron_events.php падает: Class CEvent not found)'
 echo
 echo "Повторная проверка: /bitrix/admin/site_checker.php → Полное тестирование"
 echo "Composite: bash tools/perf/prod-composite-check.sh https://vilmed.ru"
