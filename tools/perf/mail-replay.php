@@ -67,32 +67,22 @@ function modifiers(): array
 
 function sendOneInRange(int $fromId, int $toId): ?array
 {
-	$row = EventTable::getList([
-		'filter' => [
-			'=SUCCESS_EXEC' => 'N',
-			'>=ID' => $fromId,
-			'<=ID' => $toId,
-		],
-		'order' => ['ID' => 'ASC'],
-		'limit' => 1,
-	])->fetch();
+	// Как EventManager::executeEvents — raw SQL, иначе ORM уже unserialize'ит C_FIELDS
+	// и повторные modificators ломают поля (пустые заказы в письме).
+	$connection = \Bitrix\Main\Application::getConnection();
+	$arMail = $connection->query("
+		SELECT ID, C_FIELDS, EVENT_NAME, MESSAGE_ID, LID,
+			DATE_FORMAT(DATE_INSERT, '%d.%m.%Y %H:%i:%s') AS DATE_INSERT,
+			DUPLICATE, LANGUAGE_ID
+		FROM b_event
+		WHERE SUCCESS_EXEC='N' AND ID >= {$fromId} AND ID <= {$toId}
+		ORDER BY ID
+		LIMIT 1
+	")->fetch();
 
-	if (!$row) {
+	if (!$arMail) {
 		return null;
 	}
-
-	$arMail = [
-		'ID' => $row['ID'],
-		'C_FIELDS' => $row['C_FIELDS'],
-		'EVENT_NAME' => $row['EVENT_NAME'],
-		'MESSAGE_ID' => $row['MESSAGE_ID'],
-		'LID' => $row['LID'],
-		'DATE_INSERT' => $row['DATE_INSERT'] instanceof DateTime
-			? $row['DATE_INSERT']->format('d.m.Y H:i:s')
-			: '',
-		'DUPLICATE' => $row['DUPLICATE'],
-		'LANGUAGE_ID' => $row['LANGUAGE_ID'],
-	];
 
 	foreach (modifiers() as $callable) {
 		$arMail['C_FIELDS'] = call_user_func_array($callable, [$arMail['C_FIELDS']]);
