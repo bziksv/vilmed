@@ -5,9 +5,8 @@ if(!CModule::IncludeModule("iblock"))
 
 global $arSetting;
 
-if (isProductDetail() && !(defined('VILMED_LOCAL_FULL_MENU') && VILMED_LOCAL_FULL_MENU)) {
-	$arSetting["CATALOG_VIEW"] = $arSetting["CATALOG_VIEW_PRODUCT"];
-}
+// Левое меню: всегда CATALOG_VIEW (2 уровня). CATALOG_VIEW_PRODUCT (ONE_LEVELS) ломает
+// подменю после сохранения товара — пересборка product-кеша без .submenu.
 	
 if($arSetting["CATALOG_VIEW"]["VALUE"] == "FOUR_LEVELS"){
 	$arParams["DEPTH_LEVEL"] = "4";

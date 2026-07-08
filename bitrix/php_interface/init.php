@@ -16,6 +16,19 @@ if ($isLocalDev) {
 	if (!defined('VILMED_LOCAL_FULL_MENU')) define('VILMED_LOCAL_FULL_MENU', true);
 }
 
+AddEventHandler('iblock', 'OnAfterIBlockElementUpdate', 'vilmedClearMenuCacheOnCatalogChange');
+AddEventHandler('iblock', 'OnAfterIBlockElementAdd', 'vilmedClearMenuCacheOnCatalogChange');
+AddEventHandler('iblock', 'OnAfterIBlockElementDelete', 'vilmedClearMenuCacheOnCatalogChange');
+function vilmedClearMenuCacheOnCatalogChange(&$arFields)
+{
+	if ((int)($arFields['IBLOCK_ID'] ?? 0) !== 24) {
+		return;
+	}
+	if (class_exists('CBitrixComponent')) {
+		CBitrixComponent::clearComponentCache('bitrix:menu');
+	}
+}
+
 if (strpos($_SERVER['REQUEST_URI'], '/bitrix/') === false) {
 	$parts_url = explode("?", $_SERVER['REQUEST_URI']);
 	

@@ -325,16 +325,13 @@ Loc::loadMessages(__FILE__);
                                                 // VILMED perf: левое дерево каталога строится через .left.menu_ext.php
                                                 // (CIBlockSection::GetList по IBLOCK 24) на каждый хит — главный SQL в прологе
                                                 // и единственная "1-й тип" ошибка Perfmon. Включаем кеш меню.
-                                                // Глубина дерева зависит от isProductDetail() (CATALOG_VIEW vs CATALOG_VIEW_PRODUCT),
-                                                // а cache_id bitrix:menu = serialize($arParams), поэтому добавляем дискриминатор
-                                                // VILMED_MENU_CTX → два независимых кеша (товар/каталог) с корректной глубиной.
-                                                // Активный пункт считается на лету (CACHE_SELECTED_ITEMS=N), подсветка не ломается.
+                                                // VILMED perf: один кеш меню (catalog) — 2 уровня на всех страницах включая /product/
                                                 "MENU_CACHE_TYPE" => "A",
                                                 "MENU_CACHE_TIME" => "36000000",
                                                 "MENU_CACHE_USE_GROUPS" => "N",
                                                 "MENU_CACHE_GET_VARS" => array(
                                                 ),
-                                                "VILMED_MENU_CTX" => ((defined('VILMED_LOCAL_FULL_MENU') && VILMED_LOCAL_FULL_MENU) ? "catalog" : (function_exists('isProductDetail') && isProductDetail() ? "product" : "catalog")),
+                                                "VILMED_MENU_CTX" => "catalog",
                                                 "MAX_LEVEL" => "4",
                                                 "CHILD_MENU_TYPE" => "left",
                                                 "USE_EXT" => "Y",

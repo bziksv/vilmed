@@ -10,7 +10,6 @@ $moveTextInAttr = false;
 global $arSetting;
 
 if(isProductDetail()){
-	$arSetting["CATALOG_VIEW"] = $arSetting["CATALOG_VIEW_PRODUCT"];
 	$moveTextInAttr = ($arSetting["MOVE_TEXT_IN_ATTR"]["VALUE"] == "Y") ? true : false;
 }
 
