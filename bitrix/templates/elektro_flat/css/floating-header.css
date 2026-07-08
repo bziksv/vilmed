@@ -1769,19 +1769,27 @@ html.vilmed-drawer-lock {
 		margin: 0 !important;
 		width: auto !important;
 		display: flex;
+		align-items: stretch;
 	}
 	.catalog-section-list .catalog-section-child a {
 		width: 236px;
-		height: auto !important;
+		height: 100% !important;
 		min-height: 58px;
 		display: flex !important;
 		align-items: center;
+		align-self: stretch;
 		box-sizing: border-box;
 	}
 	.catalog-section-list .catalog-section-child a .child {
 		display: flex !important;
 		align-items: center;
 		width: 100%;
+		min-height: 100%;
+		box-sizing: border-box;
+		border-color: transparent !important;
+	}
+	.catalog-section-list .catalog-section-child a:hover .child {
+		border-color: transparent !important;
 	}
 	.catalog-section-list .catalog-section-child a .child .graph {
 		display: flex !important;
@@ -1803,5 +1811,13 @@ html.vilmed-drawer-lock {
 		overflow: visible !important;
 		overflow-wrap: break-word;
 		word-break: break-word;
+	}
+	.catalog-section-list .catalog-section-childs > .clr {
+		flex-basis: 100%;
+		width: 0;
+		height: 0;
+		margin: 0;
+		padding: 0;
+		overflow: hidden;
 	}
 }
