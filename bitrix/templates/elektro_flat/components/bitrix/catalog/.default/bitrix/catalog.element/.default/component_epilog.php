@@ -33,10 +33,18 @@ if(isset($templateData["JS_OBJ"])) {?>
 
 //META_PROPERTY//
 $APPLICATION->SetPageProperty("ogtype", "product");
-$vilmedLcpSrc = !empty($arResult["DETAIL_IMG"]["SRC"])
-	? vilmedPicturePreloadSrc($arResult["DETAIL_IMG"])
-	: (!empty($arResult["DETAIL_PICTURE"]["SRC"]) ? $arResult["DETAIL_PICTURE"]["SRC"] : "");
-if ($vilmedLcpSrc !== "" && function_exists('vilmedSetLcpPreload')) {
+$vilmedLcpSrc = '';
+if (!empty($arResult['DETAIL_IMG']['SRC']) && function_exists('vilmedPicturePreloadSrc')) {
+	$vilmedLcpSrc = vilmedPicturePreloadSrc($arResult['DETAIL_IMG']);
+} elseif (!empty($arResult['DETAIL_PICTURE']['SRC']) && function_exists('vilmedResizePicture')) {
+	$detailImgWidth = (int)($arParams['DISPLAY_DETAIL_IMG_WIDTH'] ?: 390);
+	$detailImgHeight = (int)($arParams['DISPLAY_DETAIL_IMG_HEIGHT'] ?: 390);
+	$detailImg = vilmedResizePicture($arResult['DETAIL_PICTURE'], $detailImgWidth, $detailImgHeight);
+	if ($detailImg !== null && function_exists('vilmedPicturePreloadSrc')) {
+		$vilmedLcpSrc = vilmedPicturePreloadSrc($detailImg);
+	}
+}
+if ($vilmedLcpSrc !== '' && function_exists('vilmedSetLcpPreload')) {
 	vilmedSetLcpPreload($vilmedLcpSrc);
 }
 if(isset($arResult["JS_OFFERS"]) && !empty($arResult["JS_OFFERS"])):

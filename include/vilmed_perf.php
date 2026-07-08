@@ -305,23 +305,78 @@ if (!function_exists('vilmedSetLcpPreload')) {
 	}
 }
 
+if (!function_exists('vilmedResolveLcpPreloadSrc')) {
+	/**
+	 * Preload href must match a URL present in HTML (resize_cache webp on product detail,
+	 * not the full-size /upload/iblock/ original queued from component_epilog).
+	 */
+	function vilmedResolveLcpPreloadSrc(string $queuedSrc, string $content): string
+	{
+		$queuedSrc = (string)preg_replace('#\?.*$#', '', $queuedSrc);
+		if ($queuedSrc !== '' && stripos($content, $queuedSrc) !== false) {
+			return $queuedSrc;
+		}
+
+		if (stripos($content, 'catalog-detail-picture') !== false) {
+			if (preg_match(
+				'#class="catalog-detail-picture"[^>]*>.*?<source[^>]+srcset="([^"]+)"[^>]*type="image/webp"#is',
+				$content,
+				$m
+			)) {
+				$src = html_entity_decode($m[1], ENT_QUOTES);
+				if ($src !== '') {
+					return $src;
+				}
+			}
+			if (preg_match(
+				'#class="catalog-detail-picture"[^>]*>.*?<img[^>]+src="([^"]+)"#is',
+				$content,
+				$m
+			)) {
+				$src = html_entity_decode($m[1], ENT_QUOTES);
+				if ($src !== '' && stripos($src, 'data:image') === false) {
+					return $src;
+				}
+			}
+		}
+
+		if (preg_match('#<picture>\s*<source[^>]+srcset="([^"]+\.webp)"#i', $content, $m)) {
+			$src = html_entity_decode($m[1], ENT_QUOTES);
+			if ($src !== '') {
+				return $src;
+			}
+		}
+
+		return '';
+	}
+}
+
 if (!function_exists('vilmedInjectLcpPreload')) {
 	function vilmedInjectLcpPreload(string &$content): void
 	{
-		$src = $GLOBALS['vilmedLcpPreloadSrc'] ?? '';
-		if ($src === '' || stripos($content, 'rel="preload" as="image"') !== false) {
+		$queuedSrc = $GLOBALS['vilmedLcpPreloadSrc'] ?? '';
+		if ($queuedSrc === '' || stripos($content, 'rel="preload" as="image"') !== false) {
 			return;
 		}
 
-		// VILMED perf: the LCP <img> is wrapped in <picture><source webp>, so browsers fetch
-		// the .webp, leaving a .jpg/.png preload unused. Preload the webp the page actually uses.
+		$src = vilmedResolveLcpPreloadSrc((string)$queuedSrc, $content);
+		if ($src === '') {
+			return;
+		}
+
 		$type = '';
-		if (function_exists('vilmedEnsureWebpSrc') && preg_match('/\.(?:png|jpe?g)$/i', $src)) {
+		if (preg_match('/\.webp$/i', $src)) {
+			$type = ' type="image/webp"';
+		} elseif (function_exists('vilmedEnsureWebpSrc') && preg_match('/\.(?:png|jpe?g)$/i', $src)) {
 			$webp = vilmedEnsureWebpSrc($src);
-			if ($webp !== null && $webp !== '') {
+			if ($webp !== null && $webp !== '' && stripos($content, $webp) !== false) {
 				$src = $webp;
 				$type = ' type="image/webp"';
 			}
+		}
+
+		if (stripos($content, $src) === false) {
+			return;
 		}
 
 		$link = '<link rel="preload" as="image" href="' . htmlspecialcharsbx($src, ENT_QUOTES) . '"' . $type . ' fetchpriority="high">';
@@ -1007,9 +1062,9 @@ if (!function_exists('vilmedOnEndBufferContent')) {
 	function vilmedOnEndBufferContent(string &$content): void
 	{
 		vilmedInjectCriticalHomeCss($content);
-		vilmedInjectLcpPreload($content);
 		vilmedInjectLazyImages($content);
 		vilmedInjectWebpImages($content);
+		vilmedInjectLcpPreload($content);
 		vilmedInjectBackgroundWebp($content);
 		vilmedFixFontDisplay($content);
 		vilmedDeferHomeStylesheets($content);
