@@ -19,6 +19,15 @@ if ($isLocalDev) {
 AddEventHandler('iblock', 'OnAfterIBlockElementUpdate', 'vilmedClearMenuCacheOnCatalogChange');
 AddEventHandler('iblock', 'OnAfterIBlockElementAdd', 'vilmedClearMenuCacheOnCatalogChange');
 AddEventHandler('iblock', 'OnAfterIBlockElementDelete', 'vilmedClearMenuCacheOnCatalogChange');
+AddEventHandler('main', 'OnAdminTabControlBegin', 'vilmedSidePanelInlineAdminTabs');
+function vilmedSidePanelInlineAdminTabs(&$tabControl)
+{
+	// SidePanel iframe + bxpublic: вкладки в HTML, не через WindowManager.SetHead() (там null).
+	if (!empty($_REQUEST['IFRAME']) && $_REQUEST['IFRAME'] === 'Y' && !empty($tabControl->bPublicMode)) {
+		$tabControl->bPublicMode = false;
+		$tabControl->bPublicModeBuffer = false;
+	}
+}
 function vilmedClearMenuCacheOnCatalogChange(&$arFields)
 {
 	if ((int)($arFields['IBLOCK_ID'] ?? 0) !== 24) {
