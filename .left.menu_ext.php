@@ -5,7 +5,7 @@ if(!CModule::IncludeModule("iblock"))
 
 global $arSetting;
 
-if (isProductDetail()) {
+if (isProductDetail() && !(defined('VILMED_LOCAL_FULL_MENU') && VILMED_LOCAL_FULL_MENU)) {
 	$arSetting["CATALOG_VIEW"] = $arSetting["CATALOG_VIEW_PRODUCT"];
 }
 	

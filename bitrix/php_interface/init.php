@@ -1,12 +1,19 @@
 <?
 
+$httpHost = $_SERVER['HTTP_HOST'] ?? '';
 $isLocalDev = (
-	strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false
-	|| strpos($_SERVER['HTTP_HOST'] ?? '', '127.0.0.1') !== false
+	strpos($httpHost, 'localhost') !== false
+	|| strpos($httpHost, '127.0.0.1') !== false
+	|| (strpos($httpHost, 'vilmed.ru') !== false && strpos($httpHost, '8082') !== false)
 );
 
 if ($isLocalDev) {
 	if (!defined('NO_KEEP_STATISTIC')) define('NO_KEEP_STATISTIC', true);
+	// Не слать почту и не гонять агенты с хитов (на prod — cron + BX_CRONTAB_SUPPORT в dbconn.php)
+	if (!defined('DisableEventsCheck')) define('DisableEventsCheck', true);
+	if (!defined('BX_CRONTAB_SUPPORT')) define('BX_CRONTAB_SUPPORT', true);
+	// Левое меню на /product/: на prod ONE_LEVELS + отдельный кеш; локально — как в каталоге (TWO_LEVELS)
+	if (!defined('VILMED_LOCAL_FULL_MENU')) define('VILMED_LOCAL_FULL_MENU', true);
 }
 
 if (strpos($_SERVER['REQUEST_URI'], '/bitrix/') === false) {

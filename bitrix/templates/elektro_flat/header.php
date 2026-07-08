@@ -214,7 +214,7 @@ Loc::loadMessages(__FILE__);
 				<div class="top-catalog">
 					<div class="center<?=($arSetting['SITE_BACKGROUND']['VALUE'] == 'Y' ? ' inner' : '');?>">
 						<?
-						if(isProductDetail())
+						if(isProductDetail() && !(defined('VILMED_LOCAL_FULL_MENU') && VILMED_LOCAL_FULL_MENU))
 							$arSetting["CATALOG_VIEW"] = $arSetting["CATALOG_VIEW_PRODUCT"];
 
 						$APPLICATION->IncludeComponent("bitrix:menu", ($arSetting["CATALOG_VIEW"]["VALUE"] == "FOUR_LEVELS" || $arSetting["CATALOG_VIEW"]["VALUE"] == "THREE_LEVELS") ? "tree" : "sections",
@@ -334,7 +334,7 @@ Loc::loadMessages(__FILE__);
                                                 "MENU_CACHE_USE_GROUPS" => "N",
                                                 "MENU_CACHE_GET_VARS" => array(
                                                 ),
-                                                "VILMED_MENU_CTX" => (function_exists('isProductDetail') && isProductDetail() ? "product" : "catalog"),
+                                                "VILMED_MENU_CTX" => ((defined('VILMED_LOCAL_FULL_MENU') && VILMED_LOCAL_FULL_MENU) ? "catalog" : (function_exists('isProductDetail') && isProductDetail() ? "product" : "catalog")),
                                                 "MAX_LEVEL" => "4",
                                                 "CHILD_MENU_TYPE" => "left",
                                                 "USE_EXT" => "Y",
