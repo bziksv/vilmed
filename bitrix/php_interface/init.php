@@ -20,14 +20,39 @@ AddEventHandler('iblock', 'OnAfterIBlockElementUpdate', 'vilmedClearMenuCacheOnC
 AddEventHandler('iblock', 'OnAfterIBlockElementAdd', 'vilmedClearMenuCacheOnCatalogChange');
 AddEventHandler('iblock', 'OnAfterIBlockElementDelete', 'vilmedClearMenuCacheOnCatalogChange');
 AddEventHandler('main', 'OnAdminTabControlBegin', 'vilmedSidePanelInlineAdminTabs');
+function vilmedAdminSidePanelRequestNormalize()
+{
+	if (PHP_SAPI === 'cli') {
+		return;
+	}
+	if (empty($_REQUEST['IFRAME']) || $_REQUEST['IFRAME'] !== 'Y') {
+		return;
+	}
+	$isPublicEdit = (
+		(!empty($_REQUEST['bxpublic']) && $_REQUEST['bxpublic'] === 'Y')
+		|| (!empty($_REQUEST['publicSidePanel']) && $_REQUEST['publicSidePanel'] === 'Y')
+	);
+	if (!$isPublicEdit) {
+		return;
+	}
+	$frameType = (string)($_REQUEST['IFRAME_TYPE'] ?? '');
+	if ($frameType === '' || $frameType === 'PUBLIC_FRAME') {
+		$_REQUEST['IFRAME_TYPE'] = 'SIDE_SLIDER';
+		$_GET['IFRAME_TYPE'] = 'SIDE_SLIDER';
+		$_POST['IFRAME_TYPE'] = 'SIDE_SLIDER';
+	}
+}
 function vilmedSidePanelInlineAdminTabs(&$tabControl)
 {
 	// SidePanel iframe + bxpublic: вкладки в HTML, не через WindowManager.SetHead() (там null).
-	if (!empty($_REQUEST['IFRAME']) && $_REQUEST['IFRAME'] === 'Y' && !empty($tabControl->bPublicMode)) {
-		$tabControl->bPublicMode = false;
-		$tabControl->bPublicModeBuffer = false;
+	if (empty($_REQUEST['IFRAME']) || $_REQUEST['IFRAME'] !== 'Y' || empty($tabControl->bPublicMode)) {
+		return;
 	}
+	$tabControl->bPublicMode = false;
+	$tabControl->bPublicModeBuffer = false;
+	$tabControl->isSidePanel = true;
 }
+vilmedAdminSidePanelRequestNormalize();
 function vilmedClearMenuCacheOnCatalogChange(&$arFields)
 {
 	if ((int)($arFields['IBLOCK_ID'] ?? 0) !== 24) {
