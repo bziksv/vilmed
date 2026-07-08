@@ -529,6 +529,71 @@ if (!function_exists('vilmedResequenceCoreScripts')) {
 	}
 }
 
+if (!function_exists('vilmedMaskNoscriptBlocks')) {
+	/** Prevent defer-css regex from re-processing <link> inside <noscript> (double-wrap bug). */
+	function vilmedMaskNoscriptBlocks(string $content, array &$placeholders): string
+	{
+		return preg_replace_callback(
+			'/<noscript\b[^>]*>.*?<\/noscript>/is',
+			static function (array $m) use (&$placeholders): string {
+				$key = '%%VMD_NS' . count($placeholders) . '%%';
+				$placeholders[$key] = $m[0];
+
+				return $key;
+			},
+			$content
+		);
+	}
+}
+
+if (!function_exists('vilmedUnmaskPlaceholders')) {
+	function vilmedUnmaskPlaceholders(string $content, array $placeholders): string
+	{
+		return $placeholders === [] ? $content : str_replace(array_keys($placeholders), array_values($placeholders), $content);
+	}
+}
+
+if (!function_exists('vilmedDeferStylesheetLinks')) {
+	function vilmedDeferStylesheetLinks(string &$content, array $patterns): void
+	{
+		if ($patterns === []) {
+			return;
+		}
+
+		$placeholders = [];
+		$content = vilmedMaskNoscriptBlocks($content, $placeholders);
+
+		$content = preg_replace_callback(
+			'/<link(\s[^>]+)>/i',
+			static function (array $m) use ($patterns): string {
+				if (!preg_match('#\brel=["\']stylesheet["\']#i', $m[1])) {
+					return $m[0];
+				}
+				if (stripos($m[1], 'onload=') !== false || preg_match('#\bas=["\']style["\']#i', $m[1])) {
+					return $m[0];
+				}
+				if (!preg_match('#\bhref=["\']([^"\']+)["\']#i', $m[1], $hrefMatch)) {
+					return $m[0];
+				}
+
+				foreach ($patterns as $pattern) {
+					if (preg_match('#' . $pattern . '#i', $hrefMatch[1])) {
+						$href = htmlspecialcharsbx($hrefMatch[1], ENT_QUOTES);
+
+						return '<link rel="preload" as="style" href="' . $href . '" onload="this.onload=null;this.rel=\'stylesheet\'">'
+							. '<noscript><link rel="stylesheet" href="' . $href . '"></noscript>';
+					}
+				}
+
+				return $m[0];
+			},
+			$content
+		);
+
+		$content = vilmedUnmaskPlaceholders($content, $placeholders);
+	}
+}
+
 if (!function_exists('vilmedDeferHomeStylesheets')) {
 	/** Homepage: defer non-critical CSS; keep Bitrix template bundle CSS blocking for CLS. */
 	function vilmedDeferHomeStylesheets(string &$content): void
@@ -549,36 +614,7 @@ if (!function_exists('vilmedDeferHomeStylesheets')) {
 			'schemes/',
 		];
 
-		if (vilmedIsMobileClient()) {
-			// mobile-only extras handled in vilmedDeferHomeScripts
-		}
-
-		$content = preg_replace_callback(
-			'/<link(\s[^>]+)>/i',
-			static function (array $m) use ($patterns): string {
-				if (!preg_match('#\brel=["\']stylesheet["\']#i', $m[1])) {
-					return $m[0];
-				}
-				if (stripos($m[1], 'onload=') !== false) {
-					return $m[0];
-				}
-				if (!preg_match('#\bhref=["\']([^"\']+)["\']#i', $m[1], $hrefMatch)) {
-					return $m[0];
-				}
-
-				foreach ($patterns as $pattern) {
-					if (preg_match('#' . $pattern . '#i', $hrefMatch[1])) {
-						$href = htmlspecialcharsbx($hrefMatch[1], ENT_QUOTES);
-
-						return '<link rel="preload" as="style" href="' . $href . '" onload="this.onload=null;this.rel=\'stylesheet\'">'
-							. '<noscript><link rel="stylesheet" href="' . $href . '"></noscript>';
-					}
-				}
-
-				return $m[0];
-			},
-			$content
-		);
+		vilmedDeferStylesheetLinks($content, $patterns);
 	}
 }
 
@@ -814,25 +850,7 @@ if (!function_exists('vilmedDeferCatalogStylesheets')) {
 			'ui\\.font\\.opensans',
 		];
 
-		$content = preg_replace_callback(
-			'/<link(\s[^>]+)>/i',
-			static function (array $m) use ($patterns): string {
-				if (!preg_match('#\brel=["\']stylesheet["\']#i', $m[1])) {
-					return $m[0];
-				}
-				if (stripos($m[1], 'onload=') !== false) {
-					return $m[0];
-				}
-				foreach ($patterns as $pattern) {
-					if (preg_match('#' . $pattern . '#i', $m[1])) {
-						return '<link' . $m[1] . ' media="print" onload="this.media=\'all\'"><noscript>' . $m[0] . '</noscript>';
-					}
-				}
-
-				return $m[0];
-			},
-			$content
-		);
+		vilmedDeferStylesheetLinks($content, $patterns);
 	}
 }
 
