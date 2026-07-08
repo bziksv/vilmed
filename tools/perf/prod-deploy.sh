@@ -77,6 +77,9 @@ echo "== permissions =="
 chown -R vilmed_ru_usr:vilmed_ru_usr .
 
 if [[ -f bitrix/html_pages/.enabled ]]; then
+  echo "== restore composite .config.php =="
+  php "$DIR/prod-composite-restore.php"
+
   if [[ "${INVALIDATE_HOME:-0}" == "1" ]]; then
     echo "== invalidate homepage composite =="
     bash "$DIR/prod-invalidate-home.sh" "$BASE" "$ROOT"
