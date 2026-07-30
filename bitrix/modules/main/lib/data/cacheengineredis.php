@@ -22,7 +22,7 @@ class CacheEngineRedis implements ICacheEngine, LocalStorage\Storage\CacheEngine
 	protected $useLock = false;
 	protected $ttlMultiplier = 2;
 	protected $old = false;
-	protected $serializer = \Redis::SERIALIZER_IGBINARY;
+	protected $serializer = \Redis::SERIALIZER_PHP;
 	protected $persistent = true;
 
 	/**
@@ -105,7 +105,7 @@ class CacheEngineRedis implements ICacheEngine, LocalStorage\Storage\CacheEngine
 			}
 			elseif ($config["serializer"] == 2)
 			{
-				$this->serializer = \Redis::SERIALIZER_IGBINARY;
+				$this->serializer = \Redis::SERIALIZER_PHP;
 			}
 		}
 
