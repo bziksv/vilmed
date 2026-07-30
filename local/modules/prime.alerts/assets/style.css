@@ -1,0 +1,45 @@
+/* prime.alerts — notice under email field */
+.prime-alerts-notice {
+	margin: 12px 0 0;
+	border: 1px solid #e0c36a;
+	border-radius: 8px;
+	background: #fffdf6;
+	color: #333;
+	font-size: 13px;
+	line-height: 1.45;
+}
+.prime-alerts-notice__inner {
+	display: flex;
+	gap: 12px;
+	padding: 14px 16px;
+}
+.prime-alerts-notice__icon {
+	flex: 0 0 22px;
+	width: 22px;
+	height: 22px;
+	border-radius: 50%;
+	background: #b8860b;
+	color: #fff;
+	font-weight: 700;
+	font-size: 14px;
+	line-height: 22px;
+	text-align: center;
+}
+.prime-alerts-notice__title {
+	font-weight: 700;
+	color: #b8860b;
+	margin: 0 0 6px;
+}
+.prime-alerts-notice__text p {
+	margin: 0 0 8px;
+}
+.prime-alerts-notice__text p:last-child {
+	margin-bottom: 0;
+}
+.prime-alerts-notice__legal {
+	opacity: 0.85;
+	font-size: 12px;
+}
+.prime-alerts-notice a {
+	color: #b8860b;
+}
