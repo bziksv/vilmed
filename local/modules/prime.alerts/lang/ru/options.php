@@ -1,0 +1,23 @@
+<?php
+$MESS['PRIME_ALERTS_TAB'] = 'Настройки';
+$MESS['PRIME_ALERTS_TAB_TITLE'] = 'Политика e-mail';
+$MESS['PRIME_ALERTS_ENABLED'] = 'Модуль включён';
+$MESS['PRIME_ALERTS_POLICY_ENABLED'] = 'Запрет иностранных e-mail';
+$MESS['PRIME_ALERTS_POLICY_ENABLED_HINT'] = 'Разрешены только адреса в зонах .ru и .su, а также российские почтовые сервисы: Яндекс (yandex.ru, ya.ru…), Mail.ru (mail.ru, bk.ru, list.ru, inbox.ru…), Rambler и др. Зарубежные (gmail.com, outlook.com, yahoo.com и т.п.) отклоняются.';
+$MESS['PRIME_ALERTS_POLICY_REGISTER'] = 'Проверять e-mail при регистрации';
+$MESS['PRIME_ALERTS_POLICY_ORDER'] = 'Проверять e-mail при оформлении заказа';
+$MESS['PRIME_ALERTS_NOTICE_EVERYWHERE'] = 'Жёлтое уведомление на всех формах с e-mail';
+$MESS['PRIME_ALERTS_NOTICE_EVERYWHERE_HINT'] = 'Выкл (по умолчанию): только регистрация и оформление заказа в корзине. Форма «Заказать товар» / 1 клик не создаёт учётку с введённого e-mail — без этой галки notice там не показывается. Вкл: любое поле e-mail, включая заявки и 1 клик.';
+$MESS['PRIME_ALERTS_SUPPORT_EMAIL'] = 'E-mail поддержки';
+$MESS['PRIME_ALERTS_SUPPORT_PHONE'] = 'Телефон поддержки';
+$MESS['PRIME_ALERTS_EXTRA_DOMAINS'] = 'Доп. разрешённые домены';
+$MESS['PRIME_ALERTS_EXTRA_DOMAINS_HINT'] = 'Через запятую, например: company.ru, partner.su. Зоны .ru/.su и список RU-провайдеров уже разрешены.';
+$MESS['PRIME_ALERTS_TEXTS'] = 'Тексты уведомлений';
+$MESS['PRIME_ALERTS_MACROS_HINT'] = 'Макросы: #EMAIL# и #PHONE# (в HTML — ссылки mailto/tel), #EMAIL_RAW#, #PHONE_RAW#, #TEL# (только цифры для tel:). Пустое поле = текст по умолчанию.';
+$MESS['PRIME_ALERTS_NOTICE_TITLE_SIGNUP'] = 'Заголовок (регистрация)';
+$MESS['PRIME_ALERTS_NOTICE_TEXT_SIGNUP'] = 'Текст уведомления (регистрация, HTML)';
+$MESS['PRIME_ALERTS_NOTICE_TITLE_CHECKOUT'] = 'Заголовок (оформление заказа)';
+$MESS['PRIME_ALERTS_NOTICE_TEXT_CHECKOUT'] = 'Текст уведомления (оформление заказа, HTML)';
+$MESS['PRIME_ALERTS_ERROR_SIGNUP'] = 'Ошибка сервера при регистрации';
+$MESS['PRIME_ALERTS_ERROR_CHECKOUT'] = 'Ошибка сервера при заказе';
+$MESS['PRIME_ALERTS_SAVED'] = 'Настройки сохранены.';

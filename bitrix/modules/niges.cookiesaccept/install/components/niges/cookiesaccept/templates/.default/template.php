@@ -1,119 +1,135 @@
-<?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
-/** @var array $arParams */
-/** @var array $arResult */
-/** @global CMain $APPLICATION */
-/** @global CUser $USER */
-/** @global CDatabase $DB */
+<?php
+if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
+	die();
+}
+
 /** @var CBitrixComponentTemplate $this */
-/** @var string $templateName */
-/** @var string $templateFile */
-/** @var string $templateFolder */
-/** @var string $componentPath */
-/** @var CBitrixComponent $component */
+/** @var array $arResult */
+/** @var CMain $APPLICATION */
+
 if (method_exists($this, 'setFrameMode')) {
 	$this->setFrameMode(true);
-	$ncaSettings=false;
 }
-?>
 
-<?$arResult["ITEMS"][0] = "1445";
+$this->addExternalCss($this->GetFolder().'/style.css');
 
-if ($arResult["ITEMS"][0]) {
-	ob_start();
+$cookieName = htmlspecialcharsbx($arResult['COOKIE_NAME']);
+$textVer = (int)$arResult['TEXTVER'];
+$padding = (int)$arResult['PADDINGSIZE'];
+$opacity = htmlspecialcharsbx((string)$arResult['OPACITY']);
+$zIndex = (int)$arResult['ZINDEX'];
+$topOffset = (int)$arResult['TOP'];
+$styleId = (int)$arResult['SETSTYLE'];
+$position = htmlspecialcharsbx($arResult['POSITION']);
+$animation = htmlspecialcharsbx($arResult['ANIMATION']);
+$btnText = htmlspecialcharsbx($arResult['TEXTBTN']);
+// MAINTEXT already sanitized in helper — safe subset of HTML
+$mainText = $arResult['MAINTEXT'];
+
+$classes = array(
+	'nca-cookiesaccept-line',
+	'style-'.$styleId,
+	'nca-position-'.$position,
+	'nca-animation-'.$animation,
+);
+if ($arResult['HIDE_MOBILE'] === 'Y') {
+	$classes[] = 'nca-hidden-mobile';
+}
+if ($arResult['HIDE_PC'] === 'Y') {
+	$classes[] = 'nca-hidden-pc';
+}
+if ($arResult['TOPORBOTTOM'] === '1') {
+	$classes[] = 'nca-place-top';
+} else {
+	$classes[] = 'nca-place-bottom';
+}
+
+$styleVars = sprintf(
+	'--nca-padding:%dpx;--nca-opacity:%s;--nca-zindex:%d;--nca-top:%d%%;',
+	$padding,
+	$opacity,
+	$zIndex,
+	$topOffset
+);
 ?>
-	<div id="nca-cookiesaccept-line" class="nca-cookiesaccept-line style-<?=$arResult["SETSTYLE"]?> <?if ($arResult["HIDE_MOBILE"] == "Y") :?>nca-hidden-mobile<? endif; ?> <?if ($arResult["HIDE_PC"] == "Y") :?>nca-hidden-pc<? endif; ?>">
-		<div id="nca-nca-position-<?=$arResult["POSITION"]?>"id="nca-bar" class="nca-bar nca-style- nca-animation-<?=$arResult["ANIMATION"]?> nca-position-<?=$arResult["POSITION"]?>">
-			<div class="nca-cookiesaccept-line-text"><?=htmlspecialchars_decode($arResult["MAINTEXT"])?></div> 
-			<div><button type="button" id="nca-cookiesaccept-line-accept-btn" onclick="ncaCookieAcceptBtn()" ><?=$arResult["TEXTBTN"]?></button></div>
+<div
+	id="nca-cookiesaccept-line"
+	class="<?=htmlspecialcharsbx(implode(' ', $classes))?>"
+	style="<?=htmlspecialcharsbx($styleVars)?>"
+	data-cookie-name="<?=$cookieName?>"
+	data-textver="<?=$textVer?>"
+	hidden
+	role="dialog"
+	aria-live="polite"
+>
+	<div class="nca-bar" id="nca-bar">
+		<div class="nca-cookiesaccept-line-text"><?=$mainText?></div>
+		<div class="nca-cookiesaccept-line-actions">
+			<button type="button" id="nca-cookiesaccept-line-accept-btn" class="nca-accept-btn">
+				<?=$btnText?>
+			</button>
 		</div>
 	</div>
-<?
-$html = preg_replace("/\s+/", " ", ob_get_contents());
-ob_end_clean();
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    (function () {
+        if (window !== window.top) {
+            return;
+        }
 
-$APPLICATION->AddHeadString('<script type="text/javascript">
-if (window == window.top) {
-	document.addEventListener("DOMContentLoaded", function() {
-		var div = document.createElement("div"); div.innerHTML = \''.$html.'\';
-		document.body.appendChild(div);
-	});
-}
-function ncaCookieAcceptBtn(){ 
-	var alertWindow = document.getElementById("nca-cookiesaccept-line"); alertWindow.remove();
-	var cookie_string = "NCA_COOKIE_ACCEPT_'.intval($arResult["TEXTVER"]).'" + "=" + escape("Y"); 
-	var expires = new Date((new Date).getTime() + (1000 * 60 * 60 * 24 * 1500)); 
-	cookie_string += "; expires=" + expires.toUTCString(); 
-	cookie_string += "; path=" + escape ("/"); 
-	document.cookie = cookie_string; 	
-}
-function ncaCookieAcceptCheck(){
-	var closeCookieValue = "N"; 
-	var value = "; " + document.cookie;
-	var parts = value.split("; " + "NCA_COOKIE_ACCEPT_'.intval($arResult["TEXTVER"]).'" + "=");
-	if (parts.length == 2) { 
-		closeCookieValue = parts.pop().split(";").shift(); 
-	}
-	if(closeCookieValue != "Y") { 
-		/*document.head.insertAdjacentHTML("beforeend", "<style>#nca-cookiesaccept-line {display:flex}</style>")*/
-	} else { 
-		document.head.insertAdjacentHTML("beforeend", "<style>#nca-cookiesaccept-line {display:none}</style>")
-	}
-}
-ncaCookieAcceptCheck();
-</script>');
+        var root = document.getElementById('nca-cookiesaccept-line');
+        if (!root) {
+            return;
+        }
 
-ob_start();
-?>
+        var cookieName = root.getAttribute('data-cookie-name') || '';
+        if (!cookieName) {
+            return;
+        }
 
-<style>
-.nca-cookiesaccept-line {    
-	box-sizing: border-box !important;
-	margin: 0 !important; 
-	border: none !important;
-    width: 100% !important;
-    min-height: 10px !important;
-    max-height: 250px !important;
-    display: block;
-	clear: both !important; 
-  
-	padding: <?=$arResult["PADDINGSIZE"]?>px !important;
-	position: fixed;
+        function readCookie(name) {
+            var parts = ('; ' + document.cookie).split('; ' + name + '=');
+            if (parts.length === 2) {
+                return parts.pop().split(';').shift();
+            }
+            return '';
+        }
 
-	<?if ($arResult["TOPORBOTTOM"] == "1") :?>
-		top: 0px !important;
-	<?else :?>
-		bottom: 0px !important;
-	<?endif;?>
+        function writeAcceptCookie(name) {
+            var maxAge = 60 * 60 * 24 * 400; // ~400 days (browser caps)
+            var parts = [
+                name + '=Y',
+                'path=/',
+                'max-age=' + maxAge,
+                'SameSite=Lax'
+            ];
+            if (window.location.protocol === 'https:') {
+                parts.push('Secure');
+            }
+            document.cookie = parts.join('; ');
+        }
 
-	opacity: <?=$arResult["BTNOPACITY"]/100?>;
-	transform: translateY(<?=$arResult["TOP"]?>%);
-	z-index: <?=$arResult["ZINDEX"]?>; 
-}
+        function hideBanner() {
+            if (root && root.parentNode) {
+                root.parentNode.removeChild(root);
+            }
+        }
 
-.nca-cookiesaccept-line > div {
-	display: flex; 
-	align-items: center;
-}
-.nca-cookiesaccept-line > div > div {
-	padding-left: 5%;
-	padding-right: 5%;
-}
-.nca-cookiesaccept-line a {
-	color: inherit;
-	text-decoration:underline;
-}
+        if (readCookie(cookieName) === 'Y') {
+            hideBanner();
+            return;
+        }
 
-@media screen and (max-width:767px) {
-	.nca-cookiesaccept-line > div > div {
-		padding-left: 1%;
-		padding-right: 1%;
-	}
-}
-</style>
-	<?
-	$css = preg_replace("/\s+/", " ", ob_get_contents());
-	ob_end_clean();
+        root.hidden = false;
 
-	$APPLICATION->AddHeadString($css);
-}
-?>
+        var btn = document.getElementById('nca-cookiesaccept-line-accept-btn');
+        if (btn) {
+            btn.addEventListener('click', function () {
+                writeAcceptCookie(cookieName);
+                hideBanner();
+            });
+        }
+    })();
+});
+</script>
