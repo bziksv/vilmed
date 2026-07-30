@@ -68,8 +68,8 @@ class Frontend
 			'noticeCheckout' => EmailPolicy::getNoticeHtml('checkout'),
 		];
 
-		$cssHref = '/local/modules/prime.alerts/assets/style.css?v=1.1.10';
-		$jsHref = '/local/modules/prime.alerts/assets/policy.js?v=1.1.10';
+		$cssHref = '/local/modules/prime.alerts/assets/style.css?v=1.1.11';
+		$jsHref = '/local/modules/prime.alerts/assets/policy.js?v=1.1.11';
 		$inject = "\n<link rel=\"stylesheet\" href=\"" . htmlspecialcharsbx($cssHref) . "\">\n"
 			. '<script>window.PRIME_ALERTS=' . Json::encode($config) . ';</script>' . "\n"
 			. '<script src="' . htmlspecialcharsbx($jsHref) . '"></script>' . "\n";

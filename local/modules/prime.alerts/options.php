@@ -73,6 +73,11 @@ $checked = static function (string $name, string $default = 'N') use ($get): str
 	return $get($name, $default) === 'Y' ? ' checked' : '';
 };
 
+$arModuleVersion = [];
+include __DIR__ . '/install/version.php';
+$moduleVersion = (string)($arModuleVersion['VERSION'] ?? '');
+$moduleVersionDate = (string)($arModuleVersion['VERSION_DATE'] ?? '');
+
 $noticeTitleSignup = $get('notice_title_signup');
 $noticeTextSignup = $get('notice_text_signup');
 $noticeTitleCheckout = $get('notice_title_checkout');
@@ -104,6 +109,15 @@ if ($errorCheckout === '') {
 	<?php $tabControl->Begin(); ?>
 	<?php $tabControl->BeginNextTab(); ?>
 
+	<tr>
+		<td width="40%"><?= Loc::getMessage('PRIME_ALERTS_VERSION') ?>:</td>
+		<td width="60%">
+			<strong><?= htmlspecialcharsbx($moduleVersion !== '' ? $moduleVersion : '—') ?></strong>
+			<?php if ($moduleVersionDate !== ''): ?>
+				<span style="color:#666;margin-left:8px;"><?= htmlspecialcharsbx($moduleVersionDate) ?></span>
+			<?php endif; ?>
+		</td>
+	</tr>
 	<tr>
 		<td width="40%"><?= Loc::getMessage('PRIME_ALERTS_ENABLED') ?>:</td>
 		<td width="60%"><input type="checkbox" name="enabled" value="Y"<?= $checked('enabled', 'Y') ?>></td>
