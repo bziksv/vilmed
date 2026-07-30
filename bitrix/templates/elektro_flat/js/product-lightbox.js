@@ -28,10 +28,12 @@
 		var items = [], idx = 0;
 
 		function collect() {
-			var anchors = gallery.querySelectorAll("a.catalog-detail-images, a.fancybox");
+			// Только видимые ссылки галереи (скрытые офферы не тащим в просмотр).
+			var anchors = gallery.querySelectorAll("a.catalog-detail-images");
 			var out = [], seen = {};
 			for (var i = 0; i < anchors.length; i++) {
 				var a = anchors[i];
+				if (a.offsetParent === null) { continue; }
 				var href = a.getAttribute("href") || "";
 				if (!IMG_RE.test(href)) { continue; }
 				var key = normKey(href);

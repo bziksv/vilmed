@@ -463,33 +463,55 @@ if(is_array($arResult["MORE_PHOTO"]) && count($arResult["MORE_PHOTO"]) > 0) {
 	unset($arResult["DISPLAY_PROPERTIES"]["MORE_PHOTO"]);
 
 	//VILMED_MORE_PHOTO_DEDUP//
-	// Главное фото часто повторно загружено как первое «доп. фото»: это РАЗНЫЕ файлы
-	// (разные iblock-пути) с одинаковым содержимым — по URL не отличить, в галерее дубль.
-	// Дедуп по md5 содержимого: убираем из MORE_PHOTO всё, что совпадает с DETAIL_PICTURE
-	// и внутренние повторы. md5_file считается на оригиналах; страница композитно кешируется.
-	$vilmedPhotoPath = function($f) {
-		if(is_array($f)) {
-			if(!empty($f["SRC"])) { return $_SERVER["DOCUMENT_ROOT"].$f["SRC"]; }
-			if(!empty($f["SUBDIR"]) && !empty($f["FILE_NAME"])) { return $_SERVER["DOCUMENT_ROOT"]."/upload/".$f["SUBDIR"]."/".$f["FILE_NAME"]; }
+	// Главное фото часто повторно загружено как «доп. фото»: разные пути iblock,
+	// одинаковое содержимое → в лайтбоксе дубль (DETAIL + MORE). Дедуп по md5
+	// оригинала (через ID файла) + запасной ключ size×WxH. Страница в композите.
+	$vilmedPhotoMeta = function($f) {
+		if(!is_array($f)) { return null; }
+		$arr = null;
+		if(!empty($f["ID"])) {
+			$arr = CFile::GetFileArray($f["ID"]);
 		}
-		return null;
+		$path = null;
+		if(is_array($arr) && !empty($arr["SRC"])) {
+			$path = $_SERVER["DOCUMENT_ROOT"].$arr["SRC"];
+		} elseif(!empty($f["SRC"])) {
+			$path = $_SERVER["DOCUMENT_ROOT"].$f["SRC"];
+		} elseif(!empty($f["SUBDIR"]) && !empty($f["FILE_NAME"])) {
+			$path = $_SERVER["DOCUMENT_ROOT"]."/upload/".$f["SUBDIR"]."/".$f["FILE_NAME"];
+		}
+		if(!$path || !is_file($path)) { return null; }
+		$md5 = @md5_file($path);
+		$w = (int)($arr["WIDTH"] ?? $f["WIDTH"] ?? 0);
+		$h = (int)($arr["HEIGHT"] ?? $f["HEIGHT"] ?? 0);
+		$sz = (int)($arr["FILE_SIZE"] ?? $f["FILE_SIZE"] ?? @filesize($path));
+		return array(
+			"md5" => $md5 ?: null,
+			"geom" => ($sz > 0 && $w > 0 && $h > 0) ? ($sz."x".$w."x".$h) : null,
+		);
 	};
-	$vilmedSeenHash = array();
-	if(is_array($arResult["DETAIL_PICTURE"]) && !empty($arResult["DETAIL_PICTURE"]["SRC"])) {
-		$vilmedDetailPath = $_SERVER["DOCUMENT_ROOT"].$arResult["DETAIL_PICTURE"]["SRC"];
-		if(is_file($vilmedDetailPath)) { $vilmedSeenHash[@md5_file($vilmedDetailPath)] = true; }
+	$vilmedSeenMd5 = array();
+	$vilmedSeenGeom = array();
+	$vilmedMark = function($meta) use (&$vilmedSeenMd5, &$vilmedSeenGeom) {
+		if(!is_array($meta)) { return; }
+		if(!empty($meta["md5"])) { $vilmedSeenMd5[$meta["md5"]] = true; }
+		if(!empty($meta["geom"])) { $vilmedSeenGeom[$meta["geom"]] = true; }
+	};
+	$vilmedIsDup = function($meta) use (&$vilmedSeenMd5, &$vilmedSeenGeom) {
+		if(!is_array($meta)) { return false; }
+		if(!empty($meta["md5"]) && isset($vilmedSeenMd5[$meta["md5"]])) { return true; }
+		if(!empty($meta["geom"]) && isset($vilmedSeenGeom[$meta["geom"]])) { return true; }
+		return false;
+	};
+	if(is_array($arResult["DETAIL_PICTURE"])) {
+		$vilmedMark($vilmedPhotoMeta($arResult["DETAIL_PICTURE"]));
 	}
 	foreach($arResult["MORE_PHOTO"] as $key => $arFile) {
-		$vilmedPath = $vilmedPhotoPath($arFile);
-		if($vilmedPath && is_file($vilmedPath)) {
-			$vilmedHash = @md5_file($vilmedPath);
-			if($vilmedHash) {
-				if(isset($vilmedSeenHash[$vilmedHash])) { unset($arResult["MORE_PHOTO"][$key]); continue; }
-				$vilmedSeenHash[$vilmedHash] = true;
-			}
-		}
+		$meta = $vilmedPhotoMeta($arFile);
+		if($vilmedIsDup($meta)) { unset($arResult["MORE_PHOTO"][$key]); continue; }
+		$vilmedMark($meta);
 	}
-	unset($vilmedPhotoPath, $vilmedSeenHash, $vilmedDetailPath, $vilmedPath, $vilmedHash);
+	unset($vilmedPhotoMeta, $vilmedMark, $vilmedIsDup, $vilmedSeenMd5, $vilmedSeenGeom, $meta);
 
 	//MORE_PICTURES//
 	foreach($arResult["MORE_PHOTO"] as $key => $arFile) {
