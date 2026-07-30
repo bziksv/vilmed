@@ -2,6 +2,7 @@
 
 namespace Prime\Alerts;
 
+use Bitrix\Main\Application;
 use Bitrix\Main\Web\Json;
 
 class Frontend
@@ -19,6 +20,27 @@ class Frontend
 		// Avoid double inject
 		if (strpos($content, 'PRIME_ALERTS') !== false) {
 			return;
+		}
+
+		// Только полноценные HTML-страницы. Иначе ломаем JSON AJAX
+		// (buy.one.click/script.php и др.) — BX.ajax dataType=json не парсит ответ,
+		// спиннер «Загрузка...» зависает.
+		if (stripos($content, '</body>') === false) {
+			return;
+		}
+
+		$trim = ltrim($content);
+		if ($trim !== '' && ($trim[0] === '{' || $trim[0] === '[')) {
+			return;
+		}
+
+		try {
+			$request = Application::getInstance()->getContext()->getRequest();
+			if ($request->isAjaxRequest()) {
+				return;
+			}
+		} catch (\Throwable $e) {
+			// ignore
 		}
 
 		if (!Config::isEnabled() || !Config::isYes('policy_enabled', 'Y')) {
@@ -46,16 +68,12 @@ class Frontend
 			'noticeCheckout' => EmailPolicy::getNoticeHtml('checkout'),
 		];
 
-		$cssHref = '/local/modules/prime.alerts/assets/style.css?v=1.1.9';
-		$jsHref = '/local/modules/prime.alerts/assets/policy.js?v=1.1.9';
+		$cssHref = '/local/modules/prime.alerts/assets/style.css?v=1.1.10';
+		$jsHref = '/local/modules/prime.alerts/assets/policy.js?v=1.1.10';
 		$inject = "\n<link rel=\"stylesheet\" href=\"" . htmlspecialcharsbx($cssHref) . "\">\n"
 			. '<script>window.PRIME_ALERTS=' . Json::encode($config) . ';</script>' . "\n"
 			. '<script src="' . htmlspecialcharsbx($jsHref) . '"></script>' . "\n";
 
-		if (stripos($content, '</body>') !== false) {
-			$content = preg_replace('/<\/body>/i', $inject . '</body>', $content, 1);
-		} else {
-			$content .= $inject;
-		}
+		$content = preg_replace('/<\/body>/i', $inject . '</body>', $content, 1);
 	}
 }
