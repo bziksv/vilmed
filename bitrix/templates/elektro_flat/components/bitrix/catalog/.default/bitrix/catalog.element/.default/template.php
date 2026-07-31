@@ -347,11 +347,24 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 					<?}?>
 				</div>
 				<?//DETAIL_VIDEO_MORE_PHOTO//
-				if(!empty($arResult["PROPERTIES"]["VIDEO"]) || count($arResult["MORE_PHOTO"]) > 0) {?>
+				// Лента миниатюр: сначала главное фото (активное), затем доп. —
+				// иначе справа «висит» похожий кадр и кажется дублем главного.
+				$vilmedShowMoreStrip = !empty($arResult["PROPERTIES"]["VIDEO"]["VALUE"]) || count($arResult["MORE_PHOTO"]) > 0 || $isDetailImg;
+				if($vilmedShowMoreStrip && (count($arResult["MORE_PHOTO"]) > 0 || !empty($arResult["PROPERTIES"]["VIDEO"]["VALUE"]))) {?>
 					<div class="clr"></div>
 					<div class="more_photo">
 						<ul>
-							<?if(!empty($arResult["PROPERTIES"]["VIDEO"]["VALUE"])) {?>
+							<?if($isDetailImg) {
+								$vilmedDetailPreview = !empty($arResult["PREVIEW_IMG"]["SRC"]) ? $arResult["PREVIEW_IMG"] : $arResult["DETAIL_IMG"];
+								$vilmedMpW = (int)($arParams["DISPLAY_MORE_PHOTO_WIDTH"] ?: 86);
+								$vilmedMpH = (int)($arParams["DISPLAY_MORE_PHOTO_HEIGHT"] ?: 86);?>
+								<li class="is-active" style="<?=($arParams['DISPLAY_MORE_PHOTO_WIDTH'] ? 'width:'.$arParams['DISPLAY_MORE_PHOTO_WIDTH'].'px;' : '').($arParams['DISPLAY_MORE_PHOTO_HEIGHT'] ? 'height:'.$arParams['DISPLAY_MORE_PHOTO_HEIGHT'].'px;' : '');?>">
+									<a rel="lightbox" class="catalog-detail-images fancybox" href="<?=$arResult['DETAIL_PICTURE']['SRC']?>">
+										<img src="<?=$vilmedDetailPreview['SRC']?>" width="<?=$vilmedMpW?>" height="<?=$vilmedMpH?>" alt="<?=$strAlt?>" title="<?=$strTitle?>" />
+									</a>
+								</li>
+							<?}
+							if(!empty($arResult["PROPERTIES"]["VIDEO"]["VALUE"])) {?>
 								<li class="catalog-detail-video" style="<?=($arParams['DISPLAY_MORE_PHOTO_WIDTH'] ? 'width:'.$arParams['DISPLAY_MORE_PHOTO_WIDTH'].'px;' : '').($arParams['DISPLAY_MORE_PHOTO_HEIGHT'] ? 'height:'.$arParams['DISPLAY_MORE_PHOTO_HEIGHT'].'px;' : '');?>">
 									<a rel="lightbox" class="catalog-detail-images fancybox" href="#video">
 										<i class="fa fa-play-circle-o"></i>

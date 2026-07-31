@@ -1358,6 +1358,10 @@ html.vilmed-drawer-lock {
 		float: none;
 		margin: 0 !important;
 	}
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo ul li.is-active a {
+		outline: 2px solid #e31e24;
+		outline-offset: 1px;
+	}
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .clr { display: none; }
 }
 
