@@ -1,8 +1,7 @@
 /* VILMED — лайтбокс галереи товара + переключение главного фото миниатюрами.
-   Миниатюры справа на карточке меняют главное фото (без «дубля» в попапе).
-   Попап: крупное фото + стрелки/счётчик, без ленты превью (иначе то же
-   фото видно и крупно, и снизу — выглядит как дубль). Fancybox 1.3.1
-   перехватывается в capture. */
+   Миниатюры справа на карточке меняют главное фото.
+   Попап: крупное фото + лента превью снизу + стрелки/счётчик.
+   Fancybox 1.3.1 перехватывается в capture. */
 (function () {
 	"use strict";
 
@@ -21,10 +20,9 @@
 		var gallery = document.querySelector(".catalog-detail-pictures");
 		if (!gallery) { return; }
 
-		var ov, stage, imgEl, counterEl, prevBtn, nextBtn;
+		var ov, stage, imgEl, thumbsEl, counterEl, prevBtn, nextBtn;
 		var items = [], idx = 0;
 
-		// Отвязать старый fancybox от ссылок галереи
 		if (window.jQuery) {
 			try { jQuery(gallery).find("a.catalog-detail-images").unbind("click").removeData("fancybox"); } catch (e) {}
 		}
@@ -58,8 +56,6 @@
 			var pic = mainA.querySelector("picture");
 			var img = mainA.querySelector("img");
 			if (pic) {
-				var srcWebp = href.replace(/\.(jpe?g|png)(\?|$)/i, ".webp$2");
-				// главное фото — оригинал/полный href; превью webp может отсутствовать
 				var source = pic.querySelector("source");
 				if (source) { source.removeAttribute("srcset"); }
 			}
@@ -88,11 +84,13 @@
 				'<div class="vlb__counter"></div>' +
 				'<button type="button" class="vlb__nav vlb__prev" aria-label="Предыдущее фото">&#10094;</button>' +
 				'<button type="button" class="vlb__nav vlb__next" aria-label="Следующее фото">&#10095;</button>' +
-				'<div class="vlb__stage"><img class="vlb__img" alt=""></div>';
+				'<div class="vlb__stage"><img class="vlb__img" alt=""></div>' +
+				'<div class="vlb__thumbs"></div>';
 			document.body.appendChild(ov);
 
 			stage = ov.querySelector(".vlb__stage");
 			imgEl = ov.querySelector(".vlb__img");
+			thumbsEl = ov.querySelector(".vlb__thumbs");
 			counterEl = ov.querySelector(".vlb__counter");
 			prevBtn = ov.querySelector(".vlb__prev");
 			nextBtn = ov.querySelector(".vlb__next");
@@ -134,6 +132,26 @@
 			stage.addEventListener("touchcancel", endSwipe);
 		}
 
+		function renderThumbs() {
+			var single = items.length <= 1;
+			thumbsEl.style.display = single ? "none" : "";
+			prevBtn.style.display = single ? "none" : "";
+			nextBtn.style.display = single ? "none" : "";
+			if (single) { thumbsEl.innerHTML = ""; return; }
+			var h = "";
+			for (var i = 0; i < items.length; i++) {
+				h += '<button type="button" class="vlb__thumb" data-i="' + i + '">' +
+					'<img src="' + items[i].thumb + '" alt=""></button>';
+			}
+			thumbsEl.innerHTML = h;
+			var btns = thumbsEl.querySelectorAll(".vlb__thumb");
+			for (var j = 0; j < btns.length; j++) {
+				btns[j].addEventListener("click", function () {
+					go(parseInt(this.getAttribute("data-i"), 10));
+				});
+			}
+		}
+
 		function go(n) {
 			if (!items.length) { return; }
 			idx = (n + items.length) % items.length;
@@ -145,12 +163,20 @@
 			var single = items.length <= 1;
 			prevBtn.style.display = single ? "none" : "";
 			nextBtn.style.display = single ? "none" : "";
+			var btns = thumbsEl.querySelectorAll(".vlb__thumb");
+			for (var i = 0; i < btns.length; i++) {
+				if (i === idx) { btns[i].classList.add("is-active"); }
+				else { btns[i].classList.remove("is-active"); }
+			}
+			var act = btns[idx];
+			if (act && act.scrollIntoView) { act.scrollIntoView({ inline: "center", block: "nearest" }); }
 		}
 
 		function open(startSrc) {
 			if (!ov) { build(); }
 			items = collect();
 			if (!items.length) { return; }
+			renderThumbs();
 			var start = 0;
 			var startKey = normKey(startSrc);
 			for (var i = 0; i < items.length; i++) {
@@ -183,7 +209,6 @@
 			e.preventDefault();
 			e.stopImmediatePropagation();
 
-			// Клик по миниатюре справа — только смена главного фото, без попапа
 			var inMore = a.closest && a.closest(".more_photo");
 			var inMain = a.closest && (a.closest(".detail_picture") || a.closest(".catalog-detail-picture"));
 			if (inMore && !inMain) {
@@ -193,7 +218,6 @@
 			open(href);
 		}, true);
 
-		// Стартовая активная миниатюра = текущее главное
 		var mainA = gallery.querySelector(".detail_picture a.catalog-detail-images, .catalog-detail-picture a.catalog-detail-images");
 		if (mainA) { setMainFromHref(mainA.getAttribute("href") || ""); }
 	});

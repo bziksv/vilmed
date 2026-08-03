@@ -23,7 +23,7 @@ html.vlb-lock { overflow: hidden; }
 .vlb__stage {
 	position: absolute;
 	top: 56px; left: 0; right: 0;
-	bottom: 24px;
+	bottom: 104px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
