@@ -14,16 +14,16 @@
 		<h2><?=GetMessage("LEGEND_PROFILE")?></h2>
 		<div class="personal-info">
 			<div class="personal-info_in">
-				<?=GetMessage('EMAIL')?><br>
-				<input type="email" name="EMAIL" maxlength="50" class="input_text_style" value="<?=htmlspecialcharsbx($arResult["arUser"]["EMAIL"])?>" autocomplete="email" required />
-				<br><br>
-
 				<?=GetMessage('NAME')?><br>
 				<input type="text" name="NAME" maxlength="50" class="input_text_style" value="<?=$arResult["arUser"]["NAME"]?>" />
 				<br><br>
 				
 				<?=GetMessage('LAST_NAME')?><br>
 				<input type="text" name="LAST_NAME" maxlength="50" class="input_text_style" value="<?=$arResult["arUser"]["LAST_NAME"]?>" />
+				<br><br>
+
+				<?=GetMessage('EMAIL')?><br>
+				<input type="email" name="EMAIL" maxlength="50" class="input_text_style" value="<?=htmlspecialcharsbx($arResult["arUser"]["EMAIL"])?>" autocomplete="email" required />
 				<br><br>
 
 				<?=GetMessage('PERSONAL_PHOTO')?><br>
