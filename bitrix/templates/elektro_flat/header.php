@@ -137,7 +137,7 @@ Loc::loadMessages(__FILE__);
 	Asset::getInstance()->addJs($vilmedTplPath."/js/jquery.cookie.js");
 	Asset::getInstance()->addJs($vilmedTplPath."/js/moremenu.js");
 	Asset::getInstance()->addJs($vilmedTplPath."/js/custom-forms/jquery.custom-forms.js");
-	Asset::getInstance()->addJs($vilmedTplPath."/js/main.js");
+	Asset::getInstance()->addJs($vilmedAssetVer($vilmedTplPath."/js/main.js"));
 	Asset::getInstance()->addJs($vilmedTplPath."/script.js");
 	Asset::getInstance()->addJs("/bitrix/components/altop/forms/templates/.default/script.js");
 

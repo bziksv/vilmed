@@ -411,7 +411,12 @@ Loc::loadMessages(__FILE__);?>
 			return;
 		}
 
-		var cartEl = jQuery(".cart");
+		var cartEl = (typeof getFlyingCartTarget === "function")
+			? getFlyingCartTarget()
+			: jQuery(".vilmed-fh.is-visible [data-vfh='cart'], .vilmed-hdr-icons [data-vfh='cart'], a.cart").filter(function() {
+				var r = this.getBoundingClientRect();
+				return r.width > 2 && r.height > 2;
+			}).first();
 		if (!cartEl.length) {
 			return;
 		}

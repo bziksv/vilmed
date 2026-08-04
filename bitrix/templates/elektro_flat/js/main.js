@@ -225,27 +225,70 @@ $(function() {
 	
 });
 
-function flyingCart(from, to, JCCatalogItem) {
+/** Visible cart icon for fly-to-cart (old #cart_line1 is display:none under floating header). */
+function getFlyingCartTarget() {
+	var selectors = [
+		'.vilmed-fh.is-visible [data-vfh="cart"]',
+		'.vilmed-hdr-icons [data-vfh="cart"]',
+		'#cart_line1 a.cart',
+		'a.cart'
+	];
+	var i, $el, el, r;
+	for (i = 0; i < selectors.length; i++) {
+		$el = $(selectors[i]).filter(function() {
+			r = this.getBoundingClientRect();
+			return r.width > 2 && r.height > 2 && r.bottom > 0 && r.top < (window.innerHeight || 800);
+		}).first();
+		if ($el.length) {
+			return $el;
+		}
+	}
+	$el = $('[data-vfh="cart"]').filter(function() {
+		r = this.getBoundingClientRect();
+		return r.width > 2 && r.height > 2;
+	}).first();
+	return $el.length ? $el : $();
+}
 
-	let origin = from;
-	let block = $('<div></div>').append(origin.html());
+function flyingCart(from, to, JCCatalogItem) {
+	var origin = from && from.length ? from.first() : $();
+	var target = getFlyingCartTarget();
+	if (!target.length && to && to.length) {
+		target = to.first();
+	}
+	var done = function() {
+		if (JCCatalogItem && typeof JCCatalogItem.BasketResult === 'function') {
+			JCCatalogItem.BasketResult();
+		}
+	};
+	if (!origin.length || !target.length) {
+		done();
+		return;
+	}
+
+	var fromRect = origin[0].getBoundingClientRect();
+	var toRect = target[0].getBoundingClientRect();
+	var block = $('<div></div>').append(origin.html());
 	block.css({
 		'z-index': 100500,
 		background: '#b21001',
-		top: origin.offset().top,
-		left: origin.offset().left,
-		width: origin.width()+'px',
-		height: origin.height()+'px',
-		position: 'absolute',
-		overflow: 'hidden'
-	}).appendTo('body').css({'padding':'10px','background':'#b21001','color':'#fff'}).animate({
-		top: to.offset().top,
-		left: to.offset().left,
+		color: '#fff',
+		padding: '10px',
+		top: fromRect.top,
+		left: fromRect.left,
+		width: Math.max(fromRect.width, 10) + 'px',
+		height: Math.max(fromRect.height, 10) + 'px',
+		position: 'fixed',
+		overflow: 'hidden',
+		pointerEvents: 'none'
+	}).appendTo('body').animate({
+		top: toRect.top + toRect.height / 2 - 5,
+		left: toRect.left + toRect.width / 2 - 5,
 		width: '10px',
 		height: '10px',
 		opacity: 0.7
 	}, 600, function() {
 		$(this).remove();
-		JCCatalogItem.BasketResult();
+		done();
 	});
 }
