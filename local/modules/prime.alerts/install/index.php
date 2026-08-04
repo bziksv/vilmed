@@ -79,8 +79,40 @@ class prime_alerts extends CModule
 		$em = EventManager::getInstance();
 		$em->registerEventHandler('main', 'OnBeforeUserRegister', $this->MODULE_ID, '\\Prime\\Alerts\\Handlers', 'onBeforeUserRegister');
 		$em->registerEventHandler('main', 'OnBeforeUserAdd', $this->MODULE_ID, '\\Prime\\Alerts\\Handlers', 'onBeforeUserAdd');
+		$em->registerEventHandler('main', 'OnBeforeUserUpdate', $this->MODULE_ID, '\\Prime\\Alerts\\Handlers', 'onBeforeUserUpdate');
 		$em->registerEventHandler('main', 'OnEndBufferContent', $this->MODULE_ID, '\\Prime\\Alerts\\Frontend', 'onEndBufferContent');
 		$em->registerEventHandler('sale', 'OnSaleOrderBeforeSaved', $this->MODULE_ID, '\\Prime\\Alerts\\Handlers', 'onSaleOrderBeforeSaved');
+		// ORM шлёт UserPropsValue::… (без Table) и legacy UserPropsValueOnBefore*
+		$em->registerEventHandler(
+			'sale',
+			'\\Bitrix\\Sale\\Internals\\UserPropsValue::OnBeforeUpdate',
+			$this->MODULE_ID,
+			'\\Prime\\Alerts\\Handlers',
+			'onBeforeUserPropsValueUpdate'
+		);
+		$em->registerEventHandler(
+			'sale',
+			'\\Bitrix\\Sale\\Internals\\UserPropsValue::OnBeforeAdd',
+			$this->MODULE_ID,
+			'\\Prime\\Alerts\\Handlers',
+			'onBeforeUserPropsValueAdd'
+		);
+		$em->registerEventHandler(
+			'sale',
+			'UserPropsValueOnBeforeUpdate',
+			$this->MODULE_ID,
+			'\\Prime\\Alerts\\Handlers',
+			'onBeforeUserPropsValueUpdate'
+		);
+		$em->registerEventHandler(
+			'sale',
+			'UserPropsValueOnBeforeAdd',
+			$this->MODULE_ID,
+			'\\Prime\\Alerts\\Handlers',
+			'onBeforeUserPropsValueAdd'
+		);
+		// Ранний отказ на POST профиля заказов + flash-ошибка (компонент игнорит Result ORM)
+		$em->registerEventHandler('main', 'OnProlog', $this->MODULE_ID, '\\Prime\\Alerts\\Handlers', 'onProlog');
 		return true;
 	}
 
@@ -89,12 +121,30 @@ class prime_alerts extends CModule
 		$em = EventManager::getInstance();
 		$em->unRegisterEventHandler('main', 'OnBeforeUserRegister', $this->MODULE_ID, '\\Prime\\Alerts\\Handlers', 'onBeforeUserRegister');
 		$em->unRegisterEventHandler('main', 'OnBeforeUserAdd', $this->MODULE_ID, '\\Prime\\Alerts\\Handlers', 'onBeforeUserAdd');
+		$em->unRegisterEventHandler('main', 'OnBeforeUserUpdate', $this->MODULE_ID, '\\Prime\\Alerts\\Handlers', 'onBeforeUserUpdate');
 		$em->unRegisterEventHandler('main', 'OnAfterUserRegister', $this->MODULE_ID, '\\Prime\\Alerts\\Handlers', 'onAfterUserRegister');
 		$em->unRegisterEventHandler('main', 'OnEpilog', $this->MODULE_ID, '\\Prime\\Alerts\\Frontend', 'onEpilog');
 		$em->unRegisterEventHandler('main', 'OnProlog', $this->MODULE_ID, '\\Prime\\Alerts\\Frontend', 'onProlog');
+		$em->unRegisterEventHandler('main', 'OnProlog', $this->MODULE_ID, '\\Prime\\Alerts\\Handlers', 'onProlog');
 		$em->unRegisterEventHandler('main', 'OnEndBufferContent', $this->MODULE_ID, '\\Prime\\Alerts\\Frontend', 'onEndBufferContent');
 		$em->unRegisterEventHandler('sale', 'OnSaleOrderBeforeSaved', $this->MODULE_ID, '\\Prime\\Alerts\\Handlers', 'onSaleOrderBeforeSaved');
 		$em->unRegisterEventHandler('sale', 'OnSaleOrderSaved', $this->MODULE_ID, '\\Prime\\Alerts\\Handlers', 'onSaleOrderSaved');
+		foreach ([
+			'\\Bitrix\\Sale\\Internals\\UserPropsValueTable::OnBeforeUpdate',
+			'\\Bitrix\\Sale\\Internals\\UserPropsValueTable::OnBeforeAdd',
+			'\\Bitrix\\Sale\\Internals\\UserPropsValue::OnBeforeUpdate',
+			'\\Bitrix\\Sale\\Internals\\UserPropsValue::OnBeforeAdd',
+			'UserPropsValueOnBeforeUpdate',
+			'UserPropsValueOnBeforeAdd',
+		] as $messageId) {
+			$em->unRegisterEventHandler(
+				'sale',
+				$messageId,
+				$this->MODULE_ID,
+				'\\Prime\\Alerts\\Handlers',
+				strpos($messageId, 'Add') !== false ? 'onBeforeUserPropsValueAdd' : 'onBeforeUserPropsValueUpdate'
+			);
+		}
 		return true;
 	}
 }

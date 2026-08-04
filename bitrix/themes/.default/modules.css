@@ -1094,6 +1094,8 @@
 }
 
 /*Menu icon*/
+.arturgolubev_chatgpt_icon_main {background: url(icons/arturgolubev.chatgpt/ag_chatgpt_menu_logo.png) 10px center no-repeat; background-size: 18px 18px;} 
+/*Menu icon*/
 .adm-b24connector .adm-main-menu-item-icon {background-image:url(icons/b24connector/icons.png); background-position: center -269px; height:47px;}
 .adm-b24connector:hover .adm-main-menu-item-icon {background-image:url(icons/b24connector/icons.png); background-position: center -345px; height:47px;}
 .adm-main-menu-item-active.adm-b24connector .adm-main-menu-item-icon {background-image:url(icons/b24connector/icons.png); background-position: center -345px; height:47px;}

@@ -1,0 +1,1 @@
+<?require($_SERVER["DOCUMENT_ROOT"].'/bitrix/modules/arturgolubev.chatgpt/scripts/automatic_tasks.php');?>

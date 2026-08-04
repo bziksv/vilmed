@@ -1,0 +1,1 @@
+<?include(str_replace('/en/', '/ru/', __FILE__));?>

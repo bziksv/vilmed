@@ -1,7 +1,6 @@
 <?php
 $MESS['PRIME_ALERTS_TAB'] = 'Настройки';
 $MESS['PRIME_ALERTS_TAB_TITLE'] = 'Политика e-mail';
-$MESS['PRIME_ALERTS_VERSION'] = 'Версия модуля';
 $MESS['PRIME_ALERTS_ENABLED'] = 'Модуль включён';
 $MESS['PRIME_ALERTS_POLICY_ENABLED'] = 'Запрет иностранных e-mail';
 $MESS['PRIME_ALERTS_POLICY_ENABLED_HINT'] = 'Разрешены только адреса в зонах .ru и .su, а также российские почтовые сервисы: Яндекс (yandex.ru, ya.ru…), Mail.ru (mail.ru, bk.ru, list.ru, inbox.ru…), Rambler и др. Зарубежные (gmail.com, outlook.com, yahoo.com и т.п.) отклоняются.';

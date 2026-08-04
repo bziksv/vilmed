@@ -1,0 +1,1 @@
+<?include $_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/arturgolubev.chatgpt/lang/ru/js/jscore.php';?>

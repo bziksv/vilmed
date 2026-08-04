@@ -41,7 +41,7 @@
 
 	function fieldWrap(inp) {
 		return inp.closest(
-			'.bx-soa-customer-field, .form-group, .soa-property-container, .field, .row, .form-input, tr, label'
+			'.sale-profile-detail-form-group, .bx-soa-customer-field, .form-group, .soa-property-container, .field, .row, .form-input, tr, label'
 		) || inp.parentNode;
 	}
 
@@ -120,8 +120,12 @@
 				return 'checkout';
 			}
 		}
+		// Профиль покупателя в ЛК
+		if (/profile|profiles/i.test(location.pathname) && inp.name && /^ORDER_PROP_/i.test(inp.name || '')) {
+			return 'checkout';
+		}
 
-		if (/regist|signup|AUTH_FORM|bx-auth|personal\/register|USER_REGISTER/i.test(id)) {
+		if (/regist|signup|AUTH_FORM|bx-auth|personal\/register|USER_REGISTER|main\.profile|private/i.test(id)) {
 			return 'signup';
 		}
 		if (form) {
@@ -130,6 +134,15 @@
 			}
 			if (form.querySelector('input[name="register_submit_button"], input[name="register"], button[name="register"]')) {
 				return 'signup';
+			}
+			// Личный кабинет / персональные данные / профиль заказа
+			if (form.querySelector('input[name="EMAIL"]') && (
+				/personal|profile|private/i.test(location.pathname)
+				|| form.querySelector('input[name="save"], button[name="save"], input[name="apply"]')
+			)) {
+				if (!isBuyOneClick(inp, form, id) && !isLeadForm(inp, form, id)) {
+					return 'signup';
+				}
 			}
 			var emailName = (inp.name || '').toLowerCase();
 			if ((emailName === 'email' || emailName === 'user_email' || emailName === 'register[email]')
@@ -172,6 +185,9 @@
 	function isEmailInput(inp) {
 		if (!inp || inp.tagName !== 'INPUT') return false;
 		var type = (inp.type || '').toLowerCase();
+		if (type === 'hidden' || type === 'password' || type === 'checkbox' || type === 'radio' || type === 'file' || type === 'submit' || type === 'button') {
+			return false;
+		}
 		var name = (inp.name || '').toLowerCase();
 		var auto = (inp.getAttribute('autocomplete') || '').toLowerCase();
 		var id = (inp.id || '').toLowerCase();
@@ -181,7 +197,7 @@
 		if (id.indexOf('email') >= 0) return true;
 		var wrap = fieldWrap(inp);
 		var label = wrap ? wrap.textContent : '';
-		if (/e-?mail/i.test(label) && type === 'text') return true;
+		if (/e-?mail/i.test(label) && (type === 'text' || type === '' || !inp.type)) return true;
 		return false;
 	}
 
