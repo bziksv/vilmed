@@ -1,5 +1,6 @@
 <?
 $MESS ['PROFILE_DATA_SAVED'] = "Изменения сохранены";
+$MESS ['EMAIL'] = "E-mail";
 $MESS ['NAME'] = "Имя";
 $MESS ['LAST_NAME'] = "Фамилия";
 $MESS ['SECOND_NAME'] = "Отчество";

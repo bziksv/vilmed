@@ -9,12 +9,15 @@
 		<?=$arResult["BX_SESSION_CHECK"]?>
 		<input type="hidden" name="lang" value="<?=LANG?>" />
 		<input type="hidden" name="ID" value=<?=$arResult["ID"]?> />
-		<input type="hidden" name="LOGIN" value=<?=$arResult["arUser"]["LOGIN"]?> />
-		<input type="hidden" name="EMAIL" value=<?=$arResult["arUser"]["EMAIL"]?> />
+		<input type="hidden" name="LOGIN" value="<?=htmlspecialcharsbx($arResult["arUser"]["LOGIN"])?>" />
 
 		<h2><?=GetMessage("LEGEND_PROFILE")?></h2>
 		<div class="personal-info">
 			<div class="personal-info_in">
+				<?=GetMessage('EMAIL')?><br>
+				<input type="email" name="EMAIL" maxlength="50" class="input_text_style" value="<?=htmlspecialcharsbx($arResult["arUser"]["EMAIL"])?>" autocomplete="email" required />
+				<br><br>
+
 				<?=GetMessage('NAME')?><br>
 				<input type="text" name="NAME" maxlength="50" class="input_text_style" value="<?=$arResult["arUser"]["NAME"]?>" />
 				<br><br>
