@@ -23,7 +23,7 @@
 				<br><br>
 
 				<?=GetMessage('EMAIL')?><br>
-				<input type="email" name="EMAIL" maxlength="50" class="input_text_style" value="<?=htmlspecialcharsbx($arResult["arUser"]["EMAIL"])?>" autocomplete="email" required />
+				<input type="text" name="EMAIL" maxlength="50" class="input_text_style" value="<?=htmlspecialcharsbx($arResult["arUser"]["EMAIL"])?>" autocomplete="email" required />
 				<br><br>
 
 				<?=GetMessage('PERSONAL_PHOTO')?><br>
