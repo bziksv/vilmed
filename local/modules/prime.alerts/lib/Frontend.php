@@ -2,7 +2,6 @@
 
 namespace Prime\Alerts;
 
-use Bitrix\Main\Application;
 use Bitrix\Main\Web\Json;
 
 class Frontend
@@ -22,20 +21,12 @@ class Frontend
 			return;
 		}
 
-		// Только полноценные HTML-страницы. Иначе ломаем JSON AJAX
-		// (buy.one.click/script.php и др.) — BX.ajax dataType=json не парсит ответ,
-		// спиннер «Загрузка...» зависает.
+		// Only full HTML pages — never append to JSON/AJAX (location selector, sale.order.ajax, etc.)
 		if (stripos($content, '</body>') === false) {
 			return;
 		}
-
-		$trim = ltrim($content);
-		if ($trim !== '' && ($trim[0] === '{' || $trim[0] === '[')) {
-			return;
-		}
-
 		try {
-			$request = Application::getInstance()->getContext()->getRequest();
+			$request = \Bitrix\Main\Context::getCurrent()->getRequest();
 			if ($request->isAjaxRequest()) {
 				return;
 			}
@@ -68,11 +59,37 @@ class Frontend
 			'noticeCheckout' => EmailPolicy::getNoticeHtml('checkout'),
 		];
 
-		$cssHref = '/local/modules/prime.alerts/assets/style.css?v=1.1.11';
-		$jsHref = '/local/modules/prime.alerts/assets/policy.js?v=1.1.11';
+		$cssHref = '/local/modules/prime.alerts/assets/style.css?v=1.2.2';
+		$jsHref = '/local/modules/prime.alerts/assets/policy.js?v=1.2.2';
+		$flash = '';
+		try {
+			$session = \Bitrix\Main\Application::getInstance()->getSession();
+			if ($session->has('PRIME_ALERTS_FLASH_ERROR')) {
+				$msg = (string)$session->get('PRIME_ALERTS_FLASH_ERROR');
+				$session->remove('PRIME_ALERTS_FLASH_ERROR');
+				if ($msg !== '') {
+					$flash = '<div class="prime-alerts-flash" role="alert">'
+						. htmlspecialcharsbx($msg)
+						. '</div>';
+				}
+			}
+		} catch (\Throwable $e) {
+			$flash = '';
+		}
+
 		$inject = "\n<link rel=\"stylesheet\" href=\"" . htmlspecialcharsbx($cssHref) . "\">\n"
 			. '<script>window.PRIME_ALERTS=' . Json::encode($config) . ';</script>' . "\n"
 			. '<script src="' . htmlspecialcharsbx($jsHref) . '"></script>' . "\n";
+
+		if ($flash !== '') {
+			if (preg_match('/<h1[^>]*>/i', $content)) {
+				$content = preg_replace('/(<h1[^>]*>)/i', $flash . '$1', $content, 1);
+			} elseif (stripos($content, '<div class="workarea') !== false) {
+				$content = preg_replace('/(<div class="workarea[^"]*"[^>]*>)/i', '$1' . $flash, $content, 1);
+			} else {
+				$inject = $flash . $inject;
+			}
+		}
 
 		$content = preg_replace('/<\/body>/i', $inject . '</body>', $content, 1);
 	}
