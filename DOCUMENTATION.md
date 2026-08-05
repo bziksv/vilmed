@@ -586,6 +586,9 @@ rsync -avz user@217.28.220.186:/var/www/.../upload/ ~/Documents/projects/vilmed/
 | Домен | vilmed.ru |
 | Document root | `/var/www/vilmed_ru_usr/data/www/vilmed.ru/` |
 | Владелец файлов | `vilmed_ru_usr:vilmed_ru_usr` |
+| RAM | 11 GiB, **swap 6 GiB** (`/swapfile`, в `/etc/fstab`, с 2026-08-05) |
+
+> На общем VPS (несколько сайтов + Redis 2G + MySQL) без swap MySQL периодически убивался OOM (`restart counter` рос). Swap — подушка; корневая причина давления по RAM (Redis/buffer pool/чужие PHP) остаётся.
 
 ### Деплой на prod
 
