@@ -587,8 +587,10 @@ rsync -avz user@217.28.220.186:/var/www/.../upload/ ~/Documents/projects/vilmed/
 | Document root | `/var/www/vilmed_ru_usr/data/www/vilmed.ru/` |
 | Владелец файлов | `vilmed_ru_usr:vilmed_ru_usr` |
 | RAM | 11 GiB, **swap 6 GiB** (`/swapfile`, в `/etc/fstab`, с 2026-08-05) |
+| MySQL buffer pool | **4G** (было 9G → OOM). Правки в **обоих** файлах: `/etc/mysql/conf.d/mysql.cnf` и `/etc/mysql/my.cnf.fastpanel/99-fastpanel.cnf` (FastPanel подключается последним через `!include`) |
+| `innodb_log_buffer_size` | **64M** (было 1024M) |
 
-> На общем VPS (несколько сайтов + Redis 2G + MySQL) без swap MySQL периодически убивался OOM (`restart counter` рос). Swap — подушка; корневая причина давления по RAM (Redis/buffer pool/чужие PHP) остаётся.
+> OOM: MySQL убивался ядром (dmesg), т.к. `innodb_buffer_pool_size=9G` + Redis 2G на 11G RAM. Swap — подушка; buffer pool снижен 2026-08-05. Бэкапы конфигов: `*.bak.YYYYMMDDHHMMSS` рядом с файлами.
 
 ### Деплой на prod
 
