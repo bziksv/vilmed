@@ -548,7 +548,12 @@
 			active = -1;
 		}
 		function open() {
-			if (pop.innerHTML) { box.classList.add("vilmed-fh--open"); }
+			if (pop.innerHTML) {
+				box.classList.add("vilmed-fh--open");
+				pop.classList.remove("vilmed-fh__sresult--in");
+				void pop.offsetWidth;
+				pop.classList.add("vilmed-fh__sresult--in");
+			}
 		}
 		function items() {
 			return pop.querySelectorAll(".vilmed-fh__sitem-link");
@@ -569,31 +574,78 @@
 			return vfhSearchUrl(input.closest("form") || box, q, sectionIds || activeSectionIds);
 		}
 
+		function facetNameById(facets, id) {
+			id = parseInt(id, 10) || 0;
+			for (var i = 0; i < facets.length; i++) {
+				if (facets[i].ID === id) { return facets[i].NAME; }
+			}
+			return "";
+		}
+
+		function renderFilterChips(facets) {
+			if (!activeSectionIds.length) { return ""; }
+			var html = '<div class="vilmed-fh__sfilter-bar"><div class="vilmed-fh__sfilter-chips">';
+			for (var i = 0; i < activeSectionIds.length; i++) {
+				var sid = activeSectionIds[i];
+				var name = facetNameById(facets, sid) || ("Категория " + sid);
+				html +=
+					'<button type="button" class="vilmed-fh__sfilter-chip" data-section="' + sid + '" title="Убрать">' +
+						'<span>' + escapeHtml(name) + "</span>" +
+						'<i class="fa fa-times" aria-hidden="true"></i>' +
+					"</button>";
+			}
+			html += "</div></div>";
+			return html;
+		}
+
+		function bindCategoryFilter() {
+			var filterInput = pop.querySelector(".vilmed-fh__scats-filter");
+			if (!filterInput || filterInput.__bound) { return; }
+			filterInput.__bound = true;
+			filterInput.addEventListener("input", function () {
+				var q = (filterInput.value || "").toLowerCase().replace(/ё/g, "е").trim();
+				var rows = pop.querySelectorAll(".vilmed-fh__scat-row[data-section]");
+				for (var i = 0; i < rows.length; i++) {
+					var row = rows[i];
+					if ((row.getAttribute("data-section") || "0") === "0") {
+						row.style.display = q ? "none" : "";
+						continue;
+					}
+					var name = (row.querySelector(".vilmed-fh__scat-name") || {}).textContent || "";
+					name = name.toLowerCase().replace(/ё/g, "е");
+					row.style.display = !q || name.indexOf(q) !== -1 ? "" : "none";
+				}
+			});
+		}
+
 		function renderProductItem(it) {
 			var priceHtml = it.PRICE_PRINT
 				? '<span class="vilmed-fh__sitem-price">' + escapeHtml(it.PRICE_PRINT) + "</span>"
 				: '<span class="vilmed-fh__sitem-price vilmed-fh__sitem-price--empty">Цена по запросу</span>';
 			var actionHtml = "";
 			if (it.NEED_SKU) {
-				actionHtml = '<a class="vilmed-fh__sitem-pick" href="' + it.URL + '">Выбрать</a>';
+				actionHtml = '<a class="vilmed-fh__sitem-pick" href="' + it.URL + '"><span>Выбрать</span></a>';
 			} else if (it.CAN_BUY && it.BUY_ID) {
 				actionHtml =
 					'<button type="button" class="vilmed-fh__sitem-buy" data-product-id="' + it.BUY_ID + '" title="В корзину">' +
 						'<i class="fa fa-shopping-cart"></i><span>В корзину</span>' +
 					"</button>";
 			} else {
-				actionHtml = '<a class="vilmed-fh__sitem-pick" href="' + it.URL + '">Подробнее</a>';
+				actionHtml = '<a class="vilmed-fh__sitem-pick" href="' + it.URL + '"><span>Подробнее</span></a>';
 			}
 			return (
-				'<div class="vilmed-fh__sitem">' +
+				'<article class="vilmed-fh__sitem">' +
 					'<a class="vilmed-fh__sitem-link" href="' + it.URL + '">' +
 						'<span class="vilmed-fh__sitem-pic">' +
 							(it.IMAGE ? '<img src="' + it.IMAGE + '" alt="" loading="lazy">' : "") +
 						"</span>" +
-						'<span class="vilmed-fh__sitem-name">' + escapeHtml(it.NAME) + "</span>" +
+						'<span class="vilmed-fh__sitem-info">' +
+							'<span class="vilmed-fh__sitem-name">' + escapeHtml(it.NAME) + "</span>" +
+							priceHtml +
+						"</span>" +
 					"</a>" +
-					'<div class="vilmed-fh__sitem-side">' + priceHtml + actionHtml + "</div>" +
-				"</div>"
+					'<div class="vilmed-fh__sitem-action">' + actionHtml + "</div>" +
+				"</article>"
 			);
 		}
 
@@ -618,36 +670,50 @@
 
 		function updatePanelMeta(data, effQ) {
 			var counts = panelCounts(data);
-			var countEl = pop.querySelector(".vilmed-fh__scount");
+			var countEl = pop.querySelector(".vilmed-fh__scount-badge");
 			if (countEl) {
-				countEl.innerHTML = counts.showTotal + " " + pluralRu(counts.showTotal, "товар", "товара", "товаров") +
+				countEl.innerHTML = counts.showTotal +
+					'<span class="vilmed-fh__scount-badge-label">' + pluralRu(counts.showTotal, "товар", "товара", "товаров") + "</span>" +
 					(activeSectionIds.length && counts.filteredTotal !== counts.total
-						? ' <span class="vilmed-fh__scount-of">из ' + counts.total + "</span>"
+						? '<span class="vilmed-fh__scount-of">из ' + counts.total + "</span>"
 						: "");
 			}
 			var footer = pop.querySelector(".vilmed-fh__sfooter");
 			if (footer) {
 				footer.href = catalogHref(effQ, activeSectionIds);
-				var footerLabel = footer.querySelector("span");
+				var footerLabel = footer.querySelector(".vilmed-fh__sfooter-text");
 				var footerCnt = footer.querySelector(".vilmed-fh__sfooter-cnt");
 				if (footerLabel) {
 					footerLabel.textContent = activeSectionIds.length ? "Показать отобранное" : "Все результаты";
 				}
 				if (footerCnt) {
-					footerCnt.innerHTML = counts.showTotal + ' <i class="fa fa-long-arrow-right"></i>';
+					footerCnt.innerHTML = counts.showTotal + ' <i class="fa fa-arrow-right"></i>';
 				}
 			}
 			var moreLink = pop.querySelector(".vilmed-fh__scat-more");
 			if (moreLink) {
 				moreLink.href = catalogHref(effQ, activeSectionIds);
 			}
-			var activeCat = pop.querySelector(".vilmed-fh__sactive-cat");
+			var activeCat = pop.querySelector(".vilmed-fh__sfilter-bar");
 			if (activeCat) {
-				if (!activeSectionIds.length) {
-					activeCat.style.display = "none";
+				var facets = (lastPayload && lastPayload.facets) ? lastPayload.facets : [];
+				var barHtml = renderFilterChips(facets);
+				if (barHtml) {
+					activeCat.outerHTML = barHtml;
 				} else {
-					activeCat.style.display = "";
-					activeCat.innerHTML = "Выбрано категорий: <b>" + activeSectionIds.length + "</b>";
+					activeCat.remove();
+				}
+			} else if (activeSectionIds.length) {
+				var smain = pop.querySelector(".vilmed-fh__smain");
+				var toolbar = pop.querySelector(".vilmed-fh__stoolbar");
+				var facetsData = (lastPayload && lastPayload.facets) ? lastPayload.facets : [];
+				var chipsHtml = renderFilterChips(facetsData);
+				if (smain && chipsHtml) {
+					if (toolbar) {
+						toolbar.insertAdjacentHTML("afterend", chipsHtml);
+					} else {
+						smain.insertAdjacentHTML("afterbegin", chipsHtml);
+					}
 				}
 			}
 		}
@@ -665,6 +731,8 @@
 			}
 			itemsEl.innerHTML = html;
 			itemsEl.classList.remove("vilmed-fh__sitems--loading");
+			itemsEl.classList.add("vilmed-fh__sitems--fresh");
+			setTimeout(function () { itemsEl.classList.remove("vilmed-fh__sitems--fresh"); }, 220);
 			updatePanelMeta(data, effQ);
 			syncCategoryRows();
 			active = -1;
@@ -699,14 +767,16 @@
 			out += '<div class="vilmed-fh__spanel">';
 			out += '<div class="vilmed-fh__shead">';
 			out += '<div class="vilmed-fh__shead-main">';
-			out += '<span class="vilmed-fh__stitle">По запросу «' + escapeHtml(effQ) + '»</span>';
+			out += '<span class="vilmed-fh__shead-kicker">Результаты поиска</span>';
+			out += '<span class="vilmed-fh__stitle">«' + escapeHtml(effQ) + '»</span>';
 			if (typedQ && effQ && effQ.toLowerCase() !== typedQ.toLowerCase()) {
 				out += '<span class="vilmed-fh__sfix-inline">исправлено</span>';
 			}
 			out += "</div>";
-			out += '<span class="vilmed-fh__scount">' + counts.showTotal + " " + pluralRu(counts.showTotal, "товар", "товара", "товаров");
+			out += '<span class="vilmed-fh__scount-badge">' + counts.showTotal +
+				'<span class="vilmed-fh__scount-badge-label">' + pluralRu(counts.showTotal, "товар", "товара", "товаров") + "</span>";
 			if (activeSectionIds.length && counts.filteredTotal !== counts.total) {
-				out += ' <span class="vilmed-fh__scount-of">из ' + counts.total + "</span>";
+				out += '<span class="vilmed-fh__scount-of">из ' + counts.total + "</span>";
 			}
 			out += "</span>";
 			out += "</div>";
@@ -715,13 +785,16 @@
 			if (facets.length) {
 				out += '<aside class="vilmed-fh__scats" aria-label="Категории">';
 				out += '<div class="vilmed-fh__scats-head">';
-				out += '<div class="vilmed-fh__scats-label">Категории</div>';
+				out += '<div class="vilmed-fh__scats-label"><i class="fa fa-filter"></i> Категории</div>';
 				out += '<button type="button" class="vilmed-fh__scats-reset" data-section="0"' +
 					(activeSectionIds.length ? "" : ' style="display:none"') + '>Сбросить</button>';
 				out += "</div>";
-				out += '<p class="vilmed-fh__scats-hint">Можно выбрать несколько</p>';
+				out += '<div class="vilmed-fh__scats-filter-wrap">';
+				out += '<i class="fa fa-search vilmed-fh__scats-filter-icon"></i>';
+				out += '<input type="text" class="vilmed-fh__scats-filter" placeholder="Найти категорию…" autocomplete="off" />';
+				out += "</div>";
 				out += '<div class="vilmed-fh__scats-list">';
-				out += '<button type="button" class="vilmed-fh__scat-row' +
+				out += '<button type="button" class="vilmed-fh__scat-row vilmed-fh__scat-row--all' +
 					(isSectionActive(0) ? " is-active" : "") + '" data-section="0">' +
 					'<span class="vilmed-fh__scat-check" aria-hidden="true"></span>' +
 					'<span class="vilmed-fh__scat-name">Все результаты</span>' +
@@ -737,18 +810,14 @@
 				}
 				if (facets.length > 12) {
 					out += '<a class="vilmed-fh__scat-more" href="' + catalogHref(effQ, activeSectionIds) +
-						'">Ещё ' + (facets.length - 12) + " на странице поиска</a>";
+						'">Ещё ' + (facets.length - 12) + " в каталоге</a>";
 				}
 				out += "</div></aside>";
 			}
 
 			out += '<div class="vilmed-fh__smain">';
-			out += '<div class="vilmed-fh__sactive-cat"' +
-				(activeSectionIds.length ? "" : ' style="display:none"') + ">";
-			if (activeSectionIds.length) {
-				out += "Выбрано категорий: <b>" + activeSectionIds.length + "</b>";
-			}
-			out += "</div>";
+			out += renderFilterChips(facets);
+			out += '<div class="vilmed-fh__stoolbar"><span class="vilmed-fh__stoolbar-label">Товары</span></div>';
 
 			if (sections.length) {
 				out += '<div class="vilmed-fh__ssections">';
@@ -770,12 +839,13 @@
 			out += "</div></div></div>";
 
 			out += '<a class="vilmed-fh__sfooter" href="' + catalogHref(effQ, activeSectionIds) + '">' +
-				'<span>' + (activeSectionIds.length ? "Показать отобранное" : "Все результаты") + "</span>" +
-				'<span class="vilmed-fh__sfooter-cnt">' + counts.showTotal + " <i class=\"fa fa-long-arrow-right\"></i></span>" +
+				'<span class="vilmed-fh__sfooter-text">' + (activeSectionIds.length ? "Показать отобранное" : "Все результаты") + "</span>" +
+				'<span class="vilmed-fh__sfooter-cnt">' + counts.showTotal + ' <i class="fa fa-arrow-right"></i></span>' +
 				"</a>";
 			out += "</div>";
 
 			pop.innerHTML = out;
+			bindCategoryFilter();
 			active = -1;
 			open();
 		}
@@ -896,7 +966,7 @@
 				return;
 			}
 
-			var chip = e.target.closest(".vilmed-fh__scat-row, .vilmed-fh__scats-reset");
+			var chip = e.target.closest(".vilmed-fh__scat-row, .vilmed-fh__scats-reset, .vilmed-fh__sfilter-chip");
 			if (!chip) { return; }
 			e.preventDefault();
 			toggleSectionId(chip.getAttribute("data-section"));
