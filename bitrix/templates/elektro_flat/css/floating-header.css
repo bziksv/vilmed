@@ -162,21 +162,236 @@
 .vilmed-fh__search-toggle,
 .vilmed-fh__search-hide { display: none; }
 
-/* quick-search dropdown */
+/* quick-search dropdown — panel layout */
 .vilmed-fh__sresult {
 	position: absolute;
 	top: calc(100% + 8px);
 	left: 0;
-	right: 0;
+	width: min(700px, calc(100vw - 40px));
 	background: #fff;
 	border: 1px solid #e2e3f0;
-	border-radius: 10px;
-	box-shadow: 0 12px 32px rgba(20, 22, 48, .16);
-	max-height: 72vh;
-	overflow-y: auto;
+	border-radius: 14px;
+	box-shadow: 0 20px 48px rgba(20, 22, 48, .14), 0 4px 12px rgba(20, 22, 48, .06);
+	max-height: min(70vh, 520px);
+	overflow: hidden;
 	z-index: 9999;
 	display: none;
 	overscroll-behavior: contain;
+}
+
+#altop_search .vilmed-fh__sresult,
+.form-box .vilmed-fh__sresult {
+	width: min(700px, calc(100vw - 48px));
+}
+
+.vilmed-fh__spanel {
+	display: flex;
+	flex-direction: column;
+	max-height: min(70vh, 520px);
+}
+
+.vilmed-fh__spanel--empty {
+	padding: 28px 20px 20px;
+	text-align: center;
+}
+
+.vilmed-fh__shead {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 14px 16px 12px;
+	border-bottom: 1px solid #eef0f6;
+	background: linear-gradient(180deg, #fafbfd 0%, #fff 100%);
+}
+
+.vilmed-fh__shead-main {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+
+.vilmed-fh__stitle {
+	font-size: 14px;
+	font-weight: 600;
+	color: #2b2d42;
+	line-height: 1.35;
+}
+
+.vilmed-fh__sfix-inline {
+	font-size: 11px;
+	font-weight: 600;
+	color: #5e6178;
+	background: #eef0f6;
+	border-radius: 4px;
+	padding: 2px 7px;
+	text-transform: uppercase;
+	letter-spacing: .04em;
+}
+
+.vilmed-fh__scount {
+	flex: 0 0 auto;
+	font-size: 12px;
+	font-weight: 600;
+	color: #6a6d84;
+	white-space: nowrap;
+	padding-top: 2px;
+}
+
+.vilmed-fh__sbody {
+	display: flex;
+	min-height: 0;
+	flex: 1 1 auto;
+	overflow: hidden;
+}
+
+.vilmed-fh__scats {
+	flex: 0 0 220px;
+	width: 220px;
+	border-right: 1px solid #eef0f6;
+	background: #f8f9fc;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.vilmed-fh__scats-label {
+	padding: 12px 14px 8px;
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: .06em;
+	color: #6a6d84;
+}
+
+.vilmed-fh__scats-list {
+	overflow-y: auto;
+	padding: 0 8px 10px;
+	flex: 1 1 auto;
+}
+
+.vilmed-fh__scat-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	width: 100%;
+	padding: 9px 10px;
+	margin: 0 0 2px;
+	border: none;
+	border-radius: 8px;
+	background: transparent;
+	color: #3d4058;
+	font-size: 13px;
+	line-height: 1.3;
+	text-align: left;
+	cursor: pointer;
+	transition: background .12s ease, color .12s ease;
+}
+
+.vilmed-fh__scat-name {
+	flex: 1 1 auto;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.vilmed-fh__scat-cnt {
+	flex: 0 0 auto;
+	font-size: 11px;
+	font-weight: 700;
+	color: #6a6d84;
+	background: #fff;
+	border: 1px solid #e2e3f0;
+	border-radius: 999px;
+	min-width: 26px;
+	padding: 2px 7px;
+	text-align: center;
+}
+
+.vilmed-fh__scat-row:hover {
+	background: #eef0f6;
+}
+
+.vilmed-fh__scat-row.is-active {
+	background: #fff;
+	color: #2b2d42;
+	box-shadow: 0 1px 4px rgba(20, 22, 48, .08);
+}
+
+.vilmed-fh__scat-row.is-active .vilmed-fh__scat-cnt {
+	background: #e8ebf5;
+	border-color: #c5cad9;
+	color: #2b2d42;
+}
+
+.vilmed-fh__scat-more {
+	display: block;
+	padding: 8px 10px;
+	font-size: 12px;
+	color: #575b71;
+	text-decoration: none;
+}
+
+.vilmed-fh__scat-more:hover {
+	color: #2b2d42;
+	text-decoration: underline;
+}
+
+.vilmed-fh__smain {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.vilmed-fh__sactive-cat {
+	padding: 10px 14px 0;
+	font-size: 12px;
+	color: #6a6d84;
+}
+
+.vilmed-fh__sactive-cat b {
+	color: #2b2d42;
+	font-weight: 600;
+}
+
+.vilmed-fh__ssections {
+	padding: 8px 10px 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.vilmed-fh__ssection {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 10px;
+	border-radius: 8px;
+	background: #f5f6fa;
+	color: #3d4058;
+	font-size: 13px;
+	text-decoration: none;
+}
+
+.vilmed-fh__ssection:hover {
+	background: #eef0f6;
+	color: #2b2d42;
+}
+
+.vilmed-fh__ssection .fa {
+	color: #6a6d84;
+	font-size: 14px;
+}
+
+.vilmed-fh__sitems {
+	overflow-y: auto;
+	flex: 1 1 auto;
+	padding: 6px 0;
 }
 
 /* LOCALHOST: native title-search dropdown is replaced by our super-search */
@@ -188,96 +403,32 @@
 	display: block;
 }
 
-.vilmed-fh__sfix {
-	padding: 9px 14px;
-	font-size: 12px;
-	color: #5e6178;
-	background: #f5f6f9;
-	border-bottom: 1px solid #eef0f6;
-}
-
-.vilmed-fh__sfix b {
-	color: #2b2d42;
-	font-weight: 600;
-}
-
-.vilmed-fh__sfacets {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
-	padding: 10px 12px;
-	border-bottom: 1px solid #eef0f6;
-	background: #fafbfc;
-}
-
-.vilmed-fh__sfacet {
-	border: 1px solid #dfe2ec;
-	background: #fff;
-	color: #3d4058;
-	border-radius: 999px;
-	padding: 5px 11px;
-	font-size: 12px;
-	line-height: 1.2;
-	cursor: pointer;
-	transition: background .12s ease, border-color .12s ease, color .12s ease;
-}
-
-.vilmed-fh__sfacet span {
-	color: #6a6d84;
-	font-weight: 600;
-	margin-left: 2px;
-}
-
-.vilmed-fh__sfacet:hover,
-.vilmed-fh__sfacet.is-active {
-	background: #e8ebf5;
-	border-color: #b8bdd4;
-	color: #2b2d42;
-}
-
-.vilmed-fh__sbadge {
-	display: inline-block;
-	margin-right: 6px;
-	padding: 1px 6px;
-	border-radius: 4px;
-	background: #eef0f6;
-	color: #5e6178;
-	font-size: 10px;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: .03em;
-	vertical-align: middle;
-}
-
-.vilmed-fh__scat.is-active {
-	background: #eef0f4;
-}
-
 .vilmed-fh__sitem {
 	display: flex;
 	align-items: center;
-	gap: 14px;
-	padding: 9px 14px;
-	border-bottom: 1px solid #f1f2f8;
+	gap: 12px;
+	padding: 8px 14px;
+	margin: 0 6px;
+	border-radius: 10px;
 	text-decoration: none;
 	transition: background .12s ease;
 }
 
 .vilmed-fh__sitem:hover,
 .vilmed-fh__sitem.is-active {
-	background: #eef0f4;
+	background: #f3f4f8;
 }
 
 .vilmed-fh__sitem-pic {
 	flex: 0 0 auto;
-	width: 46px;
-	height: 46px;
+	width: 52px;
+	height: 52px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	background: #fff;
 	border: 1px solid #eef0f6;
-	border-radius: 7px;
+	border-radius: 10px;
 	overflow: hidden;
 }
 
@@ -291,39 +442,66 @@
 .vilmed-fh__sitem-name {
 	flex: 1 1 auto;
 	color: #2b2d42;
-	font-size: 13.5px;
-	line-height: 1.35;
+	font-size: 13px;
+	line-height: 1.4;
 	display: -webkit-box;
 	-webkit-line-clamp: 2;
 	-webkit-box-orient: vertical;
 	overflow: hidden;
 }
 
-.vilmed-fh__sitem:hover .vilmed-fh__sitem-name,
-.vilmed-fh__sitem.is-active .vilmed-fh__sitem-name {
-	color: #575b71;
+.vilmed-fh__sitem-arrow {
+	flex: 0 0 auto;
+	color: #c5cad9;
+	font-size: 16px;
+	transition: color .12s ease, transform .12s ease;
 }
 
-.vilmed-fh__sall {
-	display: block;
-	padding: 12px 14px;
-	text-align: center;
-	font-size: 13px;
-	font-weight: 700;
-	color: #575b71;
+.vilmed-fh__sitem:hover .vilmed-fh__sitem-arrow,
+.vilmed-fh__sitem.is-active .vilmed-fh__sitem-arrow {
+	color: #6a6d84;
+	transform: translateX(2px);
+}
+
+.vilmed-fh__sitem:hover .vilmed-fh__sitem-name,
+.vilmed-fh__sitem.is-active .vilmed-fh__sitem-name {
+	color: #2b2d42;
+}
+
+.vilmed-fh__sfooter {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 12px 16px;
+	font-size: 14px;
+	font-weight: 600;
+	color: #2b2d42;
 	text-decoration: none;
 	background: #f5f6f9;
 	border-top: 1px solid #eef0f6;
-	border-radius: 0 0 10px 10px;
-	position: sticky;
-	bottom: 0;
-	text-transform: uppercase;
-	letter-spacing: .3px;
+	flex-shrink: 0;
 }
 
-.vilmed-fh__sall:hover {
-	background: #e7e9f0;
-	color: #2b2d42;
+.vilmed-fh__sfooter:hover {
+	background: #eef0f6;
+}
+
+.vilmed-fh__sfooter-cnt {
+	font-size: 13px;
+	font-weight: 700;
+	color: #575b71;
+}
+
+.vilmed-fh__sfooter-cnt .fa {
+	margin-left: 4px;
+	font-size: 12px;
+}
+
+.vilmed-fh__shint {
+	margin: 0 0 16px;
+	font-size: 13px;
+	color: #6a6d84;
 }
 
 .vilmed-fh__sload {
@@ -334,10 +512,11 @@
 }
 
 .vilmed-fh__sempty {
-	padding: 20px 16px;
+	padding: 0 0 8px;
 	text-align: center;
-	color: #5e6178;
-	font-size: 14px;
+	color: #2b2d42;
+	font-size: 15px;
+	font-weight: 600;
 }
 
 /* right cluster */
@@ -987,7 +1166,14 @@ html.vilmed-drawer-lock {
 	}
 	.vilmed-fh__search-hide:hover { color: #2b2d42; }
 	/* выпадашка результатов — во всю ширину раскрытой полосы */
-	.vilmed-fh--search .vilmed-fh__sresult { top: calc(100% + 1px); border-radius: 0 0 10px 10px; }
+	.vilmed-fh--search .vilmed-fh__sresult { top: calc(100% + 1px); border-radius: 0 0 10px 10px; width: 100%; left: 0; max-height: 65vh; }
+	.vilmed-fh__sresult { width: calc(100vw - 24px); left: 0; max-height: 65vh; }
+	.vilmed-fh__sbody { flex-direction: column; }
+	.vilmed-fh__scats { width: 100%; flex: 0 0 auto; border-right: 0; border-bottom: 1px solid #eef0f6; max-height: 140px; }
+	.vilmed-fh__scats-list { display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; padding: 0 8px 10px; gap: 6px; }
+	.vilmed-fh__scats-label { padding: 10px 12px 6px; }
+	.vilmed-fh__scat-row { width: auto; flex: 0 0 auto; max-width: 200px; padding: 8px 12px; white-space: nowrap; }
+	.vilmed-fh__scat-more { flex: 0 0 auto; align-self: center; white-space: nowrap; padding: 8px 12px; }
 }
 
 @keyframes vfhSearchDrop {

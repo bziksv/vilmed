@@ -525,7 +525,7 @@
 			if (pop.innerHTML) { box.classList.add("vilmed-fh--open"); }
 		}
 		function items() {
-			return pop.querySelectorAll(".vilmed-fh__sitem, .vilmed-fh__scat");
+			return pop.querySelectorAll(".vilmed-fh__sitem");
 		}
 		function setActive(idx) {
 			var list = items();
@@ -548,44 +548,78 @@
 			var facets = data.facets || [];
 			var sections = data.sections || [];
 			var products = data.products || [];
-			var out = "";
 			var total = data.total || 0;
+			var activeFacetName = "";
+			var out = "";
 
-			if (typedQ && effQ && effQ.toLowerCase() !== typedQ.toLowerCase()) {
-				out += '<div class="vilmed-fh__sfix">Показаны результаты для <b>«' +
-					escapeHtml(effQ) + '»</b></div>';
+			if (!products.length && !sections.length && total <= 0) {
+				pop.innerHTML =
+					'<div class="vilmed-fh__spanel vilmed-fh__spanel--empty">' +
+						'<div class="vilmed-fh__sempty">По запросу «' + escapeHtml(typedQ) + '» ничего не найдено</div>' +
+						'<p class="vilmed-fh__shint">Проверьте написание или попробуйте другое слово</p>' +
+						'<a class="vilmed-fh__sfooter" href="' + catalogHref(effQ, 0) + '">Искать в каталоге</a>' +
+					"</div>";
+				active = -1;
+				open();
+				return;
 			}
 
+			out += '<div class="vilmed-fh__spanel">';
+			out += '<div class="vilmed-fh__shead">';
+			out += '<div class="vilmed-fh__shead-main">';
+			out += '<span class="vilmed-fh__stitle">По запросу «' + escapeHtml(effQ) + '»</span>';
+			if (typedQ && effQ && effQ.toLowerCase() !== typedQ.toLowerCase()) {
+				out += '<span class="vilmed-fh__sfix-inline">исправлено</span>';
+			}
+			out += "</div>";
+			out += '<span class="vilmed-fh__scount">' + total + " " + pluralRu(total, "товар", "товара", "товаров") + "</span>";
+			out += "</div>";
+
+			out += '<div class="vilmed-fh__sbody">';
 			if (facets.length) {
-				out += '<div class="vilmed-fh__sfacets">';
-				out += '<button type="button" class="vilmed-fh__sfacet' +
+				out += '<aside class="vilmed-fh__scats" aria-label="Категории">';
+				out += '<div class="vilmed-fh__scats-label">Категории</div>';
+				out += '<div class="vilmed-fh__scats-list">';
+				out += '<button type="button" class="vilmed-fh__scat-row' +
 					(!activeSectionId ? " is-active" : "") + '" data-section="0">' +
-					"Все <span>" + total + "</span></button>";
-				for (var f = 0; f < facets.length && f < 10; f++) {
+					'<span class="vilmed-fh__scat-name">Все результаты</span>' +
+					'<span class="vilmed-fh__scat-cnt">' + total + "</span></button>";
+				for (var f = 0; f < facets.length && f < 8; f++) {
 					var facet = facets[f];
-					out += '<button type="button" class="vilmed-fh__sfacet' +
+					if (activeSectionId === facet.ID) { activeFacetName = facet.NAME; }
+					out += '<button type="button" class="vilmed-fh__scat-row' +
 						(activeSectionId === facet.ID ? " is-active" : "") +
-						'" data-section="' + facet.ID + '">' +
-						escapeHtml(facet.NAME) + " <span>" + facet.COUNT + "</span></button>";
+						'" data-section="' + facet.ID + '" title="' + escapeHtml(facet.NAME) + '">' +
+						'<span class="vilmed-fh__scat-name">' + escapeHtml(facet.NAME) + "</span>" +
+						'<span class="vilmed-fh__scat-cnt">' + facet.COUNT + "</span></button>";
+				}
+				if (facets.length > 8) {
+					out += '<a class="vilmed-fh__scat-more" href="' + catalogHref(effQ, activeSectionId) +
+						'">Ещё ' + (facets.length - 8) + " на странице поиска</a>";
+				}
+				out += "</div></aside>";
+			}
+
+			out += '<div class="vilmed-fh__smain">';
+			if (activeSectionId && activeFacetName) {
+				out += '<div class="vilmed-fh__sactive-cat">Категория: <b>' + escapeHtml(activeFacetName) + "</b></div>";
+			}
+
+			if (sections.length) {
+				out += '<div class="vilmed-fh__ssections">';
+				for (var s = 0; s < sections.length && s < 2; s++) {
+					var sec = sections[s];
+					out +=
+						'<a class="vilmed-fh__ssection" href="' + sec.URL + '">' +
+							'<i class="fa fa-folder-open-o"></i>' +
+							'<span>' + escapeHtml(sec.NAME) + "</span>" +
+						"</a>";
 				}
 				out += "</div>";
 			}
 
-			var shown = 0;
-			for (var s = 0; s < sections.length && shown < 3; s++) {
-				var sec = sections[s];
-				out +=
-					'<a class="vilmed-fh__sitem vilmed-fh__scat" href="' + sec.URL + '">' +
-						'<span class="vilmed-fh__sitem-pic">' +
-							'<img src="' + sec.IMAGE + '" alt="" loading="lazy">' +
-						"</span>" +
-						'<span class="vilmed-fh__sitem-name"><span class="vilmed-fh__sbadge">Раздел</span>' +
-							escapeHtml(sec.NAME) + "</span>" +
-					"</a>";
-				shown++;
-			}
-
-			for (var p = 0; p < products.length && shown < 8; p++) {
+			out += '<div class="vilmed-fh__sitems">';
+			for (var p = 0; p < products.length && p < 6; p++) {
 				var it = products[p];
 				out +=
 					'<a class="vilmed-fh__sitem" href="' + it.URL + '">' +
@@ -593,28 +627,34 @@
 							(it.IMAGE ? '<img src="' + it.IMAGE + '" alt="" loading="lazy">' : "") +
 						"</span>" +
 						'<span class="vilmed-fh__sitem-name">' + escapeHtml(it.NAME) + "</span>" +
+						'<i class="fa fa-angle-right vilmed-fh__sitem-arrow"></i>' +
 					"</a>";
-				shown++;
 			}
+			out += "</div></div></div>";
 
-			if (shown > 0 || total > 0) {
-				out += '<a class="vilmed-fh__sall" href="' + catalogHref(effQ, activeSectionId) + '">' +
-					(activeSectionId ? "Показать все в категории" : "Показать все результаты") +
-					(total ? " (" + total + ")" : "") + "</a>";
-			} else {
-				out = '<div class="vilmed-fh__sempty">По запросу ничего не найдено</div>' +
-					'<a class="vilmed-fh__sall" href="' + catalogHref(effQ, activeSectionId) +
-					'">Искать в каталоге</a>';
-			}
+			out += '<a class="vilmed-fh__sfooter" href="' + catalogHref(effQ, activeSectionId) + '">' +
+				'<span>' + (activeSectionId ? "Все в этой категории" : "Все результаты") + "</span>" +
+				'<span class="vilmed-fh__sfooter-cnt">' + total + " <i class=\"fa fa-long-arrow-right\"></i></span>" +
+				"</a>";
+			out += "</div>";
 
 			pop.innerHTML = out;
 			active = -1;
 			open();
 		}
 
+		function pluralRu(n, one, few, many) {
+			n = Math.abs(parseInt(n, 10) || 0) % 100;
+			var n1 = n % 10;
+			if (n > 10 && n < 20) { return many; }
+			if (n1 > 1 && n1 < 5) { return few; }
+			if (n1 === 1) { return one; }
+			return many;
+		}
+
 		function fetchJson(q, sectionId, signal) {
 			var url = "/ajax/search.php?q=" + encodeURIComponent(q) +
-				"&limit=10&facet_limit=12" +
+				"&limit=6&facet_limit=8" +
 				(sectionId ? "&section_id=" + encodeURIComponent(sectionId) : "");
 			return fetch(url, {
 				headers: { "X-Requested-With": "XMLHttpRequest" },
@@ -675,7 +715,7 @@
 		}
 
 		pop.addEventListener("click", function (e) {
-			var chip = e.target.closest(".vilmed-fh__sfacet");
+			var chip = e.target.closest(".vilmed-fh__scat-row");
 			if (!chip) { return; }
 			e.preventDefault();
 			activeSectionId = parseInt(chip.getAttribute("data-section"), 10) || 0;

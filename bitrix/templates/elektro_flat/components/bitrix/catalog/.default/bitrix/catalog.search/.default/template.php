@@ -87,7 +87,7 @@ if(is_array($arElementsNew) && !empty($arElementsNew)) {
 	<?if(!empty($vilmedSearchFacets) && !empty($_REQUEST["q"])):?>
 		<div class="vilmed-search-cats" data-vilmed-search-cats>
 			<div class="vilmed-search-cats__head">
-				<span class="vilmed-search-cats__label"><?=GetMessage("VILMED_SEARCH_CATS")?></span>
+				<span class="vilmed-search-cats__label"><?=GetMessage("VILMED_SEARCH_CATS")?> по запросу «<?=htmlspecialcharsbx((string)$_REQUEST["q"])?>»</span>
 				<input type="text" class="vilmed-search-cats__filter" placeholder="<?=GetMessage("VILMED_SEARCH_CATS_FILTER")?>" autocomplete="off" />
 			</div>
 			<div class="vilmed-search-cats__list">
