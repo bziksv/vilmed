@@ -106,3 +106,7 @@ if (file_exists($_SERVER['DOCUMENT_ROOT'].'/local/php_interface/include/legal/le
 if (file_exists($_SERVER['DOCUMENT_ROOT'].'/local/php_interface/include/form_validation_helpers.php')) {
 	require_once $_SERVER['DOCUMENT_ROOT'].'/local/php_interface/include/form_validation_helpers.php';
 }
+
+if (file_exists($_SERVER['DOCUMENT_ROOT'].'/local/php_interface/include/image_dedup_helpers.php')) {
+	require_once $_SERVER['DOCUMENT_ROOT'].'/local/php_interface/include/image_dedup_helpers.php';
+}
