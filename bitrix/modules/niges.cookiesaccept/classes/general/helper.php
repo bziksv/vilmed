@@ -94,7 +94,7 @@ class CNigesCookiesAcceptHelper
 
 		switch ($name) {
 			case 'MAINTEXT':
-				return self::sanitizeHtml($value);
+				return self::rewriteCookiePolicyHref(self::sanitizeHtml($value));
 
 			case 'TEXTBTN':
 				return self::sanitizePlainText($value, 120);
@@ -243,6 +243,34 @@ class CNigesCookiesAcceptHelper
 			array(__CLASS__, 'sanitizeAnchorAttributes'),
 			$html
 		);
+
+		return $html;
+	}
+
+	/**
+	 * Keep MAINTEXT wording intact; only remap legacy cookie policy file URLs.
+	 *
+	 * @param string $html
+	 * @return string
+	 */
+	public static function rewriteCookiePolicyHref($html)
+	{
+		$html = (string) $html;
+		if ($html === '') {
+			return '';
+		}
+
+		$newUrl = '/legal/vilmed-cookie-policy/';
+		$oldUrls = array(
+			'/upload/cookies-vilmed.png',
+			'/upload/cookies-vilmed.pdf',
+			'/upload/old-politika-ispolzovanija-cookies-vilmed.png',
+		);
+
+		foreach ($oldUrls as $oldUrl) {
+			$html = str_replace('href="' . $oldUrl . '"', 'href="' . $newUrl . '"', $html);
+			$html = str_replace("href='" . $oldUrl . "'", "href='" . $newUrl . "'", $html);
+		}
 
 		return $html;
 	}

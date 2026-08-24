@@ -1,7 +1,7 @@
 <?php
 /**
- * Update niges.cookiesaccept MAINTEXT to new legal HTML page.
- * Run on prod: php tools/perf/update-cookie-legal-link.php
+ * Replace cookie policy href in niges.cookiesaccept MAINTEXT only (wording unchanged).
+ * Run: php tools/perf/update-cookie-legal-link.php
  */
 $root = dirname(__DIR__, 2);
 $settingsFile = $root . '/bitrix/.settings.php';
@@ -32,33 +32,77 @@ if ($mysqli->connect_error) {
 
 $mysqli->set_charset('utf8');
 
-$text = 'Мы используем cookies для улучшения работы сайта, сбора статистики посещаемости и настройки рекламы. Продолжая пользоваться сайтом, вы соглашаетесь с обработкой персональных данных в рамках нашей <a target="_blank" href="/legal/vilmed-cookie-policy/">политики применения файлов cookies</a>.';
+$newUrl = '/legal/vilmed-cookie-policy/';
+$oldUrls = [
+    '/upload/cookies-vilmed.png',
+    '/upload/cookies-vilmed.pdf',
+    '/upload/old-politika-ispolzovanija-cookies-vilmed.png',
+];
 
-$stmt = $mysqli->prepare(
-    'UPDATE b_option SET VALUE = ? WHERE MODULE_ID = ? AND NAME = ? AND SITE_ID = ?'
-);
-$moduleId = 'niges.cookiesaccept';
-$name = 'MAINTEXT';
-$siteId = 's1';
-$stmt->bind_param('ssss', $text, $moduleId, $name, $siteId);
-$stmt->execute();
+function vilmedReplaceCookiePolicyHref(string $html, array $oldUrls, string $newUrl): array
+{
+    $updated = $html;
+    $changed = false;
 
-if ($stmt->affected_rows === 0) {
-    $insert = $mysqli->prepare(
-        'INSERT INTO b_option (MODULE_ID, NAME, VALUE, DESCRIPTION, SITE_ID) VALUES (?, ?, ?, ?, ?)'
-    );
-    $description = '';
-    $insert->bind_param('sssss', $moduleId, $name, $text, $description, $siteId);
-    $insert->execute();
-    $insert->close();
+    foreach ($oldUrls as $oldUrl) {
+        $replacements = [
+            'href="' . $oldUrl . '"',
+            "href='" . $oldUrl . "'",
+            'href=&quot;' . $oldUrl . '&quot;',
+        ];
+        foreach ($replacements as $from) {
+            $to = str_replace($oldUrl, $newUrl, $from);
+            if (strpos($updated, $from) !== false) {
+                $updated = str_replace($from, $to, $updated);
+                $changed = true;
+            }
+        }
+    }
+
+    return [$updated, $changed];
 }
 
-$stmt->close();
+$moduleId = 'niges.cookiesaccept';
+$name = 'MAINTEXT';
+$updatedRows = 0;
 
-$result = $mysqli->query(
-    "SELECT VALUE FROM b_option WHERE MODULE_ID = 'niges.cookiesaccept' AND NAME = 'MAINTEXT' AND SITE_ID = 's1' LIMIT 1"
-);
-$row = $result ? $result->fetch_assoc() : null;
-echo ($row['VALUE'] ?? ''), PHP_EOL;
+foreach (['b_option', 'b_option_site'] as $table) {
+    $result = $mysqli->query(
+        "SELECT SITE_ID, VALUE FROM {$table} WHERE MODULE_ID = '{$moduleId}' AND NAME = '{$name}'"
+    );
+    if (!$result) {
+        continue;
+    }
+
+    while ($row = $result->fetch_assoc()) {
+        $siteId = (string) ($row['SITE_ID'] ?? '');
+        $value = (string) ($row['VALUE'] ?? '');
+        [$newValue, $changed] = vilmedReplaceCookiePolicyHref($value, $oldUrls, $newUrl);
+
+        if (!$changed) {
+            if (strpos($value, $newUrl) !== false) {
+                echo "skip [{$table}/{$siteId}] already has new link\n";
+            } else {
+                echo "skip [{$table}/{$siteId}] no old cookie policy href found\n";
+            }
+            continue;
+        }
+
+        $stmt = $mysqli->prepare("UPDATE {$table} SET VALUE = ? WHERE MODULE_ID = ? AND NAME = ? AND SITE_ID = ?");
+        $stmt->bind_param('ssss', $newValue, $moduleId, $name, $siteId);
+        $stmt->execute();
+        if ($stmt->affected_rows > 0) {
+            $updatedRows++;
+            echo "updated [{$table}/{$siteId}]\n";
+            echo $newValue, PHP_EOL;
+        }
+        $stmt->close();
+    }
+    $result->free();
+}
+
+if ($updatedRows === 0) {
+    echo "No rows updated (link may already be correct).\n";
+}
 
 $mysqli->close();
