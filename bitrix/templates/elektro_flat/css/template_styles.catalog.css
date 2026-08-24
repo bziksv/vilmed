@@ -600,6 +600,74 @@ a.catalog_item_toogle_filter_reset{
 	padding:0px;
 }
 
+/***VILMED SEARCH CATEGORY FILTER***/
+.vilmed-search-cats{
+	clear:both;
+	margin:0 0 16px;
+	padding:12px 14px;
+	background:#f8f9fc;
+	border:1px solid #e6e8f2;
+	border-radius:10px;
+}
+
+.vilmed-search-cats__head{
+	display:flex;
+	align-items:center;
+	gap:12px;
+	margin-bottom:10px;
+	flex-wrap:wrap;
+}
+
+.vilmed-search-cats__label{
+	font-size:13px;
+	font-weight:600;
+	color:#2b2d42;
+	white-space:nowrap;
+}
+
+.vilmed-search-cats__filter{
+	flex:1 1 180px;
+	min-width:140px;
+	height:34px;
+	padding:0 12px;
+	border:1px solid #dfe2ec;
+	border-radius:8px;
+	font-size:13px;
+}
+
+.vilmed-search-cats__list{
+	display:flex;
+	flex-wrap:wrap;
+	gap:8px;
+}
+
+.vilmed-search-cats__chip{
+	display:inline-flex;
+	align-items:center;
+	gap:6px;
+	padding:7px 12px;
+	border-radius:999px;
+	border:1px solid #dfe2ec;
+	background:#fff;
+	color:#3d4058;
+	font-size:13px;
+	text-decoration:none;
+	transition:background .12s ease,border-color .12s ease;
+}
+
+.vilmed-search-cats__chip:hover,
+.vilmed-search-cats__chip.is-active{
+	background:#e8ebf5;
+	border-color:#b8bdd4;
+	color:#2b2d42;
+}
+
+.vilmed-search-cats__cnt{
+	font-size:12px;
+	font-weight:600;
+	color:#6a6d84;
+}
+
 /***SORTING***/
 .catalog-item-sorting{
 	height:29px;

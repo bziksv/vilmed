@@ -11,4 +11,7 @@ $MESS["SECT_VIEW_price"] = "Прайс";
 $MESS["CMP_TITLE"] = "Поиск";
 $MESS["SECT_TITLE"] = "Страница";
 $MESS["CT_BCSE_NOT_FOUND"] = "Сожалеем, но ничего не найдено.";
+$MESS["VILMED_SEARCH_CATS"] = "Категории";
+$MESS["VILMED_SEARCH_CATS_FILTER"] = "Фильтр категорий…";
+$MESS["VILMED_SEARCH_CATS_ALL"] = "Все";
 ?>

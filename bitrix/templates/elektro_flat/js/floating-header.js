@@ -267,10 +267,13 @@
 		return words.map(vfhResolveWord).join(" ");
 	}
 
-	function vfhSearchUrl(form, q) {
+	function vfhSearchUrl(form, q, sectionId) {
 		var action = (form && form.getAttribute("action")) || "/catalog/";
-		var sep = action.indexOf("?") >= 0 ? "&" : "?";
-		return action + sep + "q=" + encodeURIComponent(q);
+		var base = action.split("?")[0];
+		if (base.slice(-1) !== "/") { base += "/"; }
+		var url = base + "?q=" + encodeURIComponent(q);
+		if (sectionId) { url += "&section_id=" + encodeURIComponent(sectionId); }
+		return url;
 	}
 
 	// Sliding off-canvas catalog drawer, built from the site's left catalog
@@ -471,6 +474,12 @@
 			filterInput.addEventListener("keydown", function (e) {
 				if (e.key === "Escape" || e.keyCode === 27) {
 					if (this.value) { e.stopPropagation(); this.value = ""; applyFilter(""); }
+				} else if (e.key === "Enter") {
+					var q = (this.value || "").trim();
+					if (q.length >= 2) {
+						e.preventDefault();
+						window.location = "/catalog/?q=" + encodeURIComponent(q);
+					}
 				}
 			});
 		}
@@ -487,8 +496,7 @@
 		});
 	}
 
-	// Quick search: posts to the page's altop:search.title ajax handler
-	// (INPUT_ID=title-search-input) and renders a clean styled dropdown.
+	// Quick search: JSON API (/ajax/search.php) + category facets in dropdown.
 	function initQuickSearch(box) {
 		if (!box) { return; }
 		var input = box.querySelector('input[name="q"]');
@@ -506,6 +514,8 @@
 		var controller = null;
 		var lastQ = "";
 		var lastEffQ = "";
+		var activeSectionId = 0;
+		var lastPayload = null;
 
 		function close() {
 			box.classList.remove("vilmed-fh--open");
@@ -515,7 +525,7 @@
 			if (pop.innerHTML) { box.classList.add("vilmed-fh--open"); }
 		}
 		function items() {
-			return pop.querySelectorAll(".vilmed-fh__sitem");
+			return pop.querySelectorAll(".vilmed-fh__sitem, .vilmed-fh__scat");
 		}
 		function setActive(idx) {
 			var list = items();
@@ -529,73 +539,98 @@
 			list[idx].scrollIntoView({ block: "nearest" });
 		}
 
-		function parseItems(html) {
-			var tmp = document.createElement("div");
-			tmp.innerHTML = html;
-			var found = tmp.querySelectorAll("#catalog_search .tvr_search, .tvr_search");
-			var arr = [];
-			for (var i = 0; i < found.length; i++) {
-				var titleLink = found[i].querySelector(".cat_title a") || found[i].querySelector("a:not(.image)");
-				var href = titleLink ? titleLink.getAttribute("href") : null;
-				if (!href) {
-					var im = found[i].querySelector("a.image");
-					href = im ? im.getAttribute("href") : null;
-				}
-				var name = titleLink ? (titleLink.textContent || "").trim() : "";
-				var img = found[i].querySelector("img");
-				var src = img ? (img.getAttribute("src") || img.getAttribute("data-src") || "") : "";
-				if (!href || !name) { continue; }
-				arr.push({ href: href, name: name, src: src });
-			}
-			return arr;
+		function catalogHref(q, sectionId) {
+			return vfhSearchUrl(input.closest("form") || box, q, sectionId || 0);
 		}
 
-		function renderItems(list, effQ, typedQ) {
-			var allHref = "/catalog/?q=" + encodeURIComponent(effQ);
-			var out = "", shown = 0;
-			if (typedQ && effQ && list.length && effQ.toLowerCase() !== typedQ.toLowerCase()) {
+		function renderPayload(data, typedQ, effQ) {
+			lastPayload = data;
+			var facets = data.facets || [];
+			var sections = data.sections || [];
+			var products = data.products || [];
+			var out = "";
+			var total = data.total || 0;
+
+			if (typedQ && effQ && effQ.toLowerCase() !== typedQ.toLowerCase()) {
 				out += '<div class="vilmed-fh__sfix">Показаны результаты для <b>«' +
 					escapeHtml(effQ) + '»</b></div>';
 			}
-			for (var i = 0; i < list.length && shown < 8; i++) {
-				var it = list[i];
+
+			if (facets.length) {
+				out += '<div class="vilmed-fh__sfacets">';
+				out += '<button type="button" class="vilmed-fh__sfacet' +
+					(!activeSectionId ? " is-active" : "") + '" data-section="0">' +
+					"Все <span>" + total + "</span></button>";
+				for (var f = 0; f < facets.length && f < 10; f++) {
+					var facet = facets[f];
+					out += '<button type="button" class="vilmed-fh__sfacet' +
+						(activeSectionId === facet.ID ? " is-active" : "") +
+						'" data-section="' + facet.ID + '">' +
+						escapeHtml(facet.NAME) + " <span>" + facet.COUNT + "</span></button>";
+				}
+				out += "</div>";
+			}
+
+			var shown = 0;
+			for (var s = 0; s < sections.length && shown < 3; s++) {
+				var sec = sections[s];
 				out +=
-					'<a class="vilmed-fh__sitem" href="' + it.href + '">' +
+					'<a class="vilmed-fh__sitem vilmed-fh__scat" href="' + sec.URL + '">' +
 						'<span class="vilmed-fh__sitem-pic">' +
-							(it.src ? '<img src="' + it.src + '" alt="" loading="lazy">' : "") +
+							'<img src="' + sec.IMAGE + '" alt="" loading="lazy">' +
 						"</span>" +
-						'<span class="vilmed-fh__sitem-name">' + it.name + "</span>" +
+						'<span class="vilmed-fh__sitem-name"><span class="vilmed-fh__sbadge">Раздел</span>' +
+							escapeHtml(sec.NAME) + "</span>" +
 					"</a>";
 				shown++;
 			}
-			if (shown > 0) {
-				out += '<a class="vilmed-fh__sall" href="' + allHref + '">' +
-					"Показать все результаты</a>";
+
+			for (var p = 0; p < products.length && shown < 8; p++) {
+				var it = products[p];
+				out +=
+					'<a class="vilmed-fh__sitem" href="' + it.URL + '">' +
+						'<span class="vilmed-fh__sitem-pic">' +
+							(it.IMAGE ? '<img src="' + it.IMAGE + '" alt="" loading="lazy">' : "") +
+						"</span>" +
+						'<span class="vilmed-fh__sitem-name">' + escapeHtml(it.NAME) + "</span>" +
+					"</a>";
+				shown++;
+			}
+
+			if (shown > 0 || total > 0) {
+				out += '<a class="vilmed-fh__sall" href="' + catalogHref(effQ, activeSectionId) + '">' +
+					(activeSectionId ? "Показать все в категории" : "Показать все результаты") +
+					(total ? " (" + total + ")" : "") + "</a>";
 			} else {
 				out = '<div class="vilmed-fh__sempty">По запросу ничего не найдено</div>' +
-					'<a class="vilmed-fh__sall" href="' + allHref + '">Искать в каталоге</a>';
+					'<a class="vilmed-fh__sall" href="' + catalogHref(effQ, activeSectionId) +
+					'">Искать в каталоге</a>';
 			}
+
 			pop.innerHTML = out;
 			active = -1;
 			open();
 		}
 
-		function fetchOne(q, signal) {
-			return fetch(location.pathname, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-					"X-Requested-With": "XMLHttpRequest"
-				},
-				body: "ajax_call=y&INPUT_ID=title-search-input&q=" + encodeURIComponent(q),
+		function fetchJson(q, sectionId, signal) {
+			var url = "/ajax/search.php?q=" + encodeURIComponent(q) +
+				"&limit=10&facet_limit=12" +
+				(sectionId ? "&section_id=" + encodeURIComponent(sectionId) : "");
+			return fetch(url, {
+				headers: { "X-Requested-With": "XMLHttpRequest" },
 				signal: signal
-			}).then(function (r) {
-				return r.text();
-			}).then(function (t) {
-				return { q: q, items: parseItems(t) };
-			}).catch(function () {
-				return { q: q, items: [] };
-			});
+			}).then(function (r) { return r.json(); })
+				.then(function (data) {
+					return { q: q, data: data || {} };
+				}).catch(function () {
+					return { q: q, data: { products: [], facets: [], sections: [], total: 0 } };
+				});
+		}
+
+		function hasResults(data) {
+			return (data.products && data.products.length) ||
+				(data.sections && data.sections.length) ||
+				(data.total > 0);
 		}
 
 		function fetchResults(q) {
@@ -607,23 +642,27 @@
 			vfhBuildVocab().then(function () {
 				if (input.value.trim() !== q) { return; }
 				var variants = vfhQueryVariants(q);
-				return Promise.all(variants.map(function (v) { return fetchOne(v, signal); }))
-					.then(function (results) {
-						if (input.value.trim() !== q) { return; }
-						var seen = {}, merged = [], effQ = q;
-						results.forEach(function (res) {
-							res.items.forEach(function (it) {
-								if (seen[it.href]) { return; }
-								seen[it.href] = 1;
-								merged.push(it);
+				return fetchJson(variants[0], activeSectionId, signal).then(function (first) {
+					if (hasResults(first.data)) {
+						return first;
+					}
+					var chain = Promise.resolve(first);
+					for (var i = 1; i < variants.length; i++) {
+						(function (variant) {
+							chain = chain.then(function (prev) {
+								if (hasResults(prev.data) || input.value.trim() !== q) {
+									return prev;
+								}
+								return fetchJson(variant, activeSectionId, signal);
 							});
-						});
-						for (var i = 0; i < results.length; i++) {
-							if (results[i].items.length) { effQ = results[i].q; break; }
-						}
-						lastEffQ = effQ;
-						renderItems(merged, effQ, q);
-					});
+						})(variants[i]);
+					}
+					return chain;
+				}).then(function (res) {
+					if (input.value.trim() !== q) { return; }
+					lastEffQ = res.q;
+					renderPayload(res.data, q, res.q);
+				});
 			}).catch(function () { /* aborted / network */ });
 		}
 
@@ -631,24 +670,23 @@
 			var q = input.value.trim();
 			if (q.length < MIN) { return; }
 			var form = input.closest("form") || box;
-			var navigate = function (target) {
-				window.location = vfhSearchUrl(form, target);
-			};
-			if (lastEffQ && lastEffQ.toLowerCase() !== q.toLowerCase() && lastQ === q) {
-				navigate(lastEffQ);
-				return;
-			}
-			vfhBuildVocab().then(function () {
-				if (input.value.trim() !== q) { return; }
-				navigate(vfhResolveQuery(q));
-			});
+			var targetQ = (lastEffQ && lastQ === q) ? lastEffQ : vfhResolveQuery(q);
+			window.location = vfhSearchUrl(form, targetQ, activeSectionId);
 		}
+
+		pop.addEventListener("click", function (e) {
+			var chip = e.target.closest(".vilmed-fh__sfacet");
+			if (!chip) { return; }
+			e.preventDefault();
+			activeSectionId = parseInt(chip.getAttribute("data-section"), 10) || 0;
+			if (lastQ) { fetchResults(lastQ); }
+		});
 
 		var searchForm = input.closest("form");
 		if (searchForm) {
 			searchForm.addEventListener("submit", function (e) {
 				e.preventDefault();
-				goSearch();
+				vfhBuildVocab().then(goSearch);
 			});
 		}
 
@@ -656,7 +694,12 @@
 		input.addEventListener("input", function () {
 			var q = input.value.trim();
 			if (timer) { clearTimeout(timer); }
-			if (q.length < MIN) { close(); pop.innerHTML = ""; lastQ = ""; lastEffQ = ""; return; }
+			if (q.length < MIN) {
+				close(); pop.innerHTML = ""; lastQ = ""; lastEffQ = "";
+				activeSectionId = 0; lastPayload = null;
+				return;
+			}
+			if (q !== lastQ) { activeSectionId = 0; }
 			if (q === lastQ) { open(); return; }
 			lastQ = q;
 			timer = setTimeout(function () { fetchResults(q); }, 220);
@@ -677,7 +720,7 @@
 					window.location = list[active].getAttribute("href");
 				} else {
 					e.preventDefault();
-					goSearch();
+					vfhBuildVocab().then(goSearch);
 				}
 			} else if (e.key === "Escape") { close(); }
 		});

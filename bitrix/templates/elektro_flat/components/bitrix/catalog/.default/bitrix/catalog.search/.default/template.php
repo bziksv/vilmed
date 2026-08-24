@@ -44,6 +44,18 @@ else
 	$arElementsNew = array_unique($arElementsNew);
 }
 
+require_once $_SERVER["DOCUMENT_ROOT"] . "/local/php_interface/include/vilmed_search_helpers.php";
+
+$vilmedSearchAllIds = is_array($arElementsNew) ? $arElementsNew : array();
+$vilmedSearchSectionId = (int)($_REQUEST["section_id"] ?? 0);
+$vilmedSearchFacets = !empty($vilmedSearchAllIds)
+	? vilmedSearchSectionFacets($vilmedSearchAllIds, (int)$arParams["IBLOCK_ID"], 20)
+	: array();
+
+if($vilmedSearchSectionId > 0 && !empty($vilmedSearchAllIds)) {
+	$arElementsNew = vilmedSearchFilterBySection($vilmedSearchAllIds, $vilmedSearchSectionId, (int)$arParams["IBLOCK_ID"]);
+}
+
 if(is_array($arElementsNew) && !empty($arElementsNew)) {
 	global $searchFilter;
 	$searchFilter = array(
@@ -70,7 +82,32 @@ if(is_array($arElementsNew) && !empty($arElementsNew)) {
 	<div class="count_items">
 		<label><?=GetMessage("COUNT_ITEMS")?></label>
 		<span><?=$count?></span>
-	</div>	
+	</div>
+
+	<?if(!empty($vilmedSearchFacets) && !empty($_REQUEST["q"])):?>
+		<div class="vilmed-search-cats" data-vilmed-search-cats>
+			<div class="vilmed-search-cats__head">
+				<span class="vilmed-search-cats__label"><?=GetMessage("VILMED_SEARCH_CATS")?></span>
+				<input type="text" class="vilmed-search-cats__filter" placeholder="<?=GetMessage("VILMED_SEARCH_CATS_FILTER")?>" autocomplete="off" />
+			</div>
+			<div class="vilmed-search-cats__list">
+				<a href="<?=htmlspecialcharsbx(vilmedSearchCatalogUrl((string)$_REQUEST["q"], 0))?>"
+					class="vilmed-search-cats__chip<?if($vilmedSearchSectionId <= 0):?> is-active<?endif;?>"
+					data-name="<?=htmlspecialcharsbx(GetMessage("VILMED_SEARCH_CATS_ALL"))?>">
+					<?=GetMessage("VILMED_SEARCH_CATS_ALL")?>
+					<span class="vilmed-search-cats__cnt"><?=count($vilmedSearchAllIds)?></span>
+				</a>
+				<?foreach($vilmedSearchFacets as $vilmedFacet):?>
+					<a href="<?=htmlspecialcharsbx(vilmedSearchCatalogUrl((string)$_REQUEST["q"], (int)$vilmedFacet["ID"]))?>"
+						class="vilmed-search-cats__chip<?if($vilmedSearchSectionId === (int)$vilmedFacet["ID"]):?> is-active<?endif;?>"
+						data-name="<?=htmlspecialcharsbx($vilmedFacet["NAME"])?>">
+						<?=htmlspecialcharsbx($vilmedFacet["NAME"])?>
+						<span class="vilmed-search-cats__cnt"><?=(int)$vilmedFacet["COUNT"]?></span>
+					</a>
+				<?endforeach;?>
+			</div>
+		</div>
+	<?endif;?>
 
 	<?//SORT//
 	$arAvailableSort = array(
@@ -255,8 +292,10 @@ if(is_array($arElementsNew) && !empty($arElementsNew)) {
 
 	//CANONICAL//
 	if(!empty($_REQUEST['sort']) || !empty($_REQUEST['order']) || !empty($_REQUEST['limit']) || !empty($_REQUEST['view']) || !empty($_REQUEST["PAGEN_2"])):
-		$APPLICATION->AddHeadString("<link rel='canonical' href='".$APPLICATION->GetCurPageParam("", array('sort', 'order', 'limit', 'view', 'submit', 'PAGEN_2'))."'>");
+		$APPLICATION->AddHeadString("<link rel='canonical' href='".$APPLICATION->GetCurPageParam("", array('sort', 'order', 'limit', 'view', 'submit', 'PAGEN_2', 'section_id'))."'>");
 	endif;
+
+	$APPLICATION->AddHeadScript(SITE_TEMPLATE_PATH . "/js/vilmed-search-page.js");
 } else {
 	ShowNote(GetMessage("CT_BCSE_NOT_FOUND"), "infotext");
 }?>
