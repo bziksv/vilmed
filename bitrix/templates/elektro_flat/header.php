@@ -61,7 +61,6 @@ Loc::loadMessages(__FILE__);
 	}
 	if ($vilmedIsPersonal) {
 		Asset::getInstance()->addCss($vilmedTplPath."/css/template_styles.personal.css");
-		Asset::getInstance()->addJs($vilmedAssetVer($vilmedTplPath."/js/vilmed-content-form-validation.js"));
 	}
 	if ($vilmedIsCompare) {
 		Asset::getInstance()->addCss($vilmedTplPath."/css/template_styles.compare.css");
@@ -127,6 +126,9 @@ Loc::loadMessages(__FILE__);
 	};
 	Asset::getInstance()->addCss($vilmedAssetVer($vilmedTplPath."/css/floating-header.css"));
 	Asset::getInstance()->addJs($vilmedAssetVer($vilmedTplPath."/js/floating-header.js"));
+	if ($vilmedIsPersonal) {
+		Asset::getInstance()->addJs($vilmedAssetVer($vilmedTplPath."/js/vilmed-content-form-validation.js"));
+	}
 	// Современный лайтбокс галереи — только на карточке товара (вместо fancybox 1.3.1).
 	if(function_exists('isProductDetail') && isProductDetail()) {
 		Asset::getInstance()->addCss($vilmedAssetVer($vilmedTplPath."/css/product-lightbox.css"));
