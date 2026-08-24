@@ -14,4 +14,7 @@ $this->setFrameMode(true);?>
 		<input type="text" name="sf_EMAIL" maxlength="50" value="<?=GetMessage("SUBSCRIBE_BOTTOM_DEFAULT_VALUE")?>" onfocus="this.value=''" onblur="if (this.value==''){this.value='<?=GetMessage("SUBSCRIBE_BOTTOM_DEFAULT_VALUE")?>'}" class="text" />
 		<button type="submit" name="submit" class="btn_buy ppp" value="<?=GetMessage('SUBSCRIBE_BOTTOM_SUBMIT')?>"><?=GetMessage('SUBSCRIBE_BOTTOM_SUBMIT')?></button>
 	</form>
+	<div class="label">
+		<?= function_exists('vilmedLegalFormPersonalDataText') ? vilmedLegalFormPersonalDataText() : '' ?>
+	</div>
 </div>

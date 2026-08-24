@@ -55,7 +55,9 @@ if(empty($arParams["VALIDATE_PHONE_MASK"]))
 	$arParams["VALIDATE_PHONE_MASK"] = $arSetting["FORMS_VALIDATE_PHONE_MASK"];
 
 $arParams["SHOW_PERSONAL_DATA"] = $arSetting["SHOW_PERSONAL_DATA"];
-$arParams["TEXT_PERSONAL_DATA"] = $arSetting["TEXT_PERSONAL_DATA"];
+$arParams["TEXT_PERSONAL_DATA"] = function_exists('vilmedLegalFormPersonalDataText')
+	? vilmedLegalFormPersonalDataText()
+	: $arSetting["TEXT_PERSONAL_DATA"];
 
 $arParams["PROPERTIES"] = array("NAME", "PHONE", "EMAIL", "MESSAGE");
 
