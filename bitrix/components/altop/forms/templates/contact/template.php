@@ -141,7 +141,7 @@ use Bitrix\Main\Localization\Loc; ?>
                     <span class="input-checkbox" id="input-checkbox_<?= $arResult['ELEMENT_AREA_ID'] ?>"></span>
                 </div>
                 <div class="label">
-                    <?= $arParams["TEXT_PERSONAL_DATA"] ?>
+                    <?= function_exists('vilmedLegalFormPersonalDataText') ? vilmedLegalFormPersonalDataText() : $arParams['TEXT_PERSONAL_DATA'] ?>
                 </div>
             </div>
         <? } ?>

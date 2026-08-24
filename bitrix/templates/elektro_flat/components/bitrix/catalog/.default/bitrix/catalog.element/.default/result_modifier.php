@@ -464,8 +464,7 @@ if(is_array($arResult["MORE_PHOTO"]) && count($arResult["MORE_PHOTO"]) > 0) {
 
 	//VILMED_MORE_PHOTO_DEDUP//
 	// Главное фото часто повторно загружено как «доп. фото»: разные пути iblock,
-	// одинаковое содержимое → в лайтбоксе дубль (DETAIL + MORE). Дедуп по md5
-	// оригинала (через ID файла) + запасной ключ size×WxH. Страница в композите.
+	// одинаковое содержимое → в лайтбоксе дубль. Дедуп: md5, dHash (пересжатый JPEG).
 	$vilmedPhotoMeta = function($f) {
 		if(!is_array($f)) { return null; }
 		$arr = null;
@@ -485,22 +484,33 @@ if(is_array($arResult["MORE_PHOTO"]) && count($arResult["MORE_PHOTO"]) > 0) {
 		$w = (int)($arr["WIDTH"] ?? $f["WIDTH"] ?? 0);
 		$h = (int)($arr["HEIGHT"] ?? $f["HEIGHT"] ?? 0);
 		$sz = (int)($arr["FILE_SIZE"] ?? $f["FILE_SIZE"] ?? @filesize($path));
+		$dhash = function_exists('vilmedImagePerceptualHash') ? vilmedImagePerceptualHash($path) : null;
 		return array(
 			"md5" => $md5 ?: null,
 			"geom" => ($sz > 0 && $w > 0 && $h > 0) ? ($sz."x".$w."x".$h) : null,
+			"dhash" => $dhash,
 		);
 	};
 	$vilmedSeenMd5 = array();
 	$vilmedSeenGeom = array();
-	$vilmedMark = function($meta) use (&$vilmedSeenMd5, &$vilmedSeenGeom) {
+	$vilmedSeenDhash = array();
+	$vilmedMark = function($meta) use (&$vilmedSeenMd5, &$vilmedSeenGeom, &$vilmedSeenDhash) {
 		if(!is_array($meta)) { return; }
 		if(!empty($meta["md5"])) { $vilmedSeenMd5[$meta["md5"]] = true; }
 		if(!empty($meta["geom"])) { $vilmedSeenGeom[$meta["geom"]] = true; }
+		if(!empty($meta["dhash"])) { $vilmedSeenDhash[] = $meta["dhash"]; }
 	};
-	$vilmedIsDup = function($meta) use (&$vilmedSeenMd5, &$vilmedSeenGeom) {
+	$vilmedIsDup = function($meta) use (&$vilmedSeenMd5, &$vilmedSeenGeom, &$vilmedSeenDhash) {
 		if(!is_array($meta)) { return false; }
 		if(!empty($meta["md5"]) && isset($vilmedSeenMd5[$meta["md5"]])) { return true; }
 		if(!empty($meta["geom"]) && isset($vilmedSeenGeom[$meta["geom"]])) { return true; }
+		if(!empty($meta["dhash"])) {
+			foreach($vilmedSeenDhash as $seenDhash) {
+				if(function_exists('vilmedImageHashesSimilar') && vilmedImageHashesSimilar($meta["dhash"], $seenDhash)) {
+					return true;
+				}
+			}
+		}
 		return false;
 	};
 	if(is_array($arResult["DETAIL_PICTURE"])) {
@@ -511,7 +521,7 @@ if(is_array($arResult["MORE_PHOTO"]) && count($arResult["MORE_PHOTO"]) > 0) {
 		if($vilmedIsDup($meta)) { unset($arResult["MORE_PHOTO"][$key]); continue; }
 		$vilmedMark($meta);
 	}
-	unset($vilmedPhotoMeta, $vilmedMark, $vilmedIsDup, $vilmedSeenMd5, $vilmedSeenGeom, $meta);
+	unset($vilmedPhotoMeta, $vilmedMark, $vilmedIsDup, $vilmedSeenMd5, $vilmedSeenGeom, $vilmedSeenDhash, $meta);
 
 	//MORE_PICTURES//
 	foreach($arResult["MORE_PHOTO"] as $key => $arFile) {

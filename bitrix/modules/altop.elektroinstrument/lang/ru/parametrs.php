@@ -95,7 +95,7 @@ $MESS["GENERAL_SETTINGS_GOOGLE_PREV_NEXT"] = "Включить отображе�
 $MESS["PERSONAL_DATA"] = "Обработка персональных данных";
 $MESS["PERSONAL_DATA_SHOW_PERSONAL_DATA"] = "Согласие на обработку персональных данных";
 $MESS["PERSONAL_DATA_TEXT_PERSONAL_DATA"] = "Текст для согласия на обработку данных";
-$MESS["DEFAULT_PERSONAL_DATA_TEXT"] = "При отправке данной формы Вы подтверждаете свою дееспособность и согласие на <a href='/about/agreement/' target='_blank'>обработку персональных данных.</a>";
+$MESS["DEFAULT_PERSONAL_DATA_TEXT"] = "При отправке формы Вы даёте <a href=\"/legal/vilmed-personal-data-consent/\" target=\"_blank\">согласие на обработку персональных данных</a> и принимаете <a href=\"/legal/vilmed-personal-data-policy/\" target=\"_blank\">политику обработки персональных данных</a>.";
 $MESS["REFERENCE_PRICE"] = "Справочная цена";
 $MESS["REFERENCE_PRICE_COEF"] = "Коэффициент справочной цены";
 $MESS["GEOLOCATION_OPTIONS"] = "Местоположение";

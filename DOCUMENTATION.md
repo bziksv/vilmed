@@ -722,7 +722,7 @@ ssh vilmed 'cd /var/www/vilmed_ru_usr/data/www/vilmed.ru && \
 
 ### Дедупликация фото в галерее карточки
 
-Главное фото товара часто **повторно загружено** как первое «доп. фото»: это **разные файлы** (разные `iblock`-пути) с одинаковым содержимым — по URL не отличить, в галерее/лайтбоксе шёл дубль. Отсев в `…/catalog.element/.default/result_modifier.php` (блок `VILMED_MORE_PHOTO_DEDUP`): из `MORE_PHOTO` убираются записи, чей **md5 содержимого файла** совпадает с `DETAIL_PICTURE` (и внутренние повторы). JS-лайтбокс (`product-lightbox.js`) дополнительно схлопывает `resize_cache`-варианты одного файла.
+Главное фото товара часто **повторно загружено** как первое «доп. фото»: это **разные файлы** (разные `iblock`-пути) с одинаковым содержимым — по URL не отличить, в галерее/лайтбоксе шёл дубль. Отсев в `…/catalog.element/.default/result_modifier.php` (блок `VILMED_MORE_PHOTO_DEDUP`): из `MORE_PHOTO` убираются записи, совпадающие с `DETAIL_PICTURE` и между собой по **md5** и **dHash** (пересжатый JPEG с другим хешем). Хелперы — `vilmedImagePerceptualHash()` / `vilmedImageHashesSimilar()` в `bitrix/php_interface/include/functions.php`. JS-лайтбокс (`product-lightbox.js`) дополнительно схлопывает `resize_cache`-варианты одного файла.
 
 **Проверка прода без правок кода:** `?nocache=<ts>` форсирует свежую генерацию в обход композита; `curl` всегда получает полную регенерацию (TTFB ~2–4 с — это не скорость для реальных браузеров).
 

@@ -57,6 +57,9 @@ class CElektroinstrument {
 				}
 			}
 		}
+		if (function_exists('vilmedLegalFormPersonalDataText')) {
+			$arValues['TEXT_PERSONAL_DATA'] = vilmedLegalFormPersonalDataText();
+		}
 		return $arValues;
 	}
 

@@ -98,3 +98,7 @@ if(file_exists($_SERVER['DOCUMENT_ROOT'].'/bitrix/php_interface/include/function
 if(file_exists($_SERVER['DOCUMENT_ROOT'].'/include/vilmed_perf.php')){
    require_once($_SERVER['DOCUMENT_ROOT'].'/include/vilmed_perf.php');
 }
+
+if (file_exists($_SERVER['DOCUMENT_ROOT'].'/local/php_interface/include/legal/legal_helpers.php')) {
+	require_once $_SERVER['DOCUMENT_ROOT'].'/local/php_interface/include/legal/legal_helpers.php';
+}

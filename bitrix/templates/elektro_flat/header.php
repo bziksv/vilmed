@@ -157,6 +157,9 @@ Loc::loadMessages(__FILE__);
 <body  <?=$APPLICATION->ShowProperty("bgClass")?><?=$APPLICATION->ShowProperty("backgroundColor")?><?=$APPLICATION->ShowProperty("backgroundImage")?>>
 	<?global $arSetting;?>
 	<?$arSetting = $APPLICATION->IncludeComponent("altop:settings", "", array(), false, array("HIDE_ICONS" => "Y"));?>
+	<?if (function_exists('vilmedLegalFormPersonalDataText') && is_array($arSetting) && isset($arSetting['TEXT_PERSONAL_DATA'])) {
+		$arSetting['TEXT_PERSONAL_DATA']['VALUE'] = vilmedLegalFormPersonalDataText();
+	}?>
 <?if($arSetting["GENERAL_SETTINGS"]["LIST"]["BREADCRUMB"]["CURRENT"]=="Y") {
     Asset::getInstance()->addCss(SITE_TEMPLATE_PATH . "/bread.css");
 }
