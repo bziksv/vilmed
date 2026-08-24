@@ -166,13 +166,14 @@
 .vilmed-fh__sresult {
 	position: absolute;
 	top: calc(100% + 8px);
-	left: 0;
-	width: min(700px, calc(100vw - 40px));
+	left: 50%;
+	transform: translateX(-50%);
+	width: min(920px, calc(100vw - 32px));
 	background: #fff;
 	border: 1px solid #e2e3f0;
 	border-radius: 14px;
 	box-shadow: 0 20px 48px rgba(20, 22, 48, .14), 0 4px 12px rgba(20, 22, 48, .06);
-	max-height: min(70vh, 520px);
+	max-height: min(78vh, 620px);
 	overflow: hidden;
 	z-index: 9999;
 	display: none;
@@ -181,13 +182,13 @@
 
 #altop_search .vilmed-fh__sresult,
 .form-box .vilmed-fh__sresult {
-	width: min(700px, calc(100vw - 48px));
+	width: min(920px, calc(100vw - 32px));
 }
 
 .vilmed-fh__spanel {
 	display: flex;
 	flex-direction: column;
-	max-height: min(70vh, 520px);
+	max-height: min(78vh, 620px);
 }
 
 .vilmed-fh__spanel--empty {
@@ -248,8 +249,8 @@
 }
 
 .vilmed-fh__scats {
-	flex: 0 0 220px;
-	width: 220px;
+	flex: 0 0 300px;
+	width: 300px;
 	border-right: 1px solid #eef0f6;
 	background: #f8f9fc;
 	display: flex;
@@ -312,18 +313,18 @@
 
 .vilmed-fh__scat-row {
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	justify-content: flex-start;
 	gap: 8px;
 	width: 100%;
-	padding: 9px 10px;
+	padding: 8px 10px;
 	margin: 0 0 2px;
 	border: none;
 	border-radius: 8px;
 	background: transparent;
 	color: #3d4058;
 	font-size: 13px;
-	line-height: 1.3;
+	line-height: 1.35;
 	text-align: left;
 	cursor: pointer;
 	transition: background .12s ease, color .12s ease;
@@ -331,6 +332,7 @@
 
 .vilmed-fh__scat-check {
 	flex: 0 0 16px;
+	margin-top: 2px;
 	width: 16px;
 	height: 16px;
 	border: 1.5px solid #c5cad9;
@@ -358,9 +360,9 @@
 
 .vilmed-fh__scat-name {
 	flex: 1 1 auto;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	min-width: 0;
+	white-space: normal;
+	word-break: break-word;
 }
 
 .vilmed-fh__scat-cnt {
@@ -458,6 +460,20 @@
 	overflow-y: auto;
 	flex: 1 1 auto;
 	padding: 6px 0;
+	min-height: 180px;
+	position: relative;
+}
+
+.vilmed-fh__sitems--loading {
+	opacity: .55;
+	pointer-events: none;
+}
+
+.vilmed-fh__sitems-empty {
+	padding: 28px 16px;
+	text-align: center;
+	font-size: 13px;
+	color: #6a6d84;
 }
 
 /* LOCALHOST: native title-search dropdown is replaced by our super-search */
@@ -473,16 +489,104 @@
 	display: flex;
 	align-items: center;
 	gap: 12px;
-	padding: 8px 14px;
+	padding: 10px 14px;
 	margin: 0 6px;
 	border-radius: 10px;
-	text-decoration: none;
 	transition: background .12s ease;
 }
 
 .vilmed-fh__sitem:hover,
-.vilmed-fh__sitem.is-active {
+.vilmed-fh__sitem:has(.vilmed-fh__sitem-link.is-active) {
 	background: #f3f4f8;
+}
+
+.vilmed-fh__sitem-link {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex: 1 1 auto;
+	min-width: 0;
+	text-decoration: none;
+	color: inherit;
+}
+
+.vilmed-fh__sitem-link.is-active {
+	background: transparent;
+}
+
+.vilmed-fh__sitem-side {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 8px;
+	min-width: 118px;
+}
+
+.vilmed-fh__sitem-price {
+	font-size: 14px;
+	font-weight: 700;
+	color: #2b2d42;
+	white-space: nowrap;
+	text-align: right;
+}
+
+.vilmed-fh__sitem-price--empty {
+	font-size: 11px;
+	font-weight: 600;
+	color: #8b8fa3;
+	white-space: normal;
+	max-width: 110px;
+	line-height: 1.25;
+}
+
+.vilmed-fh__sitem-buy,
+.vilmed-fh__sitem-pick {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: 34px;
+	padding: 0 12px;
+	border-radius: 8px;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1;
+	text-decoration: none;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+
+.vilmed-fh__sitem-buy {
+	border: 1px solid #2b2d42;
+	background: #2b2d42;
+	color: #fff;
+}
+
+.vilmed-fh__sitem-buy:hover {
+	background: #1f2133;
+	border-color: #1f2133;
+}
+
+.vilmed-fh__sitem-buy.is-added {
+	background: #3d8f62;
+	border-color: #3d8f62;
+}
+
+.vilmed-fh__sitem-buy i {
+	font-size: 13px;
+}
+
+.vilmed-fh__sitem-pick {
+	border: 1px solid #dfe2ec;
+	background: #fff;
+	color: #2b2d42;
+}
+
+.vilmed-fh__sitem-pick:hover {
+	background: #f3f4f8;
+	border-color: #b8bdd4;
 }
 
 .vilmed-fh__sitem-pic {
@@ -511,27 +615,14 @@
 	font-size: 13px;
 	line-height: 1.4;
 	display: -webkit-box;
-	-webkit-line-clamp: 2;
+	-webkit-line-clamp: 3;
 	-webkit-box-orient: vertical;
 	overflow: hidden;
 }
 
-.vilmed-fh__sitem-arrow {
-	flex: 0 0 auto;
-	color: #c5cad9;
-	font-size: 16px;
-	transition: color .12s ease, transform .12s ease;
-}
-
-.vilmed-fh__sitem:hover .vilmed-fh__sitem-arrow,
-.vilmed-fh__sitem.is-active .vilmed-fh__sitem-arrow {
-	color: #6a6d84;
-	transform: translateX(2px);
-}
-
-.vilmed-fh__sitem:hover .vilmed-fh__sitem-name,
-.vilmed-fh__sitem.is-active .vilmed-fh__sitem-name {
-	color: #2b2d42;
+.vilmed-fh__sitem-link:hover .vilmed-fh__sitem-name,
+.vilmed-fh__sitem-link.is-active .vilmed-fh__sitem-name {
+	color: #1f2133;
 }
 
 .vilmed-fh__sfooter {
@@ -1232,14 +1323,16 @@ html.vilmed-drawer-lock {
 	}
 	.vilmed-fh__search-hide:hover { color: #2b2d42; }
 	/* выпадашка результатов — во всю ширину раскрытой полосы */
-	.vilmed-fh--search .vilmed-fh__sresult { top: calc(100% + 1px); border-radius: 0 0 10px 10px; width: 100%; left: 0; max-height: 65vh; }
-	.vilmed-fh__sresult { width: calc(100vw - 24px); left: 0; max-height: 65vh; }
+	.vilmed-fh--search .vilmed-fh__sresult { top: calc(100% + 1px); border-radius: 0 0 10px 10px; width: 100%; left: 0; transform: none; max-height: 72vh; }
+	.vilmed-fh__sresult { width: calc(100vw - 24px); left: 0; transform: none; max-height: 72vh; }
 	.vilmed-fh__sbody { flex-direction: column; }
-	.vilmed-fh__scats { width: 100%; flex: 0 0 auto; border-right: 0; border-bottom: 1px solid #eef0f6; max-height: 140px; }
+	.vilmed-fh__scats { width: 100%; flex: 0 0 auto; border-right: 0; border-bottom: 1px solid #eef0f6; max-height: 220px; }
 	.vilmed-fh__scats-list { display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; padding: 0 8px 10px; gap: 6px; }
 	.vilmed-fh__scats-label { padding: 10px 12px 6px; }
-	.vilmed-fh__scat-row { width: auto; flex: 0 0 auto; max-width: 200px; padding: 8px 12px; white-space: nowrap; }
+	.vilmed-fh__scat-row { width: auto; flex: 0 0 auto; max-width: 280px; padding: 8px 12px; }
 	.vilmed-fh__scat-more { flex: 0 0 auto; align-self: center; white-space: nowrap; padding: 8px 12px; }
+	.vilmed-fh__sitem { flex-wrap: wrap; }
+	.vilmed-fh__sitem-side { width: 100%; flex-direction: row; align-items: center; justify-content: space-between; min-width: 0; padding-left: 64px; }
 }
 
 @keyframes vfhSearchDrop {

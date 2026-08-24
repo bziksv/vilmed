@@ -551,7 +551,7 @@
 			if (pop.innerHTML) { box.classList.add("vilmed-fh--open"); }
 		}
 		function items() {
-			return pop.querySelectorAll(".vilmed-fh__sitem");
+			return pop.querySelectorAll(".vilmed-fh__sitem-link");
 		}
 		function setActive(idx) {
 			var list = items();
@@ -569,18 +569,117 @@
 			return vfhSearchUrl(input.closest("form") || box, q, sectionIds || activeSectionIds);
 		}
 
-		function renderPayload(data, typedQ, effQ) {
+		function renderProductItem(it) {
+			var priceHtml = it.PRICE_PRINT
+				? '<span class="vilmed-fh__sitem-price">' + escapeHtml(it.PRICE_PRINT) + "</span>"
+				: '<span class="vilmed-fh__sitem-price vilmed-fh__sitem-price--empty">Цена по запросу</span>';
+			var actionHtml = "";
+			if (it.NEED_SKU) {
+				actionHtml = '<a class="vilmed-fh__sitem-pick" href="' + it.URL + '">Выбрать</a>';
+			} else if (it.CAN_BUY && it.BUY_ID) {
+				actionHtml =
+					'<button type="button" class="vilmed-fh__sitem-buy" data-product-id="' + it.BUY_ID + '" title="В корзину">' +
+						'<i class="fa fa-shopping-cart"></i><span>В корзину</span>' +
+					"</button>";
+			} else {
+				actionHtml = '<a class="vilmed-fh__sitem-pick" href="' + it.URL + '">Подробнее</a>';
+			}
+			return (
+				'<div class="vilmed-fh__sitem">' +
+					'<a class="vilmed-fh__sitem-link" href="' + it.URL + '">' +
+						'<span class="vilmed-fh__sitem-pic">' +
+							(it.IMAGE ? '<img src="' + it.IMAGE + '" alt="" loading="lazy">' : "") +
+						"</span>" +
+						'<span class="vilmed-fh__sitem-name">' + escapeHtml(it.NAME) + "</span>" +
+					"</a>" +
+					'<div class="vilmed-fh__sitem-side">' + priceHtml + actionHtml + "</div>" +
+				"</div>"
+			);
+		}
+
+		function panelCounts(data) {
+			var total = data.total || 0;
+			var filteredTotal = typeof data.filtered_total === "number" ? data.filtered_total : total;
+			var showTotal = activeSectionIds.length ? filteredTotal : total;
+			return { total: total, filteredTotal: filteredTotal, showTotal: showTotal };
+		}
+
+		function syncCategoryRows() {
+			var rows = pop.querySelectorAll(".vilmed-fh__scat-row");
+			for (var i = 0; i < rows.length; i++) {
+				var sid = parseInt(rows[i].getAttribute("data-section"), 10) || 0;
+				rows[i].classList.toggle("is-active", isSectionActive(sid));
+			}
+			var resetBtn = pop.querySelector(".vilmed-fh__scats-reset");
+			if (resetBtn) {
+				resetBtn.style.display = activeSectionIds.length ? "" : "none";
+			}
+		}
+
+		function updatePanelMeta(data, effQ) {
+			var counts = panelCounts(data);
+			var countEl = pop.querySelector(".vilmed-fh__scount");
+			if (countEl) {
+				countEl.innerHTML = counts.showTotal + " " + pluralRu(counts.showTotal, "товар", "товара", "товаров") +
+					(activeSectionIds.length && counts.filteredTotal !== counts.total
+						? ' <span class="vilmed-fh__scount-of">из ' + counts.total + "</span>"
+						: "");
+			}
+			var footer = pop.querySelector(".vilmed-fh__sfooter");
+			if (footer) {
+				footer.href = catalogHref(effQ, activeSectionIds);
+				var footerLabel = footer.querySelector("span");
+				var footerCnt = footer.querySelector(".vilmed-fh__sfooter-cnt");
+				if (footerLabel) {
+					footerLabel.textContent = activeSectionIds.length ? "Показать отобранное" : "Все результаты";
+				}
+				if (footerCnt) {
+					footerCnt.innerHTML = counts.showTotal + ' <i class="fa fa-long-arrow-right"></i>';
+				}
+			}
+			var moreLink = pop.querySelector(".vilmed-fh__scat-more");
+			if (moreLink) {
+				moreLink.href = catalogHref(effQ, activeSectionIds);
+			}
+			var activeCat = pop.querySelector(".vilmed-fh__sactive-cat");
+			if (activeCat) {
+				if (!activeSectionIds.length) {
+					activeCat.style.display = "none";
+				} else {
+					activeCat.style.display = "";
+					activeCat.innerHTML = "Выбрано категорий: <b>" + activeSectionIds.length + "</b>";
+				}
+			}
+		}
+
+		function renderProducts(data, effQ) {
+			var products = data.products || [];
+			var itemsEl = pop.querySelector(".vilmed-fh__sitems");
+			if (!itemsEl) { return; }
+			var html = "";
+			for (var p = 0; p < products.length && p < 6; p++) {
+				html += renderProductItem(products[p]);
+			}
+			if (!html) {
+				html = '<div class="vilmed-fh__sitems-empty">В выбранных категориях нет товаров</div>';
+			}
+			itemsEl.innerHTML = html;
+			itemsEl.classList.remove("vilmed-fh__sitems--loading");
+			updatePanelMeta(data, effQ);
+			syncCategoryRows();
+			active = -1;
+		}
+
+		function renderPayload(data, typedQ, effQ, opts) {
+			opts = opts || {};
 			lastPayload = data;
 			var facets = data.facets || [];
 			var sections = data.sections || [];
 			var products = data.products || [];
-			var total = data.total || 0;
-			var filteredTotal = typeof data.filtered_total === "number" ? data.filtered_total : total;
-			var showTotal = activeSectionIds.length ? filteredTotal : total;
-			var activeFacetNames = [];
+			var counts = panelCounts(data);
 			var out = "";
 
-			if (!products.length && !sections.length && total <= 0) {
+			if (!products.length && !sections.length && counts.total <= 0) {
 				pop.innerHTML =
 					'<div class="vilmed-fh__spanel vilmed-fh__spanel--empty">' +
 						'<div class="vilmed-fh__sempty">По запросу «' + escapeHtml(typedQ) + '» ничего не найдено</div>' +
@@ -592,6 +691,11 @@
 				return;
 			}
 
+			if (opts.productsOnly && pop.querySelector(".vilmed-fh__spanel")) {
+				renderProducts(data, effQ);
+				return;
+			}
+
 			out += '<div class="vilmed-fh__spanel">';
 			out += '<div class="vilmed-fh__shead">';
 			out += '<div class="vilmed-fh__shead-main">';
@@ -600,9 +704,9 @@
 				out += '<span class="vilmed-fh__sfix-inline">исправлено</span>';
 			}
 			out += "</div>";
-			out += '<span class="vilmed-fh__scount">' + showTotal + " " + pluralRu(showTotal, "товар", "товара", "товаров");
-			if (activeSectionIds.length && filteredTotal !== total) {
-				out += ' <span class="vilmed-fh__scount-of">из ' + total + "</span>";
+			out += '<span class="vilmed-fh__scount">' + counts.showTotal + " " + pluralRu(counts.showTotal, "товар", "товара", "товаров");
+			if (activeSectionIds.length && counts.filteredTotal !== counts.total) {
+				out += ' <span class="vilmed-fh__scount-of">из ' + counts.total + "</span>";
 			}
 			out += "</span>";
 			out += "</div>";
@@ -612,9 +716,8 @@
 				out += '<aside class="vilmed-fh__scats" aria-label="Категории">';
 				out += '<div class="vilmed-fh__scats-head">';
 				out += '<div class="vilmed-fh__scats-label">Категории</div>';
-				if (activeSectionIds.length) {
-					out += '<button type="button" class="vilmed-fh__scats-reset" data-section="0">Сбросить</button>';
-				}
+				out += '<button type="button" class="vilmed-fh__scats-reset" data-section="0"' +
+					(activeSectionIds.length ? "" : ' style="display:none"') + '>Сбросить</button>';
 				out += "</div>";
 				out += '<p class="vilmed-fh__scats-hint">Можно выбрать несколько</p>';
 				out += '<div class="vilmed-fh__scats-list">';
@@ -622,10 +725,9 @@
 					(isSectionActive(0) ? " is-active" : "") + '" data-section="0">' +
 					'<span class="vilmed-fh__scat-check" aria-hidden="true"></span>' +
 					'<span class="vilmed-fh__scat-name">Все результаты</span>' +
-					'<span class="vilmed-fh__scat-cnt">' + total + "</span></button>";
-				for (var f = 0; f < facets.length && f < 8; f++) {
+					'<span class="vilmed-fh__scat-cnt">' + counts.total + "</span></button>";
+				for (var f = 0; f < facets.length && f < 12; f++) {
 					var facet = facets[f];
-					if (isSectionActive(facet.ID)) { activeFacetNames.push(facet.NAME); }
 					out += '<button type="button" class="vilmed-fh__scat-row' +
 						(isSectionActive(facet.ID) ? " is-active" : "") +
 						'" data-section="' + facet.ID + '" title="' + escapeHtml(facet.NAME) + '">' +
@@ -633,21 +735,20 @@
 						'<span class="vilmed-fh__scat-name">' + escapeHtml(facet.NAME) + "</span>" +
 						'<span class="vilmed-fh__scat-cnt">' + facet.COUNT + "</span></button>";
 				}
-				if (facets.length > 8) {
+				if (facets.length > 12) {
 					out += '<a class="vilmed-fh__scat-more" href="' + catalogHref(effQ, activeSectionIds) +
-						'">Ещё ' + (facets.length - 8) + " на странице поиска</a>";
+						'">Ещё ' + (facets.length - 12) + " на странице поиска</a>";
 				}
 				out += "</div></aside>";
 			}
 
 			out += '<div class="vilmed-fh__smain">';
-			if (activeFacetNames.length) {
-				out += '<div class="vilmed-fh__sactive-cat">Категории: <b>' +
-					escapeHtml(activeFacetNames.join(", ")) + "</b></div>";
-			} else if (activeSectionIds.length) {
-				out += '<div class="vilmed-fh__sactive-cat">Выбрано категорий: <b>' +
-					activeSectionIds.length + "</b></div>";
+			out += '<div class="vilmed-fh__sactive-cat"' +
+				(activeSectionIds.length ? "" : ' style="display:none"') + ">";
+			if (activeSectionIds.length) {
+				out += "Выбрано категорий: <b>" + activeSectionIds.length + "</b>";
 			}
+			out += "</div>";
 
 			if (sections.length) {
 				out += '<div class="vilmed-fh__ssections">';
@@ -664,21 +765,13 @@
 
 			out += '<div class="vilmed-fh__sitems">';
 			for (var p = 0; p < products.length && p < 6; p++) {
-				var it = products[p];
-				out +=
-					'<a class="vilmed-fh__sitem" href="' + it.URL + '">' +
-						'<span class="vilmed-fh__sitem-pic">' +
-							(it.IMAGE ? '<img src="' + it.IMAGE + '" alt="" loading="lazy">' : "") +
-						"</span>" +
-						'<span class="vilmed-fh__sitem-name">' + escapeHtml(it.NAME) + "</span>" +
-						'<i class="fa fa-angle-right vilmed-fh__sitem-arrow"></i>' +
-					"</a>";
+				out += renderProductItem(products[p]);
 			}
 			out += "</div></div></div>";
 
 			out += '<a class="vilmed-fh__sfooter" href="' + catalogHref(effQ, activeSectionIds) + '">' +
 				'<span>' + (activeSectionIds.length ? "Показать отобранное" : "Все результаты") + "</span>" +
-				'<span class="vilmed-fh__sfooter-cnt">' + showTotal + " <i class=\"fa fa-long-arrow-right\"></i></span>" +
+				'<span class="vilmed-fh__sfooter-cnt">' + counts.showTotal + " <i class=\"fa fa-long-arrow-right\"></i></span>" +
 				"</a>";
 			out += "</div>";
 
@@ -698,7 +791,7 @@
 
 		function fetchJson(q, sectionIds, signal) {
 			var url = "/ajax/search.php?q=" + encodeURIComponent(q) +
-				"&limit=6&facet_limit=8";
+				"&limit=6&facet_limit=12";
 			if (sectionIds && sectionIds.length) {
 				for (var i = 0; i < sectionIds.length; i++) {
 					var sid = parseInt(sectionIds[i], 10) || 0;
@@ -724,12 +817,18 @@
 				(data.total > 0);
 		}
 
-		function fetchResults(q) {
+		function fetchResults(q, opts) {
+			opts = opts || {};
 			if (controller) { controller.abort(); }
 			controller = ("AbortController" in window) ? new AbortController() : null;
 			var signal = controller ? controller.signal : undefined;
-			pop.innerHTML = '<div class="vilmed-fh__sload"><i class="fa fa-spinner fa-pulse"></i></div>';
-			open();
+			if (!opts.silent) {
+				pop.innerHTML = '<div class="vilmed-fh__sload"><i class="fa fa-spinner fa-pulse"></i></div>';
+				open();
+			} else {
+				var itemsEl = pop.querySelector(".vilmed-fh__sitems");
+				if (itemsEl) { itemsEl.classList.add("vilmed-fh__sitems--loading"); }
+			}
 			vfhBuildVocab().then(function () {
 				if (input.value.trim() !== q) { return; }
 				var variants = vfhQueryVariants(q);
@@ -752,9 +851,32 @@
 				}).then(function (res) {
 					if (input.value.trim() !== q) { return; }
 					lastEffQ = res.q;
-					renderPayload(res.data, q, res.q);
+					renderPayload(res.data, q, res.q, { productsOnly: !!opts.silent });
 				});
 			}).catch(function () { /* aborted / network */ });
+		}
+
+		function addToBasket(productId, btn) {
+			if (!productId || !window.BX || !BX.ajax || !BX.bitrix_sessid) {
+				return;
+			}
+			btn.disabled = true;
+			BX.ajax.post("/ajax/add2basket.php", {
+				ID: productId,
+				quantity: 1,
+				sessid: BX.bitrix_sessid()
+			}, function () {
+				btn.disabled = false;
+				btn.classList.add("is-added");
+				var label = btn.querySelector("span");
+				if (label) { label.textContent = "Добавлено"; }
+				var siteDir = BX.message("SITE_DIR") || "/";
+				BX.ajax.post(siteDir + "ajax/basket_line.php", "", function (data) {
+					if (typeof refreshCartLine === "function") {
+						refreshCartLine(data);
+					}
+				});
+			});
 		}
 
 		function goSearch() {
@@ -766,11 +888,20 @@
 		}
 
 		pop.addEventListener("click", function (e) {
+			var buyBtn = e.target.closest(".vilmed-fh__sitem-buy");
+			if (buyBtn) {
+				e.preventDefault();
+				e.stopPropagation();
+				addToBasket(parseInt(buyBtn.getAttribute("data-product-id"), 10) || 0, buyBtn);
+				return;
+			}
+
 			var chip = e.target.closest(".vilmed-fh__scat-row, .vilmed-fh__scats-reset");
 			if (!chip) { return; }
 			e.preventDefault();
 			toggleSectionId(chip.getAttribute("data-section"));
-			if (lastQ) { fetchResults(lastQ); }
+			syncCategoryRows();
+			if (lastQ) { fetchResults(lastQ, { silent: true }); }
 		});
 
 		var searchForm = input.closest("form");

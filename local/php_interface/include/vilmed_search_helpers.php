@@ -271,6 +271,78 @@ function vilmedSearchFilterBySections(array $elementIds, array $sectionIds, int 
     return $out;
 }
 
+function vilmedSearchEnrichProduct(int $productId, int $iblockId): array
+{
+    $meta = [
+        'PRICE_PRINT' => '',
+        'PRICE_VALUE' => 0.0,
+        'PRICE_FROM' => false,
+        'CAN_BUY' => false,
+        'BUY_ID' => $productId,
+        'NEED_SKU' => false,
+    ];
+
+    if ($productId <= 0 || !CModule::IncludeModule('catalog')) {
+        return $meta;
+    }
+
+    global $USER;
+    $groups = (is_object($USER) && method_exists($USER, 'GetUserGroupArray'))
+        ? $USER->GetUserGroupArray()
+        : [2];
+
+    $offerIds = [];
+    if (CModule::IncludeModule('iblock')) {
+        $offers = CCatalogSku::getOffersList(
+            [$productId],
+            $iblockId,
+            ['ACTIVE' => 'Y', 'AVAILABLE' => 'Y'],
+            ['ID'],
+            []
+        );
+        if (!empty($offers[$productId]) && is_array($offers[$productId])) {
+            $offerIds = array_keys($offers[$productId]);
+            if (count($offerIds) > 1) {
+                $meta['NEED_SKU'] = true;
+                $meta['PRICE_FROM'] = true;
+            } elseif (count($offerIds) === 1) {
+                $meta['BUY_ID'] = (int)$offerIds[0];
+            }
+        }
+    }
+
+    $arPrice = CCatalogProduct::GetOptimalPrice($productId, 1, $groups, 'N');
+    if (!empty($arPrice['RESULT_PRICE'])) {
+        $rp = $arPrice['RESULT_PRICE'];
+        $meta['PRICE_VALUE'] = (float)$rp['DISCOUNT_PRICE'];
+        if (CModule::IncludeModule('currency')) {
+            $formatted = CCurrencyLang::CurrencyFormat(
+                $rp['DISCOUNT_PRICE'],
+                $rp['CURRENCY'],
+                true
+            );
+            $meta['PRICE_PRINT'] = html_entity_decode(strip_tags($formatted), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+        if (!empty($arPrice['PRODUCT_ID'])) {
+            $meta['BUY_ID'] = (int)$arPrice['PRODUCT_ID'];
+        }
+    }
+
+    if ($meta['PRICE_FROM'] && $meta['PRICE_PRINT'] !== '') {
+        $meta['PRICE_PRINT'] = 'от ' . $meta['PRICE_PRINT'];
+    }
+
+    $catalogProduct = CCatalogProduct::GetByID($meta['BUY_ID']);
+    if (is_array($catalogProduct) && $meta['PRICE_VALUE'] > 0) {
+        $available = ($catalogProduct['AVAILABLE'] ?? 'N') === 'Y';
+        $canBuyZero = ($catalogProduct['CAN_BUY_ZERO'] ?? 'N') === 'Y';
+        $qty = (float)($catalogProduct['QUANTITY'] ?? 0);
+        $meta['CAN_BUY'] = $available || $canBuyZero || $qty > 0;
+    }
+
+    return $meta;
+}
+
 function vilmedSearchBuildProducts(array $elementIds, int $iblockId, int $limit = 12): array
 {
     if (empty($elementIds) || !CModule::IncludeModule('iblock')) {
@@ -316,13 +388,21 @@ function vilmedSearchBuildProducts(array $elementIds, int $iblockId, int $limit 
             $pic = SITE_TEMPLATE_PATH . '/images/no-photo.jpg';
         }
 
+        $productId = (int)$el['ID'];
+        $commerce = vilmedSearchEnrichProduct($productId, $iblockId);
+
         $items[] = [
-            'ID' => (int)$el['ID'],
+            'ID' => $productId,
             'NAME' => $el['NAME'],
             'URL' => $el['DETAIL_PAGE_URL'],
             'IMAGE' => $pic,
             'SECTION_ID' => (int)($el['IBLOCK_SECTION_ID'] ?? 0),
             'TYPE' => 'product',
+            'PRICE_PRINT' => $commerce['PRICE_PRINT'],
+            'PRICE_VALUE' => $commerce['PRICE_VALUE'],
+            'CAN_BUY' => $commerce['CAN_BUY'],
+            'BUY_ID' => $commerce['BUY_ID'],
+            'NEED_SKU' => $commerce['NEED_SKU'],
         ];
     }
 
