@@ -91,7 +91,7 @@ global $arSetting;
 $arParams["REFERENCE_PRICE"] = $arSetting["REFERENCE_PRICE"]["VALUE"];
 $arParams["REFERENCE_PRICE_COEF"] = $arSetting["REFERENCE_PRICE_COEF"]["VALUE"];
 $arParams["SHOW_PERSONAL_DATA"] = $arSetting["SHOW_PERSONAL_DATA"]["VALUE"];
-$arParams["TEXT_PERSONAL_DATA"] = $arSetting["TEXT_PERSONAL_DATA"]["VALUE"];
+$arParams["TEXT_PERSONAL_DATA"] = function_exists('vilmedLegalFormPersonalDataText') ? vilmedLegalFormPersonalDataText() : $arSetting["TEXT_PERSONAL_DATA"]["VALUE"];
 
 $scheme = $request->isHttps() ? 'https' : 'http';
 switch(LANGUAGE_ID) {
@@ -276,7 +276,7 @@ if(strlen($request->get('ORDER_ID')) > 0) {
 							<span class="input-checkbox" id="input-checkbox_order"></span>
 						</div>	
 						<div class="label">
-							<?=$arSetting["TEXT_PERSONAL_DATA"]["VALUE"]?>
+							<?= function_exists('vilmedLegalFormPersonalDataText') ? vilmedLegalFormPersonalDataText() : $arSetting['TEXT_PERSONAL_DATA']['VALUE'] ?>
 						</div>
 					</div>
 					<script>

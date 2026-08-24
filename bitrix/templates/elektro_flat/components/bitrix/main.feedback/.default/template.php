@@ -60,7 +60,7 @@
 						<span class="input-checkbox" id="input-checkbox_mfeedback"></span>
 					</div>	
 					<div class="label">
-						<?=$arSetting["TEXT_PERSONAL_DATA"]?>
+						<?= function_exists('vilmedLegalFormPersonalDataText') ? vilmedLegalFormPersonalDataText() : $arSetting['TEXT_PERSONAL_DATA'] ?>
 					</div>
 				</div>
 			<?}?>	
