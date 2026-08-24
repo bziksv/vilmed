@@ -1269,9 +1269,13 @@ html.vilmed-drawer-lock {
 .catalog-detail .compare_delay .catalog-item-compare .fa-check,
 .catalog-detail .compare_delay .catalog-item-delay .fa-check { display: none; }
 .catalog-detail .compare_delay .catalog-item-compare.active .fa-bar-chart,
-.catalog-detail .compare_delay .catalog-item-delay.active .fa-heart-o { display: none; }
+.catalog-detail .compare_delay .catalog-item-delay.active .fa-heart-o,
+.catalog-detail .compare_delay .catalog-item-compared .fa-bar-chart,
+.catalog-detail .compare_delay .catalog-item-delayed .fa-heart-o { display: none; }
 .catalog-detail .compare_delay .catalog-item-compare.active .fa-check,
-.catalog-detail .compare_delay .catalog-item-delay.active .fa-check { display: inline-block; color: #3aa564; }
+.catalog-detail .compare_delay .catalog-item-delay.active .fa-check,
+.catalog-detail .compare_delay .catalog-item-compared .fa-check,
+.catalog-detail .compare_delay .catalog-item-delayed .fa-check { display: inline-block; color: #3aa564; }
 
 /* на мобиле — две кнопки в один ряд на всю ширину (тема центрирует и ужимает блок) */
 @media (max-width: 787px) {

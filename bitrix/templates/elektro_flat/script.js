@@ -196,7 +196,15 @@ function refreshCartLine(result, disabled) {
 	}
 	
 	if(disabled != true)
-		basketCont.find(".oformit_cont").html($(result).find(".oformit_cont").html());	
+		basketCont.find(".oformit_cont").html($(result).find(".oformit_cont").html());
+
+	vilmedAfterBasketLinesUpdate();
+}
+
+function vilmedAfterBasketLinesUpdate() {
+	if (typeof window.vilmedSyncHeaderCounts === "function") {
+		window.vilmedSyncHeaderCounts();
+	}
 }
 
 function addToCompare(href, btn, site_dir) {
@@ -206,8 +214,9 @@ function addToCompare(href, btn, site_dir) {
 		success: function(html){			
 			$.post(site_dir + "ajax/compare_line.php", function(data) {
 				$(".compare_line").replaceWith(data);
+				vilmedAfterBasketLinesUpdate();
 			});
-			$("#" + btn).removeClass("catalog-item-compare").addClass("catalog-item-compared").removeAttr("onclick").css({"cursor": "default"});
+			$("#" + btn).removeClass("catalog-item-compare").addClass("catalog-item-compared active").removeAttr("onclick").css({"cursor": "default"});
 		}
 	});
 	return false;
@@ -222,11 +231,13 @@ function addToDelay(id, qnt_cont, props, select_props, btn, site_dir, dsbl) {
 		success: function(html){
 			$.post(site_dir + "ajax/delay_line.php", function(data) {
 				$(".delay_line").replaceWith(data);
+				vilmedAfterBasketLinesUpdate();
 			});
 			$.post(site_dir + "ajax/basket_line.php", function(data) {
-				refreshCartLine(data, dsbl);				
+				refreshCartLine(data, dsbl);
+				vilmedAfterBasketLinesUpdate();
 			});			
-			$("#" + btn).removeClass("catalog-item-delay").addClass("catalog-item-delayed").removeAttr("onclick").css({"cursor": "default"});
+			$("#" + btn).removeClass("catalog-item-delay").addClass("catalog-item-delayed active").removeAttr("onclick").css({"cursor": "default"});
 		}
 	});
 	return false;

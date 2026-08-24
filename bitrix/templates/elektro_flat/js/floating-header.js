@@ -963,11 +963,20 @@
 		})();
 
 		// --- mirror live counts (cart / compare / favorites) to both clusters ---
+		function readLineCount(rootSel) {
+			var qnt = document.querySelector(rootSel + " .qnt");
+			if (qnt) {
+				var m = (qnt.textContent || "").match(/\d+/);
+				return m ? parseInt(m[0], 10) : 0;
+			}
+			return readNum(document.querySelector(rootSel));
+		}
+
 		function syncCounts() {
 			var vals = {
-				cart: readNum(document.querySelector("#cart_line1 a.cart, #cart_line1 a") || srcCart),
-				compare: readNum(srcCompare),
-				delay: readNum(srcDelay)
+				cart: readNum(document.querySelector("#cart_line1 a.cart, #cart_line1 a")),
+				compare: readLineCount(".compare_line"),
+				delay: readLineCount(".delay_line")
 			};
 			Object.keys(vals).forEach(function (kind) {
 				var badges = document.querySelectorAll('[data-vfh-cnt="' + kind + '"]');
@@ -977,18 +986,17 @@
 						badges[i].textContent = n;
 						badges[i].classList.add("is-on");
 					} else {
+						badges[i].textContent = "";
 						badges[i].classList.remove("is-on");
 					}
 				}
 			});
 		}
+		window.vilmedSyncHeaderCounts = syncCounts;
 		syncCounts();
 		if (window.MutationObserver) {
-			[srcCartBox, srcCompare, srcDelay].forEach(function (box) {
-				if (box) {
-					new MutationObserver(syncCounts).observe(box, { childList: true, subtree: true, characterData: true });
-				}
-			});
+			var countRoot = document.querySelector(".foot_panel_all, .foot_panel") || document.body;
+			new MutationObserver(syncCounts).observe(countRoot, { childList: true, subtree: true, characterData: true });
 		}
 
 		// --- scroll behaviour: slide in once past the header ---
