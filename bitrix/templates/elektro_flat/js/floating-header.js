@@ -723,7 +723,7 @@
 			var itemsEl = pop.querySelector(".vilmed-fh__sitems");
 			if (!itemsEl) { return; }
 			var html = "";
-			for (var p = 0; p < products.length && p < 6; p++) {
+			for (var p = 0; p < products.length && p < 12; p++) {
 				html += renderProductItem(products[p]);
 			}
 			if (!html) {
@@ -833,7 +833,7 @@
 			}
 
 			out += '<div class="vilmed-fh__sitems">';
-			for (var p = 0; p < products.length && p < 6; p++) {
+			for (var p = 0; p < products.length && p < 12; p++) {
 				out += renderProductItem(products[p]);
 			}
 			out += "</div></div></div>";
@@ -861,7 +861,7 @@
 
 		function fetchJson(q, sectionIds, signal) {
 			var url = "/ajax/search.php?q=" + encodeURIComponent(q) +
-				"&limit=6&facet_limit=12";
+				"&limit=12&facet_limit=12";
 			if (sectionIds && sectionIds.length) {
 				for (var i = 0; i < sectionIds.length; i++) {
 					var sid = parseInt(sectionIds[i], 10) || 0;
