@@ -104,11 +104,6 @@ if($arResult["ELEMENT"]["ID"] > 0):?>
 		BX.bind(BX("<?=$arResult['ELEMENT_AREA_ID']?>_btn"), "click", BX.delegate(BX.PopupFormSubmit, BX));
 	})();
 
-	// clear field error on input
-	$("#<?=$arResult['ELEMENT_AREA_ID']?>_form").on("input change", ".span2 input, .span2 textarea", function() {
-		$(this).closest(".row").removeClass("has-error");
-	});
-
 	//CHEKED//
 	BX.bind(BX("input-checkbox_<?=$arResult['ELEMENT_AREA_ID']?>"),"click",function(){
 		if(!BX.hasClass(BX("input-checkbox_<?=$arResult['ELEMENT_AREA_ID']?>"),"cheked")){
@@ -128,6 +123,10 @@ if($arResult["ELEMENT"]["ID"] > 0):?>
 				}
 			});
 			$("#<?=$arResult['ELEMENT_AREA_ID']?>_form .hint_agreement").removeClass("has-error");
+			var err = $("#<?=$arResult['ELEMENT_AREA_ID']?>_form .hint_agreement .field-error");
+			if (err.length) {
+				err.remove();
+			}
 		} else {
 			BX.removeClass(BX("input-checkbox_<?=$arResult['ELEMENT_AREA_ID']?>"),"cheked");
 			BX.remove(BX.findChild(BX("input-checkbox_<?=$arResult['ELEMENT_AREA_ID']?>"),{

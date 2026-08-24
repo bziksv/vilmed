@@ -1,6 +1,6 @@
 <?
-$MESS["FIELD_NOT_FILLED"] = "Не заполнено поле «#FIELD#»";
-$MESS["FIELD_NOT_FILLED_PERSONAL_DATA"] = "Вы не согласились на обработку Ваших персональных данных";
+$MESS["FIELD_NOT_FILLED"] = "Заполните поле «#FIELD#»";
+$MESS["FIELD_NOT_FILLED_PERSONAL_DATA"] = "Подтвердите согласие на обработку персональных данных";
 $MESS["FIELD_INVALID"] = "Неверный формат поля «#FIELD#»";
 $MESS["WRONG_CAPTCHA"] = "Неверно введен «Код с картинки»";
 $MESS["IBLOCK_ELEMENT_NAME"] = "Сообщение формы от ";

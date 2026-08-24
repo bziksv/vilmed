@@ -3797,6 +3797,14 @@ transform: translateX(-8px);
 	box-shadow:0 0 0 2px rgba(217,83,79,.18);
 }
 
+.pop-up.forms .row .field-error,
+.pop-up.forms .hint_agreement .field-error{
+	margin-top:4px;
+	font-size:12px;
+	line-height:1.35;
+	color:#d9534f;
+}
+
 .pop-up.forms .row{
 	width:100%;
 	display:table;

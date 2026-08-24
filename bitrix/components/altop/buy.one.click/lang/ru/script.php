@@ -1,10 +1,10 @@
 <?
-$MESS["NAME_NOT_FILLED"] = "Не заполнено поле «Имя»";
-$MESS["PHONE_NOT_FILLED"] = "Не заполнено поле «Телефон»";
-$MESS["EMAIL_NOT_FILLED"] = "Не заполнено поле «Email»";
-$MESS["MESSAGE_NOT_FILLED"] = "Не заполнено поле «Сообщение»";
-$MESS["FILE_NOT_FILLED"] = "Не заполнено поле для загрузки файлов";
-$MESS["FIELD_NOT_FILLED_PERSONAL_DATA"] = "Вы не согласились на обработку Ваших персональных данных";
+$MESS["NAME_NOT_FILLED"] = "Заполните поле «Имя»";
+$MESS["PHONE_NOT_FILLED"] = "Заполните поле «Телефон»";
+$MESS["EMAIL_NOT_FILLED"] = "Заполните поле «Email»";
+$MESS["MESSAGE_NOT_FILLED"] = "Заполните поле «Сообщение»";
+$MESS["FILE_NOT_FILLED"] = "Заполните поле для загрузки файлов";
+$MESS["FIELD_NOT_FILLED_PERSONAL_DATA"] = "Подтвердите согласие на обработку персональных данных";
 $MESS["PHONE_INVALID"] = "Неверный формат поля «Телефон»";
 $MESS["WRONG_CAPTCHA"] = "Неверно введен «Код с картинки»";
 $MESS["NEW_USER_NAME"] = "Технический для купить в 1 клик";
