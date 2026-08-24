@@ -486,6 +486,21 @@
 	color: #fff;
 }
 
+.vilmed-fh__scats-empty {
+	margin: 0 12px 10px;
+	padding: 10px 12px;
+	border-radius: 10px;
+	background: #fff;
+	border: 1px dashed #dde1ec;
+	font-size: 12px;
+	line-height: 1.4;
+	color: #6a6d84;
+}
+
+.vilmed-fh__scat-row--zero .vilmed-fh__scat-cnt {
+	opacity: .55;
+}
+
 .vilmed-fh__scat-more {
 	display: block;
 	margin-top: 4px;
@@ -727,14 +742,14 @@
 }
 
 .vilmed-fh__sitem-buy {
-	border: 1px solid #e8c800;
-	background: #fde037;
-	color: #402a1d;
+	border: 1px solid #575b71;
+	background: #575b71;
+	color: #fff;
 }
 
 .vilmed-fh__sitem-buy:hover {
-	background: #f5d620;
-	border-color: #dcc200;
+	background: #2b2d42;
+	border-color: #2b2d42;
 	transform: translateY(-1px);
 }
 
@@ -822,8 +837,8 @@
 	gap: 6px;
 	font-size: 13px;
 	font-weight: 800;
-	color: #2b2d42;
-	background: #fde037;
+	color: #fff;
+	background: #2b2d42;
 	border-radius: 999px;
 	padding: 6px 12px;
 }

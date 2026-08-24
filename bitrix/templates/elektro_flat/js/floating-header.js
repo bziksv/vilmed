@@ -523,6 +523,9 @@
 		var lastEffQ = "";
 		var activeSectionIds = [];
 		var lastPayload = null;
+		var baseFacets = [];
+		var catFilterTimer = null;
+		var catLookupController = null;
 
 		function isSectionActive(id) {
 			if (!id) { return !activeSectionIds.length; }
@@ -598,23 +601,122 @@
 			return html;
 		}
 
+		function normalizeCategoryText(s) {
+			return (s || "").toLowerCase().replace(/ё/g, "е").replace(/[^0-9a-zа-я]+/gi, "");
+		}
+
+		function categoryNameMatches(name, q) {
+			if (!q) { return true; }
+			var hay = normalizeCategoryText(name);
+			var needle = normalizeCategoryText(q);
+			if (!needle) { return true; }
+			if (hay.indexOf(needle) !== -1) { return true; }
+			var words = (q || "").toLowerCase().replace(/ё/g, "е").split(/\s+/).filter(Boolean);
+			for (var i = 0; i < words.length; i++) {
+				var w = normalizeCategoryText(words[i]);
+				if (w && hay.indexOf(w) !== -1) { return true; }
+				if (w.length >= 3 && vfhLeven(hay, w, 2) <= 2) { return true; }
+				for (var j = 0; j <= hay.length - w.length; j++) {
+					var chunk = hay.substr(j, w.length);
+					if (chunk && vfhLeven(chunk, w, 1) <= 1) { return true; }
+				}
+			}
+			return false;
+		}
+
+		function renderFacetRows(facets, total) {
+			var html = "";
+			html += '<button type="button" class="vilmed-fh__scat-row vilmed-fh__scat-row--all' +
+				(isSectionActive(0) ? " is-active" : "") + '" data-section="0">' +
+				'<span class="vilmed-fh__scat-check" aria-hidden="true"></span>' +
+				'<span class="vilmed-fh__scat-name">Все результаты</span>' +
+				'<span class="vilmed-fh__scat-cnt">' + total + "</span></button>";
+			for (var f = 0; f < facets.length; f++) {
+				var facet = facets[f];
+				html += '<button type="button" class="vilmed-fh__scat-row' +
+					(facet.COUNT <= 0 ? " vilmed-fh__scat-row--zero" : "") +
+					(isSectionActive(facet.ID) ? " is-active" : "") +
+					'" data-section="' + facet.ID + '" data-name="' + escapeHtml(facet.NAME) + '"' +
+					' title="' + escapeHtml(facet.NAME) + '">' +
+					'<span class="vilmed-fh__scat-check" aria-hidden="true"></span>' +
+					'<span class="vilmed-fh__scat-name">' + escapeHtml(facet.NAME) + "</span>" +
+					'<span class="vilmed-fh__scat-cnt">' + facet.COUNT + "</span></button>";
+			}
+			return html;
+		}
+
+		function setFacetListHtml(facets, total, emptyHint) {
+			var listEl = pop.querySelector(".vilmed-fh__scats-list");
+			if (!listEl) { return; }
+			var hintEl = pop.querySelector(".vilmed-fh__scats-empty");
+			if (!facets.length && emptyHint) {
+				listEl.innerHTML = renderFacetRows([], total);
+				if (!hintEl) {
+					hintEl = document.createElement("div");
+					hintEl.className = "vilmed-fh__scats-empty";
+					listEl.parentNode.insertBefore(hintEl, listEl.nextSibling);
+				}
+				hintEl.textContent = emptyHint;
+				hintEl.style.display = "";
+			} else {
+				listEl.innerHTML = renderFacetRows(facets, total);
+				if (hintEl) { hintEl.style.display = "none"; }
+			}
+			syncCategoryRows();
+		}
+
+		function fetchCategoryLookup(filterQ) {
+			if (!lastQ || filterQ.length < 2) {
+				setFacetListHtml(baseFacets, (lastPayload && lastPayload.total) || 0, "");
+				return;
+			}
+			if (catLookupController) { catLookupController.abort(); }
+			catLookupController = ("AbortController" in window) ? new AbortController() : null;
+			var signal = catLookupController ? catLookupController.signal : undefined;
+			var url = "/ajax/search.php?q=" + encodeURIComponent(lastEffQ || lastQ) +
+				"&section_lookup=" + encodeURIComponent(filterQ) + "&limit=1";
+			fetch(url, {
+				headers: { "X-Requested-With": "XMLHttpRequest" },
+				signal: signal
+			}).then(function (r) { return r.json(); })
+				.then(function (data) {
+					var filterInput = pop.querySelector(".vilmed-fh__scats-filter");
+					if (!filterInput || (filterInput.value || "").trim().toLowerCase() !== filterQ.toLowerCase()) {
+						return;
+					}
+					var facets = data.facets || [];
+					var total = data.total || (lastPayload && lastPayload.total) || 0;
+					if (!facets.length) {
+						setFacetListHtml([], total, "Категория «" + filterQ + "» не найдена");
+					} else {
+						setFacetListHtml(facets, total, "");
+					}
+				}).catch(function () { /* aborted */ });
+		}
+
 		function bindCategoryFilter() {
 			var filterInput = pop.querySelector(".vilmed-fh__scats-filter");
 			if (!filterInput || filterInput.__bound) { return; }
 			filterInput.__bound = true;
 			filterInput.addEventListener("input", function () {
-				var q = (filterInput.value || "").toLowerCase().replace(/ё/g, "е").trim();
-				var rows = pop.querySelectorAll(".vilmed-fh__scat-row[data-section]");
-				for (var i = 0; i < rows.length; i++) {
-					var row = rows[i];
-					if ((row.getAttribute("data-section") || "0") === "0") {
-						row.style.display = q ? "none" : "";
-						continue;
-					}
-					var name = (row.querySelector(".vilmed-fh__scat-name") || {}).textContent || "";
-					name = name.toLowerCase().replace(/ё/g, "е");
-					row.style.display = !q || name.indexOf(q) !== -1 ? "" : "none";
+				var q = (filterInput.value || "").trim();
+				if (catFilterTimer) { clearTimeout(catFilterTimer); }
+				if (!q) {
+					setFacetListHtml(baseFacets, (lastPayload && lastPayload.total) || 0, "");
+					return;
 				}
+				if (q.length < 2) {
+					var local = [];
+					for (var i = 0; i < baseFacets.length; i++) {
+						if (categoryNameMatches(baseFacets[i].NAME, q)) {
+							local.push(baseFacets[i]);
+						}
+					}
+					setFacetListHtml(local, (lastPayload && lastPayload.total) || 0,
+						local.length ? "" : "");
+					return;
+				}
+				catFilterTimer = setTimeout(function () { fetchCategoryLookup(q); }, 180);
 			});
 		}
 
@@ -741,6 +843,7 @@
 		function renderPayload(data, typedQ, effQ, opts) {
 			opts = opts || {};
 			lastPayload = data;
+			baseFacets = data.facets || [];
 			var facets = data.facets || [];
 			var sections = data.sections || [];
 			var products = data.products || [];
@@ -794,24 +897,7 @@
 				out += '<input type="text" class="vilmed-fh__scats-filter" placeholder="Найти категорию…" autocomplete="off" />';
 				out += "</div>";
 				out += '<div class="vilmed-fh__scats-list">';
-				out += '<button type="button" class="vilmed-fh__scat-row vilmed-fh__scat-row--all' +
-					(isSectionActive(0) ? " is-active" : "") + '" data-section="0">' +
-					'<span class="vilmed-fh__scat-check" aria-hidden="true"></span>' +
-					'<span class="vilmed-fh__scat-name">Все результаты</span>' +
-					'<span class="vilmed-fh__scat-cnt">' + counts.total + "</span></button>";
-				for (var f = 0; f < facets.length && f < 12; f++) {
-					var facet = facets[f];
-					out += '<button type="button" class="vilmed-fh__scat-row' +
-						(isSectionActive(facet.ID) ? " is-active" : "") +
-						'" data-section="' + facet.ID + '" title="' + escapeHtml(facet.NAME) + '">' +
-						'<span class="vilmed-fh__scat-check" aria-hidden="true"></span>' +
-						'<span class="vilmed-fh__scat-name">' + escapeHtml(facet.NAME) + "</span>" +
-						'<span class="vilmed-fh__scat-cnt">' + facet.COUNT + "</span></button>";
-				}
-				if (facets.length > 12) {
-					out += '<a class="vilmed-fh__scat-more" href="' + catalogHref(effQ, activeSectionIds) +
-						'">Ещё ' + (facets.length - 12) + " в каталоге</a>";
-				}
+				out += renderFacetRows(facets, counts.total);
 				out += "</div></aside>";
 			}
 
@@ -861,7 +947,7 @@
 
 		function fetchJson(q, sectionIds, signal) {
 			var url = "/ajax/search.php?q=" + encodeURIComponent(q) +
-				"&limit=12&facet_limit=12";
+				"&limit=12&facet_limit=40";
 			if (sectionIds && sectionIds.length) {
 				for (var i = 0; i < sectionIds.length; i++) {
 					var sid = parseInt(sectionIds[i], 10) || 0;
@@ -969,8 +1055,28 @@
 			var chip = e.target.closest(".vilmed-fh__scat-row, .vilmed-fh__scats-reset, .vilmed-fh__sfilter-chip");
 			if (!chip) { return; }
 			e.preventDefault();
+			var sectionId = parseInt(chip.getAttribute("data-section"), 10) || 0;
+			var wasActive = sectionId ? isSectionActive(sectionId) : activeSectionIds.length > 0;
+			var facetCount = 0;
+			if (sectionId > 0) {
+				var cntEl = chip.querySelector(".vilmed-fh__scat-cnt");
+				facetCount = cntEl ? (parseInt(cntEl.textContent, 10) || 0) : 0;
+			}
 			toggleSectionId(chip.getAttribute("data-section"));
 			syncCategoryRows();
+			if (!wasActive && sectionId > 0 && facetCount === 0) {
+				var secName = chip.getAttribute("data-name") || "";
+				var brands = secName.match(/[A-Za-z][A-Za-z0-9+\-]*/g);
+				if (brands && brands.length) {
+					var brand = brands[brands.length - 1];
+					var combined = ((lastEffQ || lastQ) + " " + brand).trim();
+					input.value = combined;
+					lastQ = "";
+					activeSectionIds = [sectionId];
+					fetchResults(combined);
+					return;
+				}
+			}
 			if (lastQ) { fetchResults(lastQ, { silent: true }); }
 		});
 
@@ -988,10 +1094,10 @@
 			if (timer) { clearTimeout(timer); }
 			if (q.length < MIN) {
 				close(); pop.innerHTML = ""; lastQ = ""; lastEffQ = "";
-				activeSectionIds = []; lastPayload = null;
+				activeSectionIds = []; lastPayload = null; baseFacets = [];
 				return;
 			}
-			if (q !== lastQ) { activeSectionIds = []; }
+			if (q !== lastQ) { activeSectionIds = []; baseFacets = []; }
 			if (q === lastQ) { open(); return; }
 			lastQ = q;
 			timer = setTimeout(function () { fetchResults(q); }, 220);

@@ -122,23 +122,147 @@ function vilmedSearchElementSectionMap(array $elementIds, int $iblockId): array
     return $map;
 }
 
+function vilmedSearchSectionFacetCounts(array $elementIds, int $iblockId): array
+{
+    $sectionMap = vilmedSearchElementSectionMap($elementIds, $iblockId);
+    $counts = [];
+
+    foreach ($sectionMap as $secId) {
+        $secId = (int)$secId;
+        if ($secId <= 0) {
+            continue;
+        }
+        $rs = CIBlockSection::GetNavChain($iblockId, $secId, ['ID']);
+        while ($s = $rs->Fetch()) {
+            $id = (int)$s['ID'];
+            if ($id <= 0) {
+                continue;
+            }
+            if (!isset($counts[$id])) {
+                $counts[$id] = 0;
+            }
+            $counts[$id]++;
+        }
+    }
+
+    return $counts;
+}
+
+function vilmedSearchLookupTerms(string $lookup): array
+{
+    $lookup = mb_strtolower(trim($lookup));
+    if ($lookup === '') {
+        return [];
+    }
+
+    $terms = [$lookup];
+    $tr = [
+        'а' => 'a', 'б' => 'b', 'в' => 'v', 'г' => 'g', 'д' => 'd', 'е' => 'e', 'ё' => 'e',
+        'ж' => 'zh', 'з' => 'z', 'и' => 'i', 'й' => 'y', 'к' => 'k', 'л' => 'l', 'м' => 'm',
+        'н' => 'n', 'о' => 'o', 'п' => 'p', 'р' => 'r', 'с' => 's', 'т' => 't', 'у' => 'u',
+        'ф' => 'f', 'х' => 'h', 'ц' => 'c', 'ч' => 'ch', 'ш' => 'sh', 'щ' => 'sch',
+        'ъ' => '', 'ы' => 'y', 'ь' => '', 'э' => 'e', 'ю' => 'yu', 'я' => 'ya',
+    ];
+
+    if (preg_match('/[а-яё]/u', $lookup)) {
+        $latin = '';
+        $len = mb_strlen($lookup);
+        for ($i = 0; $i < $len; $i++) {
+            $ch = mb_strtolower(mb_substr($lookup, $i, 1));
+            $latin .= $tr[$ch] ?? $ch;
+        }
+        if ($latin !== '' && $latin !== $lookup) {
+            $terms[] = $latin;
+        }
+    }
+
+    if (preg_match('/^[a-z]+$/', $lookup)) {
+        if (strlen($lookup) >= 4) {
+            $terms[] = substr($lookup, 0, -1);
+        }
+        if (strlen($lookup) >= 5) {
+            $terms[] = substr($lookup, 0, -2);
+        }
+    }
+
+    return array_values(array_unique(array_filter($terms)));
+}
+
+function vilmedSearchLookupSections(string $lookup, array $elementIds, int $iblockId, int $limit = 30): array
+{
+    if (mb_strlen(trim($lookup)) < 2 || !CModule::IncludeModule('iblock')) {
+        return [];
+    }
+
+    $terms = vilmedSearchLookupTerms($lookup);
+    $found = [];
+
+    foreach ($terms as $term) {
+        $rs = CIBlockSection::GetList(
+            ['NAME' => 'ASC'],
+            [
+                'IBLOCK_ID' => $iblockId,
+                'ACTIVE' => 'Y',
+                'GLOBAL_ACTIVE' => 'Y',
+                '%NAME' => $term,
+            ],
+            false,
+            ['ID', 'NAME', 'SECTION_PAGE_URL', 'PICTURE']
+        );
+
+        while ($sec = $rs->GetNext()) {
+            $id = (int)$sec['ID'];
+            if ($id <= 0 || isset($found[$id])) {
+                continue;
+            }
+            $found[$id] = $sec;
+        }
+    }
+
+    if (empty($found)) {
+        return [];
+    }
+
+    $items = [];
+    foreach ($found as $id => $sec) {
+        $count = empty($elementIds)
+            ? 0
+            : count(vilmedSearchFilterBySection($elementIds, $id, $iblockId));
+        $pic = '';
+        if (!empty($sec['PICTURE'])) {
+            $file = CFile::GetFileArray($sec['PICTURE']);
+            if (is_array($file) && !empty($file['SRC'])) {
+                $pic = $file['SRC'];
+            }
+        }
+        $items[] = [
+            'ID' => $id,
+            'NAME' => $sec['NAME'],
+            'URL' => $sec['SECTION_PAGE_URL'],
+            'COUNT' => $count,
+            'PICTURE' => $pic,
+        ];
+    }
+
+    usort($items, static function ($a, $b) {
+        if ($a['COUNT'] !== $b['COUNT']) {
+            return $b['COUNT'] <=> $a['COUNT'];
+        }
+        return strcmp($a['NAME'], $b['NAME']);
+    });
+
+    return array_slice($items, 0, $limit);
+}
+
 function vilmedSearchSectionFacets(array $elementIds, int $iblockId, int $limit = 18): array
 {
     if (empty($elementIds) || !CModule::IncludeModule('iblock')) {
         return [];
     }
 
-    $sectionMap = vilmedSearchElementSectionMap($elementIds, $iblockId);
-    if (empty($sectionMap)) {
+    $counts = vilmedSearchSectionFacetCounts($elementIds, $iblockId);
+    if (empty($counts)) {
         return [];
-    }
-
-    $counts = [];
-    foreach ($sectionMap as $secId) {
-        if (!isset($counts[$secId])) {
-            $counts[$secId] = 0;
-        }
-        $counts[$secId]++;
     }
 
     arsort($counts);

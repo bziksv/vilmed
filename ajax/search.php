@@ -9,9 +9,10 @@ header('Content-Type: application/json; charset=UTF-8');
 header('X-Robots-Tag: noindex');
 
 $query = trim((string)($_REQUEST['q'] ?? ''));
+$sectionLookup = trim((string)($_REQUEST['section_lookup'] ?? ''));
 $sectionIds = vilmedSearchParseSectionIds($_REQUEST['section_id'] ?? $_REQUEST['section_ids'] ?? '');
-$productLimit = min(20, max(4, (int)($_REQUEST['limit'] ?? 10)));
-$facetLimit = min(24, max(6, (int)($_REQUEST['facet_limit'] ?? 16)));
+$productLimit = min(24, max(4, (int)($_REQUEST['limit'] ?? 12)));
+$facetLimit = min(50, max(6, (int)($_REQUEST['facet_limit'] ?? 40)));
 
 $response = [
     'ok' => true,
@@ -32,6 +33,17 @@ if ($query === '' || mb_strlen($query) < 2) {
 
 $iblockId = vilmedSearchCatalogIblockId();
 $allIds = vilmedSearchRunQuery($query, $iblockId, 900);
+
+if ($sectionLookup !== '' && mb_strlen($sectionLookup) >= 2) {
+    $response['total'] = count($allIds);
+    $response['filtered_total'] = count($allIds);
+    $response['facets'] = vilmedSearchLookupSections($sectionLookup, $allIds, $iblockId, 30);
+    $response['lookup'] = true;
+    $response['catalog_url'] = vilmedSearchCatalogUrl($query, $sectionIds);
+    echo json_encode($response, JSON_UNESCAPED_UNICODE);
+    die();
+}
+
 $filteredIds = vilmedSearchFilterBySections($allIds, $sectionIds, $iblockId);
 
 $response['total'] = count($allIds);
