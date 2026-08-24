@@ -17,7 +17,6 @@ $policyPath = '/legal/vilmed-personal-data-policy/';
 $oldPatterns = [
     'подтверждаете свое согласие',
     'politics-vilmed',
-    '/upload/',
 ];
 
 $failed = 0;
@@ -43,9 +42,17 @@ foreach ($pages as $name => $path) {
 
     $hasConsent = strpos($html, $consentPath) !== false;
     $hasPolicy = strpos($html, $policyPath) !== false;
+
+    $agreementHtml = '';
+    if (preg_match('/<div[^>]*class="[^"]*hint_agreement[^"]*"[^>]*>.*?<\/div>\s*<\/div>/is', $html, $match)) {
+        $agreementHtml = $match[0];
+    } elseif (preg_match('/<div class="label">\s*При отправке формы/is', $html, $match, PREG_OFFSET_CAPTURE)) {
+        $agreementHtml = substr($html, $match[0][1], 600);
+    }
+
     $oldHit = null;
     foreach ($oldPatterns as $pattern) {
-        if (stripos($html, $pattern) !== false && stripos($html, 'hint_agreement') !== false) {
+        if ($agreementHtml !== '' && stripos($agreementHtml, $pattern) !== false) {
             $oldHit = $pattern;
             break;
         }
