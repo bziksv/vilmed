@@ -119,10 +119,9 @@
 		vfhVocabPromise = new Promise(function (resolve) {
 			var bag = {};
 			vfhHarvest(document, bag);
-			if (Object.keys(bag).length >= 40) {
-				vfhVocabSet = bag; vfhVocab = Object.keys(bag);
-				return resolve();
-			}
+			// Always merge the full catalog tree: the homepage left-menu is a short
+			// subset and misses section names like "отоскопы", so typo correction
+			// would fail if we stopped after the local harvest threshold.
 			fetch("/catalog/", { headers: { "X-Requested-With": "XMLHttpRequest" } })
 				.then(function (r) { return r.text(); })
 				.then(function (html) {
@@ -203,12 +202,18 @@
 		var best = null, bestD = max + 1;
 		for (i = 0; i < vfhVocab.length; i++) {
 			cand = vfhVocab[i];
-			if (Math.abs(cand.length - w.length) > max) { continue; }
-			d = vfhLeven(w, cand, max);
-			if (d <= max && d < bestD) {
-				bestD = d; best = cand;
-				if (d === 1) { break; }
+			var forms = [cand], stem = vfhStem(cand);
+			if (stem !== cand) { forms.push(stem); }
+			for (var fi = 0; fi < forms.length; fi++) {
+				var target = forms[fi];
+				if (Math.abs(target.length - w.length) > max) { continue; }
+				d = vfhLeven(w, target, max);
+				if (d <= max && d < bestD) {
+					bestD = d; best = cand;
+					if (d === 1) { break; }
+				}
 			}
+			if (bestD === 1) { break; }
 		}
 		// Cross-script (phonetic) match for a Cyrillic-typed Latin brand.
 		if (/[а-яё]/i.test(w)) {
@@ -254,6 +259,18 @@
 			if (c2) { return c2; }
 		}
 		return w;
+	}
+
+	function vfhResolveQuery(q) {
+		var words = (q || "").split(/\s+/).filter(Boolean);
+		if (!words.length) { return (q || "").trim(); }
+		return words.map(vfhResolveWord).join(" ");
+	}
+
+	function vfhSearchUrl(form, q) {
+		var action = (form && form.getAttribute("action")) || "/catalog/";
+		var sep = action.indexOf("?") >= 0 ? "&" : "?";
+		return action + sep + "q=" + encodeURIComponent(q);
 	}
 
 	// Sliding off-canvas catalog drawer, built from the site's left catalog
@@ -488,6 +505,7 @@
 		var active = -1;
 		var controller = null;
 		var lastQ = "";
+		var lastEffQ = "";
 
 		function close() {
 			box.classList.remove("vilmed-fh--open");
@@ -603,16 +621,42 @@
 						for (var i = 0; i < results.length; i++) {
 							if (results[i].items.length) { effQ = results[i].q; break; }
 						}
+						lastEffQ = effQ;
 						renderItems(merged, effQ, q);
 					});
 			}).catch(function () { /* aborted / network */ });
+		}
+
+		function goSearch() {
+			var q = input.value.trim();
+			if (q.length < MIN) { return; }
+			var form = input.closest("form") || box;
+			var navigate = function (target) {
+				window.location = vfhSearchUrl(form, target);
+			};
+			if (lastEffQ && lastEffQ.toLowerCase() !== q.toLowerCase() && lastQ === q) {
+				navigate(lastEffQ);
+				return;
+			}
+			vfhBuildVocab().then(function () {
+				if (input.value.trim() !== q) { return; }
+				navigate(vfhResolveQuery(q));
+			});
+		}
+
+		var searchForm = input.closest("form");
+		if (searchForm) {
+			searchForm.addEventListener("submit", function (e) {
+				e.preventDefault();
+				goSearch();
+			});
 		}
 
 		var timer = null;
 		input.addEventListener("input", function () {
 			var q = input.value.trim();
 			if (timer) { clearTimeout(timer); }
-			if (q.length < MIN) { close(); pop.innerHTML = ""; lastQ = ""; return; }
+			if (q.length < MIN) { close(); pop.innerHTML = ""; lastQ = ""; lastEffQ = ""; return; }
 			if (q === lastQ) { open(); return; }
 			lastQ = q;
 			timer = setTimeout(function () { fetchResults(q); }, 220);
@@ -628,7 +672,13 @@
 			else if (e.key === "ArrowUp") { e.preventDefault(); setActive(active - 1); }
 			else if (e.key === "Enter") {
 				var list = items();
-				if (active > -1 && list[active]) { e.preventDefault(); window.location = list[active].getAttribute("href"); }
+				if (active > -1 && list[active]) {
+					e.preventDefault();
+					window.location = list[active].getAttribute("href");
+				} else {
+					e.preventDefault();
+					goSearch();
+				}
 			} else if (e.key === "Escape") { close(); }
 		});
 
