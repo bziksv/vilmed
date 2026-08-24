@@ -47,13 +47,13 @@ else
 require_once $_SERVER["DOCUMENT_ROOT"] . "/local/php_interface/include/vilmed_search_helpers.php";
 
 $vilmedSearchAllIds = is_array($arElementsNew) ? $arElementsNew : array();
-$vilmedSearchSectionId = (int)($_REQUEST["section_id"] ?? 0);
+$vilmedSearchSectionIds = vilmedSearchParseSectionIds($_REQUEST["section_id"] ?? "");
 $vilmedSearchFacets = !empty($vilmedSearchAllIds)
 	? vilmedSearchSectionFacets($vilmedSearchAllIds, (int)$arParams["IBLOCK_ID"], 20)
 	: array();
 
-if($vilmedSearchSectionId > 0 && !empty($vilmedSearchAllIds)) {
-	$arElementsNew = vilmedSearchFilterBySection($vilmedSearchAllIds, $vilmedSearchSectionId, (int)$arParams["IBLOCK_ID"]);
+if(!empty($vilmedSearchSectionIds) && !empty($vilmedSearchAllIds)) {
+	$arElementsNew = vilmedSearchFilterBySections($vilmedSearchAllIds, $vilmedSearchSectionIds, (int)$arParams["IBLOCK_ID"]);
 }
 
 if(is_array($arElementsNew) && !empty($arElementsNew)) {
@@ -85,22 +85,31 @@ if(is_array($arElementsNew) && !empty($arElementsNew)) {
 	</div>
 
 	<?if(!empty($vilmedSearchFacets) && !empty($_REQUEST["q"])):?>
-		<div class="vilmed-search-cats" data-vilmed-search-cats>
+		<div class="vilmed-search-cats" data-vilmed-search-cats data-search-q="<?=htmlspecialcharsbx((string)$_REQUEST["q"])?>">
 			<div class="vilmed-search-cats__head">
 				<span class="vilmed-search-cats__label"><?=GetMessage("VILMED_SEARCH_CATS")?> по запросу «<?=htmlspecialcharsbx((string)$_REQUEST["q"])?>»</span>
+				<?if(!empty($vilmedSearchSectionIds)):?>
+					<a href="<?=htmlspecialcharsbx(vilmedSearchCatalogUrl((string)$_REQUEST["q"], []))?>"
+						class="vilmed-search-cats__reset"><?=GetMessage("VILMED_SEARCH_CATS_RESET")?></a>
+				<?endif;?>
 				<input type="text" class="vilmed-search-cats__filter" placeholder="<?=GetMessage("VILMED_SEARCH_CATS_FILTER")?>" autocomplete="off" />
 			</div>
+			<p class="vilmed-search-cats__hint"><?=GetMessage("VILMED_SEARCH_CATS_MULTI")?></p>
 			<div class="vilmed-search-cats__list">
-				<a href="<?=htmlspecialcharsbx(vilmedSearchCatalogUrl((string)$_REQUEST["q"], 0))?>"
-					class="vilmed-search-cats__chip<?if($vilmedSearchSectionId <= 0):?> is-active<?endif;?>"
+				<a href="<?=htmlspecialcharsbx(vilmedSearchCatalogUrl((string)$_REQUEST["q"], []))?>"
+					class="vilmed-search-cats__chip vilmed-search-cats__chip--all<?if(empty($vilmedSearchSectionIds)):?> is-active<?endif;?>"
 					data-name="<?=htmlspecialcharsbx(GetMessage("VILMED_SEARCH_CATS_ALL"))?>">
+					<span class="vilmed-search-cats__check" aria-hidden="true"></span>
 					<?=GetMessage("VILMED_SEARCH_CATS_ALL")?>
 					<span class="vilmed-search-cats__cnt"><?=count($vilmedSearchAllIds)?></span>
 				</a>
-				<?foreach($vilmedSearchFacets as $vilmedFacet):?>
-					<a href="<?=htmlspecialcharsbx(vilmedSearchCatalogUrl((string)$_REQUEST["q"], (int)$vilmedFacet["ID"]))?>"
-						class="vilmed-search-cats__chip<?if($vilmedSearchSectionId === (int)$vilmedFacet["ID"]):?> is-active<?endif;?>"
-						data-name="<?=htmlspecialcharsbx($vilmedFacet["NAME"])?>">
+				<?foreach($vilmedSearchFacets as $vilmedFacet):
+					$vilmedFacetActive = in_array((int)$vilmedFacet["ID"], $vilmedSearchSectionIds, true);?>
+					<a href="<?=htmlspecialcharsbx(vilmedSearchToggleSectionUrl((string)$_REQUEST["q"], $vilmedSearchSectionIds, (int)$vilmedFacet["ID"]))?>"
+						class="vilmed-search-cats__chip<?if($vilmedFacetActive):?> is-active<?endif;?>"
+						data-name="<?=htmlspecialcharsbx($vilmedFacet["NAME"])?>"
+						data-section-id="<?=(int)$vilmedFacet["ID"]?>">
+						<span class="vilmed-search-cats__check" aria-hidden="true"></span>
 						<?=htmlspecialcharsbx($vilmedFacet["NAME"])?>
 						<span class="vilmed-search-cats__cnt"><?=(int)$vilmedFacet["COUNT"]?></span>
 					</a>

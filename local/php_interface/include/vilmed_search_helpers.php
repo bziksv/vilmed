@@ -223,6 +223,54 @@ function vilmedSearchFilterBySection(array $elementIds, int $sectionId, int $ibl
     return $out;
 }
 
+function vilmedSearchParseSectionIds($raw): array
+{
+    if (is_array($raw)) {
+        $ids = $raw;
+    } else {
+        $ids = preg_split('/[\s,]+/', trim((string)$raw), -1, PREG_SPLIT_NO_EMPTY);
+    }
+
+    $out = [];
+    foreach ($ids as $id) {
+        $id = (int)$id;
+        if ($id > 0) {
+            $out[$id] = $id;
+        }
+    }
+
+    return array_values($out);
+}
+
+function vilmedSearchFilterBySections(array $elementIds, array $sectionIds, int $iblockId): array
+{
+    $sectionIds = vilmedSearchParseSectionIds($sectionIds);
+    if (empty($sectionIds) || empty($elementIds)) {
+        return $elementIds;
+    }
+
+    if (count($sectionIds) === 1) {
+        return vilmedSearchFilterBySection($elementIds, $sectionIds[0], $iblockId);
+    }
+
+    $allowed = [];
+    foreach ($sectionIds as $sectionId) {
+        foreach (vilmedSearchFilterBySection($elementIds, (int)$sectionId, $iblockId) as $id) {
+            $allowed[(int)$id] = true;
+        }
+    }
+
+    $out = [];
+    foreach ($elementIds as $id) {
+        $id = (int)$id;
+        if (isset($allowed[$id])) {
+            $out[] = $id;
+        }
+    }
+
+    return $out;
+}
+
 function vilmedSearchBuildProducts(array $elementIds, int $iblockId, int $limit = 12): array
 {
     if (empty($elementIds) || !CModule::IncludeModule('iblock')) {
@@ -336,12 +384,30 @@ function vilmedSearchBuildSectionsFromIndex(array $rawHits, int $iblockId, int $
     return $items;
 }
 
-function vilmedSearchCatalogUrl(string $query, int $sectionId = 0): string
+function vilmedSearchCatalogUrl(string $query, $sectionIds = []): string
 {
+    if (!is_array($sectionIds)) {
+        $sectionIds = (int)$sectionIds > 0 ? [(int)$sectionIds] : [];
+    }
+    $sectionIds = vilmedSearchParseSectionIds($sectionIds);
+
     $params = ['q' => $query];
-    if ($sectionId > 0) {
-        $params['section_id'] = $sectionId;
+    foreach ($sectionIds as $id) {
+        $params['section_id'][] = $id;
     }
 
     return '/catalog/?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+}
+
+function vilmedSearchToggleSectionUrl(string $query, array $currentIds, int $toggleId): string
+{
+    $ids = vilmedSearchParseSectionIds($currentIds);
+    $pos = array_search($toggleId, $ids, true);
+    if ($pos !== false) {
+        unset($ids[$pos]);
+    } else {
+        $ids[] = $toggleId;
+    }
+
+    return vilmedSearchCatalogUrl($query, array_values($ids));
 }

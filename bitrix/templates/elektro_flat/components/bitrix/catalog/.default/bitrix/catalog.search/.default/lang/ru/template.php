@@ -13,5 +13,7 @@ $MESS["SECT_TITLE"] = "Страница";
 $MESS["CT_BCSE_NOT_FOUND"] = "Сожалеем, но ничего не найдено.";
 $MESS["VILMED_SEARCH_CATS"] = "Категории";
 $MESS["VILMED_SEARCH_CATS_FILTER"] = "Фильтр категорий…";
+$MESS["VILMED_SEARCH_CATS_MULTI"] = "Можно выбрать несколько категорий";
+$MESS["VILMED_SEARCH_CATS_RESET"] = "Сбросить";
 $MESS["VILMED_SEARCH_CATS_ALL"] = "Все";
 ?>

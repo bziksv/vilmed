@@ -9,15 +9,16 @@ header('Content-Type: application/json; charset=UTF-8');
 header('X-Robots-Tag: noindex');
 
 $query = trim((string)($_REQUEST['q'] ?? ''));
-$sectionId = (int)($_REQUEST['section_id'] ?? 0);
+$sectionIds = vilmedSearchParseSectionIds($_REQUEST['section_id'] ?? $_REQUEST['section_ids'] ?? '');
 $productLimit = min(20, max(4, (int)($_REQUEST['limit'] ?? 10)));
 $facetLimit = min(24, max(6, (int)($_REQUEST['facet_limit'] ?? 16)));
 
 $response = [
     'ok' => true,
     'query' => $query,
-    'section_id' => $sectionId,
+    'section_ids' => $sectionIds,
     'total' => 0,
+    'filtered_total' => 0,
     'sections' => [],
     'facets' => [],
     'products' => [],
@@ -31,17 +32,14 @@ if ($query === '' || mb_strlen($query) < 2) {
 
 $iblockId = vilmedSearchCatalogIblockId();
 $allIds = vilmedSearchRunQuery($query, $iblockId, 900);
+$filteredIds = vilmedSearchFilterBySections($allIds, $sectionIds, $iblockId);
+
 $response['total'] = count($allIds);
+$response['filtered_total'] = count($filteredIds);
 $response['facets'] = vilmedSearchSectionFacets($allIds, $iblockId, $facetLimit);
-
-$filteredIds = $sectionId > 0
-    ? vilmedSearchFilterBySection($allIds, $sectionId, $iblockId)
-    : $allIds;
-
 $response['products'] = vilmedSearchBuildProducts($filteredIds, $iblockId, $productLimit);
-$response['catalog_url'] = vilmedSearchCatalogUrl($query, $sectionId);
+$response['catalog_url'] = vilmedSearchCatalogUrl($query, $sectionIds);
 
-// Direct section hits from search index (category rows in autocomplete).
 if (CModule::IncludeModule('search') && CModule::IncludeModule('iblock')) {
     CUtil::decodeURIComponent($query);
     $searchQuery = $query;
