@@ -61,6 +61,7 @@ Loc::loadMessages(__FILE__);
 	}
 	if ($vilmedIsPersonal) {
 		Asset::getInstance()->addCss($vilmedTplPath."/css/template_styles.personal.css");
+		Asset::getInstance()->addJs($vilmedAssetVer($vilmedTplPath."/js/vilmed-content-form-validation.js"));
 	}
 	if ($vilmedIsCompare) {
 		Asset::getInstance()->addCss($vilmedTplPath."/css/template_styles.compare.css");

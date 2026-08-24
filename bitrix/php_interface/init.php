@@ -102,3 +102,7 @@ if(file_exists($_SERVER['DOCUMENT_ROOT'].'/include/vilmed_perf.php')){
 if (file_exists($_SERVER['DOCUMENT_ROOT'].'/local/php_interface/include/legal/legal_helpers.php')) {
 	require_once $_SERVER['DOCUMENT_ROOT'].'/local/php_interface/include/legal/legal_helpers.php';
 }
+
+if (file_exists($_SERVER['DOCUMENT_ROOT'].'/local/php_interface/include/form_validation_helpers.php')) {
+	require_once $_SERVER['DOCUMENT_ROOT'].'/local/php_interface/include/form_validation_helpers.php';
+}
