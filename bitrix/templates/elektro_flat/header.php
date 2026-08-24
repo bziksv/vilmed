@@ -477,23 +477,6 @@ Loc::loadMessages(__FILE__);
                                         );?>
                                     </div>
                                 <?}?>
-                                <?if(in_array("SUBSCRIBE", $arSetting["BLOCK_LEFT"]["VALUE"])) {?>
-                                    <div class="subscribe">
-                                        <div class="h3"><?= Loc::getMessage("SUBSCRIBE");?></div>
-                                        <p><?=Loc::getMessage("SUBSCRIBE_TEXT");?></p>
-                                        <?$APPLICATION->IncludeComponent("bitrix:subscribe.form", "left",
-                                            array(
-                                                "USE_PERSONALIZATION" => "Y",
-                                                "PAGE" => SITE_DIR . "personal/mailings/",
-                                                "SHOW_HIDDEN" => "N",
-                                                "CACHE_TYPE" => "Y",
-                                                "CACHE_TIME" => "36000000",
-                                                "CACHE_NOTES" => ""
-                                            ),
-                                            false
-                                        );?>
-                                    </div>
-                                <?}?>
                                 <?if(in_array("NEWS", $arSetting["BLOCK_LEFT"]["VALUE"])) {?>
                                     <?$APPLICATION->IncludeComponent("bitrix:main.include", "",
                                         array(
