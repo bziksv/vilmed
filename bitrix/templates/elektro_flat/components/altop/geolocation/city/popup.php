@@ -36,22 +36,35 @@ $APPLICATION->IncludeComponent("bitrix:sale.location.selector.search", "geolocat
 <script type="text/javascript">
 	//SET_LOCATION//
 	BX.SetLocation = function() {
+		var locationId = "";
+		var root = BX("cityChange") || document;
+		var inputs = BX.findChildren(root, {tagName: "input"}, true) || [];
+		for (var i = 0; i < inputs.length; i++) {
+			var val = (inputs[i].value || "").trim();
+			// Origin input keeps numeric location ID; fake field shows city title.
+			if (/^\d+$/.test(val)) {
+				locationId = val;
+				break;
+			}
+		}
+		if (!locationId) {
+			return;
+		}
+
 		BX.ajax.post(
 			BX.message("GEOLOCATION_COMPONENT_PATH") + "/ajax.php",
 			{
 				arParams: BX.message("GEOLOCATION_PARAMS"),
 				sessid: BX.bitrix_sessid(),
 				action: "setLocation",
-				locationId: BX.findChild(BX("cityChange"), {tagName: "input", className: "dropdown-field"}, true, false).value
+				locationId: locationId
 			},
-			function(result) {
-			    var city = $.cookie('GEOLOCATION_CITY');
-			    if (city) {
-			        $('#geolocationChangeCity .geolocation__value').text(city);
-			    }
-                BX.CityChange.popup.close();
+			function() {
+				// Cookie is BITRIX_SM_GEOLOCATION_CITY — $.cookie('GEOLOCATION_CITY') won't see it.
+				// Reload so header / floating bar / contacts pick up the new city.
+				window.location.reload();
 			}
 		);
-	}
+	};
 	BX.bind(BX("selectCity"), "click", BX.delegate(BX.SetLocation, BX));
 </script>
