@@ -327,6 +327,7 @@
 	padding: 12px 12px 0;
 	min-height: 28px;
 	box-sizing: border-box;
+	flex: 0 0 auto;
 }
 
 .vilmed-fh__scats-reset {
@@ -357,6 +358,8 @@
 	margin: 10px 12px 8px;
 	padding: 0 10px;
 	height: 34px;
+	min-height: 34px;
+	flex: 0 0 auto;
 	border: 1px solid #dde1ec;
 	border-radius: 10px;
 	background: #fff;
@@ -396,9 +399,11 @@
 #altop_search .vilmed-fh__scats-filter,
 .vilmed-fh__scats-filter {
 	flex: 1 1 auto !important;
+	align-self: stretch;
 	width: auto !important;
 	min-width: 0;
-	height: 100% !important;
+	height: auto !important;
+	min-height: 0;
 	margin: 0 !important;
 	padding: 0 !important;
 	border: 0 !important;
@@ -406,7 +411,7 @@
 	background: transparent !important;
 	box-shadow: none !important;
 	font-size: 12px !important;
-	line-height: 32px !important;
+	line-height: normal !important;
 	color: #2b2d42 !important;
 	box-sizing: border-box;
 	outline: none;
