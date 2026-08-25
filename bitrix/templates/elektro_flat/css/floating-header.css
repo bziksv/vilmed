@@ -474,25 +474,43 @@
 	flex: 0 0 auto;
 	display: inline-flex;
 	align-items: center;
-	gap: 4px;
-	margin: 2px 0 0;
+	justify-content: center;
+	gap: 5px;
+	align-self: center;
+	margin: 0;
 	font-size: 11px;
 	font-weight: 700;
 	color: #6a6d84;
 	background: #fff;
 	border: 1px solid #e2e3f0;
 	border-radius: 999px;
-	min-width: 26px;
-	padding: 3px 8px;
+	min-width: 28px;
+	height: 24px;
+	padding: 0 8px;
 	text-align: center;
 	text-decoration: none;
-	line-height: 1.2;
+	line-height: 1;
+	box-sizing: border-box;
 	transition: background .12s ease, border-color .12s ease, color .12s ease;
 }
 
-.vilmed-fh__scat-cnt .fa {
-	font-size: 9px;
+.vilmed-fh__scat-cnt-num {
+	display: block;
+	line-height: 1;
+	font-variant-numeric: tabular-nums;
+}
+
+.vilmed-fh__scat-cnt::after {
+	content: "";
+	display: block;
+	width: 5px;
+	height: 5px;
+	border-right: 1.5px solid currentColor;
+	border-top: 1.5px solid currentColor;
+	transform: rotate(45deg);
 	opacity: .55;
+	flex: 0 0 auto;
+	margin-left: -1px;
 }
 
 .vilmed-fh__scat-cnt:hover {
@@ -501,7 +519,7 @@
 	color: #fff;
 }
 
-.vilmed-fh__scat-cnt:hover .fa {
+.vilmed-fh__scat-cnt:hover::after {
 	opacity: 1;
 }
 
@@ -529,6 +547,10 @@
 .vilmed-fh__scat-row.is-active .vilmed-fh__scat-cnt:hover {
 	background: #1f2133;
 	border-color: #1f2133;
+}
+
+.vilmed-fh__scat-row.is-active .vilmed-fh__scat-cnt::after {
+	opacity: .85;
 }
 
 .vilmed-fh__scats-empty {

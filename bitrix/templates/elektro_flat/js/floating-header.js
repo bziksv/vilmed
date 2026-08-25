@@ -634,7 +634,7 @@
 					'<span class="vilmed-fh__scat-name">Все результаты</span>' +
 				"</button>" +
 				'<a class="vilmed-fh__scat-cnt" href="' + catalogHref(q, []) + '" title="Открыть все результаты">' +
-					total + ' <i class="fa fa-external-link" aria-hidden="true"></i></a>' +
+					'<span class="vilmed-fh__scat-cnt-num">' + total + "</span></a>" +
 				"</div>";
 			for (var f = 0; f < facets.length; f++) {
 				var facet = facets[f];
@@ -650,7 +650,7 @@
 					"</button>" +
 					'<a class="vilmed-fh__scat-cnt" href="' + catalogHref(q, ids) + '"' +
 						' title="Открыть «' + escapeHtml(facet.NAME) + '» в каталоге">' +
-						facet.COUNT + ' <i class="fa fa-external-link" aria-hidden="true"></i></a>' +
+						'<span class="vilmed-fh__scat-cnt-num">' + facet.COUNT + "</span></a>" +
 					"</div>";
 			}
 			return html;
