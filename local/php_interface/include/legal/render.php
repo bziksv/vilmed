@@ -16,6 +16,7 @@ function vilmedRenderLegalPage(string $legalTitle, string $contentInclude): void
     $APPLICATION->SetTitle($legalTitle);
     $APPLICATION->SetPageProperty('title', $legalTitle . ' — ВИЛМЕД');
     $APPLICATION->SetPageProperty('description', $legalTitle . ' интернет-магазина ВИЛМЕД.');
+    $APPLICATION->SetPageProperty('robots', 'noindex, nofollow');
 
     $cssPath = SITE_TEMPLATE_PATH . '/css/legal.css';
     $cssFile = $_SERVER['DOCUMENT_ROOT'] . $cssPath;

@@ -54,6 +54,27 @@ Disallow: /about/details/
 Disallow: /about/employees/
 Disallow: /about/responses/
 Disallow: /map/
+###############legal / politiki / soglasija###################
+Disallow: /legal/
+Disallow: /legal/vilmed-cookie-policy/
+Disallow: /legal/vilmed-personal-data-policy/
+Disallow: /legal/vilmed-personal-data-consent/
+Disallow: /legal/vilmed-recommendation-rules/
+###############legal / politiki / soglasija###################
+Disallow: /legal/
+Disallow: /upload/oferta-old
+Disallow: /upload/oferta-old.pdf
+Disallow: /upload/oferta-old-1.pdf
+Disallow: /upload/oferta-old-2.pdf
+Disallow: /upload/oferta-old-old.pdf
+Disallow: /upload/oferta-old4.pdf
+Disallow: /upload/cookies-vilmed.pdf
+Disallow: /upload/politics-vilmed.png
+Disallow: /upload/old-politika-ispolzovanija-cookies-vilmed.png
+Disallow: /upload/politika-ispolzovanija-cookies-vilmed.png
+Disallow: /upload/cookies-vilmed.png
+Disallow: /upload/politics.png
+Disallow: /upload/old-politics.png
 ###############dubli razdely###################
 Disallow: /catalog/veterinarnye-oftalmoskopy-i-rukoyatki/
 #################################################
