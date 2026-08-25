@@ -17,6 +17,31 @@ if(!Loader::IncludeModule("iblock") || !Loader::IncludeModule("sale"))
 $context = Application::getInstance()->getContext();
 $request = $context->getRequest();
 
+/**
+ * Cookie domain for geolocation.
+ * On prod (vilmed.ru) keep SITE_SERVER_NAME so www/apex share cookies.
+ * On localhost / IP / mismatched host omit domain — otherwise browser drops the cookie
+ * (domain=vilmed.ru is invalid for 127.0.0.1).
+ */
+$vilmedGeoCookieDomain = (static function () use ($context): ?string {
+	$configured = strtolower(trim((string)SITE_SERVER_NAME));
+	$host = strtolower((string)$context->getServer()->getHttpHost());
+	$host = preg_replace('/:\d+$/', '', $host);
+	if ($configured === '' || $host === '' || $host === 'localhost' || filter_var($host, FILTER_VALIDATE_IP)) {
+		return null;
+	}
+	if ($host === $configured || $host === 'www.' . $configured || substr($host, -strlen('.' . $configured)) === '.' . $configured) {
+		return $configured;
+	}
+	return null;
+})();
+
+$vilmedGeoApplyCookieDomain = static function (Cookie $cookie) use ($vilmedGeoCookieDomain): void {
+	if ($vilmedGeoCookieDomain !== null && $vilmedGeoCookieDomain !== '') {
+		$cookie->setDomain($vilmedGeoCookieDomain);
+	}
+};
+
 if($request->isPost() && check_bitrix_sessid()) {
 	$action = $request->getPost("action");
 
@@ -31,7 +56,7 @@ if($request->isPost() && check_bitrix_sessid()) {
 			if(!$flush)
 				$flush = true;
 			$cookie = new Cookie($arOption, null, time() - 3600);
-			$cookie->setDomain(SITE_SERVER_NAME);
+			$vilmedGeoApplyCookieDomain($cookie);
 			$cookie->setHttpOnly(false);
 			$context->getResponse()->addCookie($cookie);
 			unset($cookie);
@@ -164,34 +189,34 @@ if($request->isPost() && check_bitrix_sessid()) {
 
 			//SET_GEOLOCATION_COOKIES//
 			$cookie = new Cookie("GEOLOCATION_CITY", $searchResult["city"], time() + $arParams["COOKIE_TIME"]);
-			$cookie->setDomain(SITE_SERVER_NAME);
+			$vilmedGeoApplyCookieDomain($cookie);
 			$cookie->setHttpOnly(false);
 			$context->getResponse()->addCookie($cookie);
 			unset($cookie);
 			if(!empty($locationId)) {
 				$cookie = new Cookie("GEOLOCATION_LOCATION_ID", $locationId, time() + $arParams["COOKIE_TIME"]);
-				$cookie->setDomain(SITE_SERVER_NAME);
+				$vilmedGeoApplyCookieDomain($cookie);
 				$cookie->setHttpOnly(false);
 				$context->getResponse()->addCookie($cookie);
 				unset($cookie);
 			}
 			if(!empty($contactsId)) {
 				$cookie = new Cookie("GEOLOCATION_CONTACTS_ID", $contactsId, time() + $arParams["COOKIE_TIME"]);
-				$cookie->setDomain(SITE_SERVER_NAME);
+				$vilmedGeoApplyCookieDomain($cookie);
 				$cookie->setHttpOnly(false);
 				$context->getResponse()->addCookie($cookie);
 				unset($cookie);
 			}
 			if(!empty($phoneMask)) {
 				$cookie = new Cookie("GEOLOCATION_PHONE_MASK", $phoneMask, time() + $arParams["COOKIE_TIME"]);
-				$cookie->setDomain(SITE_SERVER_NAME);
+				$vilmedGeoApplyCookieDomain($cookie);
 				$cookie->setHttpOnly(false);
 				$context->getResponse()->addCookie($cookie);
 				unset($cookie);
 			}
 			if(!empty($validatePhoneMask)) {
 				$cookie = new Cookie("GEOLOCATION_VALIDATE_PHONE_MASK", $validatePhoneMask, time() + $arParams["COOKIE_TIME"]);
-				$cookie->setDomain(SITE_SERVER_NAME);
+				$vilmedGeoApplyCookieDomain($cookie);
 				$cookie->setHttpOnly(false);
 				$context->getResponse()->addCookie($cookie);
 				unset($cookie);
@@ -367,57 +392,57 @@ if($request->isPost() && check_bitrix_sessid()) {
 			//SET_GEOLOCATION_COOKIES//
 			if(!empty($setResult["village"])) {
 				$cookie = new Cookie("GEOLOCATION_CITY", $setResult["village"], time() + $arParams["COOKIE_TIME"]);
-				$cookie->setDomain(SITE_SERVER_NAME);
+				$vilmedGeoApplyCookieDomain($cookie);
 				$cookie->setHttpOnly(false);
 				$context->getResponse()->addCookie($cookie);
 				unset($cookie);
 			} elseif(!empty($setResult["city"])) {
 				$cookie = new Cookie("GEOLOCATION_CITY", $setResult["city"], time() + $arParams["COOKIE_TIME"]);
-				$cookie->setDomain(SITE_SERVER_NAME);
+				$vilmedGeoApplyCookieDomain($cookie);
 				$cookie->setHttpOnly(false);
 				$context->getResponse()->addCookie($cookie);
 				unset($cookie);
 			} elseif(!empty($setResult["subregion"])) {
 				$cookie = new Cookie("GEOLOCATION_CITY", $setResult["subregion"], time() + $arParams["COOKIE_TIME"]);
-				$cookie->setDomain(SITE_SERVER_NAME);
+				$vilmedGeoApplyCookieDomain($cookie);
 				$cookie->setHttpOnly(false);
 				$context->getResponse()->addCookie($cookie);
 				unset($cookie);
 			} elseif(!empty($setResult["region"])) {
 				$cookie = new Cookie("GEOLOCATION_CITY", $setResult["region"], time() + $arParams["COOKIE_TIME"]);
-				$cookie->setDomain(SITE_SERVER_NAME);
+				$vilmedGeoApplyCookieDomain($cookie);
 				$cookie->setHttpOnly(false);
 				$context->getResponse()->addCookie($cookie);
 				unset($cookie);
 			} elseif(!empty($setResult["country"])) {
 				$cookie = new Cookie("GEOLOCATION_CITY", $setResult["country"], time() + $arParams["COOKIE_TIME"]);
-				$cookie->setDomain(SITE_SERVER_NAME);
+				$vilmedGeoApplyCookieDomain($cookie);
 				$cookie->setHttpOnly(false);
 				$context->getResponse()->addCookie($cookie);
 				unset($cookie);
 			}
 			$cookie = new Cookie("GEOLOCATION_LOCATION_ID", $locationId, time() + $arParams["COOKIE_TIME"]);
-			$cookie->setDomain(SITE_SERVER_NAME);
+			$vilmedGeoApplyCookieDomain($cookie);
 			$cookie->setHttpOnly(false);
 			$context->getResponse()->addCookie($cookie);
 			unset($cookie);
 			if(!empty($contactsId)) {
 				$cookie = new Cookie("GEOLOCATION_CONTACTS_ID", $contactsId, time() + $arParams["COOKIE_TIME"]);
-				$cookie->setDomain(SITE_SERVER_NAME);
+				$vilmedGeoApplyCookieDomain($cookie);
 				$cookie->setHttpOnly(false);
 				$context->getResponse()->addCookie($cookie);
 				unset($cookie);
 			}
 			if(!empty($phoneMask)) {
 				$cookie = new Cookie("GEOLOCATION_PHONE_MASK", $phoneMask, time() + $arParams["COOKIE_TIME"]);
-				$cookie->setDomain(SITE_SERVER_NAME);
+				$vilmedGeoApplyCookieDomain($cookie);
 				$cookie->setHttpOnly(false);
 				$context->getResponse()->addCookie($cookie);
 				unset($cookie);
 			}
 			if(!empty($validatePhoneMask)) {
 				$cookie = new Cookie("GEOLOCATION_VALIDATE_PHONE_MASK", $validatePhoneMask, time() + $arParams["COOKIE_TIME"]);
-				$cookie->setDomain(SITE_SERVER_NAME);
+				$vilmedGeoApplyCookieDomain($cookie);
 				$cookie->setHttpOnly(false);
 				$context->getResponse()->addCookie($cookie);
 				unset($cookie);
