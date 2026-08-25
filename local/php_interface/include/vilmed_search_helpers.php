@@ -244,7 +244,12 @@ function vilmedSearchLookupSections(string $lookup, array $elementIds, int $iblo
         ];
     }
 
-    usort($items, static function ($a, $b) {
+    usort($items, static function ($a, $b) use ($lookup) {
+        $sa = vilmedSearchSectionRelevanceScore((string)$a['NAME'], $lookup);
+        $sb = vilmedSearchSectionRelevanceScore((string)$b['NAME'], $lookup);
+        if ($sa !== $sb) {
+            return $sb <=> $sa;
+        }
         if ($a['COUNT'] !== $b['COUNT']) {
             return $b['COUNT'] <=> $a['COUNT'];
         }
@@ -254,7 +259,143 @@ function vilmedSearchLookupSections(string $lookup, array $elementIds, int $iblo
     return array_slice($items, 0, $limit);
 }
 
-function vilmedSearchSectionFacets(array $elementIds, int $iblockId, int $limit = 18): array
+function vilmedSearchNormalizeForMatch(string $s): string
+{
+    $s = mb_strtolower(trim($s));
+    $s = str_replace('ё', 'е', $s);
+    $s = preg_replace('/[^0-9a-zа-я]+/u', ' ', $s);
+    return trim(preg_replace('/\s+/u', ' ', $s));
+}
+
+/** Rough RU stem for catalog words: отоскопы → отоскоп, эндоскопы → эндоскоп */
+function vilmedSearchStemToken(string $w): string
+{
+    $w = mb_strtolower(trim($w));
+    if (mb_strlen($w) < 4) {
+        return $w;
+    }
+    $suffixes = ['ями', 'ами', 'иях', 'иям', 'ов', 'ев', 'ей', 'ом', 'ем', 'ах', 'ях', 'ам', 'ям', 'ы', 'и', 'а', 'я', 'у', 'ю', 'е', 'о'];
+    foreach ($suffixes as $suf) {
+        $len = mb_strlen($suf);
+        if (mb_strlen($w) - $len >= 4 && mb_substr($w, -$len) === $suf) {
+            return mb_substr($w, 0, mb_strlen($w) - $len);
+        }
+    }
+    return $w;
+}
+
+/**
+ * Score how well a section name matches the search query.
+ * Higher = more relevant. Count is only a secondary sort key.
+ */
+function vilmedSearchSectionRelevanceScore(string $sectionName, string $query): int
+{
+    $name = vilmedSearchNormalizeForMatch($sectionName);
+    $query = vilmedSearchNormalizeForMatch($query);
+    if ($name === '' || $query === '') {
+        return 0;
+    }
+
+    $score = 0;
+    $qWords = array_values(array_filter(explode(' ', $query), static function ($w) {
+        return mb_strlen($w) >= 2;
+    }));
+    $nWords = array_values(array_filter(explode(' ', $name), static function ($w) {
+        return mb_strlen($w) >= 2;
+    }));
+    $qStem = implode(' ', array_map('vilmedSearchStemToken', $qWords));
+    $nStem = implode(' ', array_map('vilmedSearchStemToken', $nWords));
+    $qPrimary = $qWords[0] ?? '';
+    $qPrimaryStem = vilmedSearchStemToken($qPrimary);
+    $nFirst = $nWords[0] ?? '';
+    $nFirstStem = vilmedSearchStemToken($nFirst);
+
+    if ($name === $query || $nStem === $qStem) {
+        $score += 12000;
+    } elseif ($nFirstStem !== '' && $nFirstStem === $qPrimaryStem && count($nWords) === 1) {
+        // Exact category for the query word: «Отоскопы»
+        $score += 11000;
+    } elseif ($nFirstStem !== '' && $nFirstStem === $qPrimaryStem && count($nWords) === 2) {
+        // Brand subcategory: «Отоскопы KaWe»
+        $score += 9500;
+    } elseif ($nFirstStem !== '' && $nFirstStem === $qPrimaryStem) {
+        $score += 7000;
+    } elseif (mb_strpos($nStem, $qStem) === 0) {
+        $score += 6000;
+    } elseif (mb_strpos($nStem, $qStem) !== false || mb_strpos($name, $query) !== false) {
+        $score += 3500;
+    }
+
+    // Prefer compact names over long composites when they already match.
+    if ($score >= 3500) {
+        $wordCount = max(1, count($nWords));
+        $score += max(0, 800 - ($wordCount - 1) * 180);
+        $score += max(0, 300 - mb_strlen($name));
+    }
+
+    foreach ($qWords as $qw) {
+        $qStemW = vilmedSearchStemToken($qw);
+        $bestWord = 0;
+        foreach ($nWords as $idx => $nw) {
+            $nStemW = vilmedSearchStemToken($nw);
+            $posBoost = ($idx === 0) ? 200 : 0;
+            if ($nw === $qw || $nStemW === $qStemW) {
+                $bestWord = max($bestWord, 1200 + $posBoost);
+            } elseif (mb_strpos($nStemW, $qStemW) === 0 || mb_strpos($qStemW, $nStemW) === 0) {
+                $bestWord = max($bestWord, 900 + $posBoost);
+            } elseif (mb_strpos($nw, $qw) !== false || mb_strpos($qw, $nw) !== false) {
+                $bestWord = max($bestWord, 400);
+            }
+        }
+        $score += $bestWord;
+    }
+
+    // Brand tokens in query boost sections that contain them
+    if (preg_match_all('/[a-z][a-z0-9+\-]*/i', $query, $m)) {
+        foreach ($m[0] as $brand) {
+            $brand = mb_strtolower($brand);
+            if (mb_strlen($brand) < 2) {
+                continue;
+            }
+            if (mb_strpos($name, $brand) !== false) {
+                $score += 1500;
+            }
+        }
+    }
+
+    return $score;
+}
+
+function vilmedSearchSortFacetsByRelevance(array $sections, string $query): array
+{
+    foreach ($sections as &$sec) {
+        $sec['_SCORE'] = vilmedSearchSectionRelevanceScore((string)($sec['NAME'] ?? ''), $query);
+    }
+    unset($sec);
+
+    usort($sections, static function ($a, $b) {
+        $sa = (int)($a['_SCORE'] ?? 0);
+        $sb = (int)($b['_SCORE'] ?? 0);
+        if ($sa !== $sb) {
+            return $sb <=> $sa;
+        }
+        $ca = (int)($a['COUNT'] ?? 0);
+        $cb = (int)($b['COUNT'] ?? 0);
+        if ($ca !== $cb) {
+            return $cb <=> $ca;
+        }
+        return strcmp((string)$a['NAME'], (string)$b['NAME']);
+    });
+
+    foreach ($sections as &$sec) {
+        unset($sec['_SCORE']);
+    }
+    unset($sec);
+
+    return $sections;
+}
+
+function vilmedSearchSectionFacets(array $elementIds, int $iblockId, int $limit = 18, string $query = ''): array
 {
     if (empty($elementIds) || !CModule::IncludeModule('iblock')) {
         return [];
@@ -265,8 +406,10 @@ function vilmedSearchSectionFacets(array $elementIds, int $iblockId, int $limit 
         return [];
     }
 
+    // Keep a wide candidate pool, then rank by query relevance (not raw count).
     arsort($counts);
-    $counts = array_slice($counts, 0, $limit, true);
+    $poolLimit = max($limit * 4, 80);
+    $counts = array_slice($counts, 0, $poolLimit, true);
 
     $sections = [];
     $rs = CIBlockSection::GetList(
@@ -302,14 +445,18 @@ function vilmedSearchSectionFacets(array $elementIds, int $iblockId, int $limit 
         ];
     }
 
-    usort($sections, static function ($a, $b) {
-        if ($a['COUNT'] === $b['COUNT']) {
-            return strcmp($a['NAME'], $b['NAME']);
-        }
-        return $b['COUNT'] <=> $a['COUNT'];
-    });
+    if ($query !== '') {
+        $sections = vilmedSearchSortFacetsByRelevance($sections, $query);
+    } else {
+        usort($sections, static function ($a, $b) {
+            if ($a['COUNT'] === $b['COUNT']) {
+                return strcmp($a['NAME'], $b['NAME']);
+            }
+            return $b['COUNT'] <=> $a['COUNT'];
+        });
+    }
 
-    return $sections;
+    return array_slice($sections, 0, $limit);
 }
 
 function vilmedSearchFilterBySection(array $elementIds, int $sectionId, int $iblockId): array

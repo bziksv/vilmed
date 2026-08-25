@@ -49,7 +49,7 @@ require_once $_SERVER["DOCUMENT_ROOT"] . "/local/php_interface/include/vilmed_se
 $vilmedSearchAllIds = is_array($arElementsNew) ? $arElementsNew : array();
 $vilmedSearchSectionIds = vilmedSearchParseSectionIds($_REQUEST["section_id"] ?? "");
 $vilmedSearchFacets = !empty($vilmedSearchAllIds)
-	? vilmedSearchSectionFacets($vilmedSearchAllIds, (int)$arParams["IBLOCK_ID"], 20)
+	? vilmedSearchSectionFacets($vilmedSearchAllIds, (int)$arParams["IBLOCK_ID"], 20, (string)($_REQUEST["q"] ?? ""))
 	: array();
 
 if(!empty($vilmedSearchSectionIds) && !empty($vilmedSearchAllIds)) {

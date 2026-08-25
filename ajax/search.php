@@ -48,7 +48,7 @@ $filteredIds = vilmedSearchFilterBySections($allIds, $sectionIds, $iblockId);
 
 $response['total'] = count($allIds);
 $response['filtered_total'] = count($filteredIds);
-$response['facets'] = vilmedSearchSectionFacets($allIds, $iblockId, $facetLimit);
+$response['facets'] = vilmedSearchSectionFacets($allIds, $iblockId, $facetLimit, $query);
 $response['products'] = vilmedSearchBuildProducts($filteredIds, $iblockId, $productLimit);
 $response['catalog_url'] = vilmedSearchCatalogUrl($query, $sectionIds);
 
