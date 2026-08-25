@@ -729,8 +729,8 @@
 				actionHtml = '<a class="vilmed-fh__sitem-pick" href="' + it.URL + '"><span>Выбрать</span></a>';
 			} else if (it.CAN_BUY && it.BUY_ID) {
 				actionHtml =
-					'<button type="button" class="vilmed-fh__sitem-buy" data-product-id="' + it.BUY_ID + '" title="В корзину">' +
-						'<i class="fa fa-shopping-cart"></i><span>В корзину</span>' +
+					'<button type="button" class="vilmed-fh__sitem-buy" data-product-id="' + it.BUY_ID + '" title="В корзину" aria-label="В корзину">' +
+						'<i class="fa fa-shopping-cart"></i>' +
 					"</button>";
 			} else {
 				actionHtml = '<a class="vilmed-fh__sitem-pick" href="' + it.URL + '"><span>Подробнее</span></a>';
@@ -1024,8 +1024,10 @@
 			}, function () {
 				btn.disabled = false;
 				btn.classList.add("is-added");
-				var label = btn.querySelector("span");
-				if (label) { label.textContent = "Добавлено"; }
+				btn.setAttribute("title", "Добавлено");
+				btn.setAttribute("aria-label", "Добавлено");
+				var icon = btn.querySelector("i");
+				if (icon) { icon.className = "fa fa-check"; }
 				var siteDir = BX.message("SITE_DIR") || "/";
 				BX.ajax.post(siteDir + "ajax/basket_line.php", "", function (data) {
 					if (typeof refreshCartLine === "function") {
