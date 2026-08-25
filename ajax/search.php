@@ -52,34 +52,5 @@ $response['facets'] = vilmedSearchSectionFacets($allIds, $iblockId, $facetLimit,
 $response['products'] = vilmedSearchBuildProducts($filteredIds, $iblockId, $productLimit);
 $response['catalog_url'] = vilmedSearchCatalogUrl($query, $sectionIds);
 
-if (CModule::IncludeModule('search') && CModule::IncludeModule('iblock')) {
-    CUtil::decodeURIComponent($query);
-    $searchQuery = $query;
-    $arLang = CSearchLanguage::GuessLanguage($query);
-    if (is_array($arLang) && $arLang['from'] != $arLang['to']) {
-        $alt = CSearchLanguage::ConvertKeyboardLayout($query, $arLang['from'], $arLang['to']);
-        if (is_string($alt) && $alt !== '') {
-            $searchQuery = $alt;
-        }
-    }
-
-    $exFilter = [
-        'MODULE_ID' => 'iblock',
-        'PARAM1' => 'catalog',
-        'PARAM2' => [$iblockId],
-    ];
-    $sort = ['CUSTOM_RANK' => 'DESC', 'RANK' => 'DESC'];
-    $rawHits = [];
-    $obSearch = new CSearch();
-    $obSearch->Search(['QUERY' => $searchQuery, 'SITE_ID' => SITE_ID], $sort, $exFilter);
-    while ($row = $obSearch->Fetch()) {
-        $rawHits[] = $row;
-        if (count($rawHits) >= 30) {
-            break;
-        }
-    }
-    $response['sections'] = vilmedSearchBuildSectionsFromIndex($rawHits, $iblockId, 4);
-}
-
 echo json_encode($response, JSON_UNESCAPED_UNICODE);
 die();

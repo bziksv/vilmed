@@ -845,12 +845,11 @@
 			lastPayload = data;
 			baseFacets = data.facets || [];
 			var facets = data.facets || [];
-			var sections = data.sections || [];
 			var products = data.products || [];
 			var counts = panelCounts(data);
 			var out = "";
 
-			if (!products.length && !sections.length && counts.total <= 0) {
+			if (!products.length && counts.total <= 0) {
 				pop.innerHTML =
 					'<div class="vilmed-fh__spanel vilmed-fh__spanel--empty">' +
 						'<div class="vilmed-fh__sempty">По запросу «' + escapeHtml(typedQ) + '» ничего не найдено</div>' +
@@ -905,19 +904,6 @@
 			out += renderFilterChips(facets);
 			out += '<div class="vilmed-fh__stoolbar"><span class="vilmed-fh__stoolbar-label">Товары</span></div>';
 
-			if (sections.length) {
-				out += '<div class="vilmed-fh__ssections">';
-				for (var s = 0; s < sections.length && s < 2; s++) {
-					var sec = sections[s];
-					out +=
-						'<a class="vilmed-fh__ssection" href="' + sec.URL + '">' +
-							'<i class="fa fa-folder-open-o"></i>' +
-							'<span>' + escapeHtml(sec.NAME) + "</span>" +
-						"</a>";
-				}
-				out += "</div>";
-			}
-
 			out += '<div class="vilmed-fh__sitems">';
 			for (var p = 0; p < products.length && p < 12; p++) {
 				out += renderProductItem(products[p]);
@@ -969,7 +955,6 @@
 
 		function hasResults(data) {
 			return (data.products && data.products.length) ||
-				(data.sections && data.sections.length) ||
 				(data.total > 0);
 		}
 
