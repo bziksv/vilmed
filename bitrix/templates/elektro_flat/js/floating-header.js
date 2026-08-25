@@ -629,11 +629,13 @@
 			var html = "";
 			html += '<div class="vilmed-fh__scat-row vilmed-fh__scat-row--all' +
 				(isSectionActive(0) ? " is-active" : "") + '" data-section="0">' +
-				'<button type="button" class="vilmed-fh__scat-toggle" data-section="0" title="Фильтровать здесь">' +
+				'<button type="button" class="vilmed-fh__scat-toggle" data-section="0"' +
+					' data-tip="Отфильтрует результаты" title="Отфильтрует результаты">' +
 					'<span class="vilmed-fh__scat-check" aria-hidden="true"></span>' +
 					'<span class="vilmed-fh__scat-name">Все результаты</span>' +
 				"</button>" +
-				'<a class="vilmed-fh__scat-cnt" href="' + catalogHref(q, []) + '" title="Открыть все результаты">' +
+				'<a class="vilmed-fh__scat-cnt" href="' + catalogHref(q, []) + '"' +
+					' data-tip="Перейти в каталог" title="Перейти в каталог">' +
 					'<span class="vilmed-fh__scat-cnt-num">' + total + "</span></a>" +
 				"</div>";
 			for (var f = 0; f < facets.length; f++) {
@@ -644,12 +646,13 @@
 					(isSectionActive(facet.ID) ? " is-active" : "") +
 					'" data-section="' + facet.ID + '" data-name="' + escapeHtml(facet.NAME) + '">' +
 					'<button type="button" class="vilmed-fh__scat-toggle" data-section="' + facet.ID + '"' +
-						' data-name="' + escapeHtml(facet.NAME) + '" title="Фильтровать здесь">' +
+						' data-name="' + escapeHtml(facet.NAME) + '"' +
+						' data-tip="Отфильтрует результаты" title="Отфильтрует результаты">' +
 						'<span class="vilmed-fh__scat-check" aria-hidden="true"></span>' +
 						'<span class="vilmed-fh__scat-name">' + escapeHtml(facet.NAME) + "</span>" +
 					"</button>" +
 					'<a class="vilmed-fh__scat-cnt" href="' + catalogHref(q, ids) + '"' +
-						' title="Открыть «' + escapeHtml(facet.NAME) + '» в каталоге">' +
+						' data-tip="Перейти в каталог" title="Перейти в каталог">' +
 						'<span class="vilmed-fh__scat-cnt-num">' + facet.COUNT + "</span></a>" +
 					"</div>";
 			}

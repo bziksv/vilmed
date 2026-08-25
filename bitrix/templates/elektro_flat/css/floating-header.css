@@ -483,10 +483,48 @@
 	font: inherit;
 	text-align: left;
 	cursor: pointer;
+	position: relative;
 }
 
 .vilmed-fh__scat-toggle:hover {
 	background: #f3f4f9;
+}
+
+.vilmed-fh__scat-toggle[data-tip],
+.vilmed-fh__scat-cnt[data-tip] {
+	position: relative;
+}
+
+.vilmed-fh__scat-toggle[data-tip]::before,
+.vilmed-fh__scat-cnt[data-tip]::before {
+	content: attr(data-tip);
+	position: absolute;
+	left: 50%;
+	bottom: calc(100% + 6px);
+	transform: translateX(-50%) translateY(2px);
+	padding: 5px 8px;
+	border-radius: 6px;
+	background: #2b2d42;
+	color: #fff;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.25;
+	white-space: nowrap;
+	pointer-events: none;
+	opacity: 0;
+	visibility: hidden;
+	z-index: 30;
+	box-shadow: 0 4px 12px rgba(20, 22, 48, .18);
+	transition: opacity .12s ease, visibility .12s ease, transform .12s ease;
+}
+
+.vilmed-fh__scat-toggle[data-tip]:hover::before,
+.vilmed-fh__scat-cnt[data-tip]:hover::before,
+.vilmed-fh__scat-toggle[data-tip]:focus-visible::before,
+.vilmed-fh__scat-cnt[data-tip]:focus-visible::before {
+	opacity: 1;
+	visibility: visible;
+	transform: translateX(-50%) translateY(0);
 }
 
 .vilmed-fh__scat-check {
