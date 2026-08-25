@@ -499,9 +499,7 @@
 .vilmed-fh__scat-cnt[data-tip]::before {
 	content: attr(data-tip);
 	position: absolute;
-	left: 50%;
 	bottom: calc(100% + 6px);
-	transform: translateX(-50%) translateY(2px);
 	padding: 5px 8px;
 	border-radius: 6px;
 	background: #2b2d42;
@@ -513,9 +511,22 @@
 	pointer-events: none;
 	opacity: 0;
 	visibility: hidden;
-	z-index: 30;
+	z-index: 40;
 	box-shadow: 0 4px 12px rgba(20, 22, 48, .18);
 	transition: opacity .12s ease, visibility .12s ease, transform .12s ease;
+}
+
+/* Keep tips inside the categories column (list has overflow-y:auto and clips). */
+.vilmed-fh__scat-toggle[data-tip]::before {
+	left: 0;
+	right: auto;
+	transform: translateY(2px);
+}
+
+.vilmed-fh__scat-cnt[data-tip]::before {
+	left: auto;
+	right: 0;
+	transform: translateY(2px);
 }
 
 .vilmed-fh__scat-toggle[data-tip]:hover::before,
@@ -524,7 +535,13 @@
 .vilmed-fh__scat-cnt[data-tip]:focus-visible::before {
 	opacity: 1;
 	visibility: visible;
-	transform: translateX(-50%) translateY(0);
+	transform: translateY(0);
+}
+
+.vilmed-fh__scat-row:hover,
+.vilmed-fh__scat-row:focus-within {
+	z-index: 5;
+	position: relative;
 }
 
 .vilmed-fh__scat-check {
