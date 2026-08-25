@@ -303,13 +303,15 @@
 }
 
 .vilmed-fh__scats-label {
-	padding: 14px 14px 0;
+	padding: 0;
+	margin: 0;
 	font-size: 12px;
 	font-weight: 700;
 	color: #4a4e66;
 	display: flex;
 	align-items: center;
 	gap: 7px;
+	line-height: 1.2;
 }
 
 .vilmed-fh__scats-label .fa {
@@ -322,7 +324,9 @@
 	align-items: center;
 	justify-content: space-between;
 	gap: 8px;
-	padding-right: 12px;
+	padding: 12px 12px 0;
+	min-height: 28px;
+	box-sizing: border-box;
 }
 
 .vilmed-fh__scats-reset {
@@ -335,6 +339,7 @@
 	font-size: 11px;
 	font-weight: 600;
 	color: #575b71;
+	line-height: 1.2;
 	cursor: pointer;
 	transition: background .12s ease, border-color .12s ease;
 }
@@ -346,36 +351,67 @@
 }
 
 .vilmed-fh__scats-filter-wrap {
-	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 8px;
 	margin: 10px 12px 8px;
-}
-
-.vilmed-fh__scats-filter-icon {
-	position: absolute;
-	left: 10px;
-	top: 50%;
-	transform: translateY(-50%);
-	font-size: 12px;
-	color: #a0a4b8;
-	pointer-events: none;
-}
-
-.vilmed-fh__scats-filter {
-	width: 100%;
+	padding: 0 10px;
 	height: 34px;
-	padding: 0 10px 0 30px;
 	border: 1px solid #dde1ec;
 	border-radius: 10px;
 	background: #fff;
+	box-sizing: border-box;
+	transition: border-color .12s ease, box-shadow .12s ease;
+}
+
+.vilmed-fh__scats-filter-wrap:focus-within {
+	border-color: #b8bdd4;
+	box-shadow: 0 0 0 3px rgba(43, 45, 66, .08);
+}
+
+.vilmed-fh__scats-filter-icon {
+	position: static;
+	flex: 0 0 auto;
+	margin: 0;
+	padding: 0;
+	width: 14px;
+	text-align: center;
 	font-size: 12px;
+	line-height: 1;
+	color: #a0a4b8;
+	pointer-events: none;
+	transform: none;
+}
+
+.vilmed-fh__scats-filter {
+	flex: 1 1 auto;
+	width: auto;
+	min-width: 0;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	font-size: 12px;
+	line-height: 34px;
 	color: #2b2d42;
 	box-sizing: border-box;
+	outline: none;
+	-webkit-appearance: none;
+	appearance: none;
 }
 
 .vilmed-fh__scats-filter:focus {
 	outline: none;
-	border-color: #b8bdd4;
-	box-shadow: 0 0 0 3px rgba(43, 45, 66, .08);
+	border: 0;
+	box-shadow: none;
+}
+
+.vilmed-fh__scats-filter::placeholder {
+	color: #9aa0b5;
+	opacity: 1;
 }
 
 .vilmed-fh__scats-list {
@@ -402,14 +438,15 @@
 	gap: 6px;
 	width: 100%;
 	padding: 4px 4px 4px 6px;
-	margin: 0 0 3px;
-	border: 1px solid transparent;
+	margin: 0 0 4px;
+	border: 1px solid #e4e7f0;
 	border-radius: 10px;
-	background: transparent;
+	background: #fff;
 	color: #3d4058;
 	font-size: 13px;
 	line-height: 1.35;
 	text-align: left;
+	box-sizing: border-box;
 	transition: background .12s ease, border-color .12s ease, box-shadow .12s ease;
 }
 
@@ -431,7 +468,7 @@
 }
 
 .vilmed-fh__scat-toggle:hover {
-	background: rgba(255, 255, 255, .55);
+	background: #f3f4f9;
 }
 
 .vilmed-fh__scat-check {
@@ -524,13 +561,14 @@
 }
 
 .vilmed-fh__scat-row:hover {
-	background: #eceef5;
+	border-color: #cfd4e4;
+	background: #fafbfe;
 }
 
 .vilmed-fh__scat-row.is-active {
 	background: #fff;
 	color: #2b2d42;
-	border-color: #dde1ec;
+	border-color: #2b2d42;
 	box-shadow: 0 2px 8px rgba(20, 22, 48, .06);
 }
 
