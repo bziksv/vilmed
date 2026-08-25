@@ -30,6 +30,10 @@ Loc::loadMessages(__FILE__);
 	$vilmedIsCatalogLike = $vilmedIsCatalog || $vilmedIsProduct;
 	$vilmedIsPersonal = CSite::InDir(SITE_DIR . "personal/");
 	$vilmedIsCompare = CSite::InDir(SITE_DIR . "catalog/compare/");
+	$vilmedIsLegal = CSite::InDir(SITE_DIR . "legal/");
+	if ($vilmedIsLegal) {
+		$APPLICATION->SetPageProperty("robots", "noindex, nofollow");
+	}
 	$vilmedNeedsCatalogCss = $vilmedIsCatalogLike
 		|| CSite::InDir(SITE_DIR . "vendors/")
 		|| CSite::InDir(SITE_DIR . "payments/");

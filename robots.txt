@@ -56,12 +56,6 @@ Disallow: /about/responses/
 Disallow: /map/
 ###############legal / politiki / soglasija###################
 Disallow: /legal/
-Disallow: /legal/vilmed-cookie-policy/
-Disallow: /legal/vilmed-personal-data-policy/
-Disallow: /legal/vilmed-personal-data-consent/
-Disallow: /legal/vilmed-recommendation-rules/
-###############legal / politiki / soglasija###################
-Disallow: /legal/
 Disallow: /upload/oferta-old
 Disallow: /upload/oferta-old.pdf
 Disallow: /upload/oferta-old-1.pdf
