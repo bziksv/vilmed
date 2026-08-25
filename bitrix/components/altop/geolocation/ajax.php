@@ -50,20 +50,19 @@ if($request->isPost() && check_bitrix_sessid()) {
 		$arParams = unserialize(gzuncompress(stripslashes(base64_decode(strtr($arParams, '-_,', '+/=')))));
 
 	//DELETE_GEOLOCATION_COOKIES//
-	$flush = false;
-	foreach($arParams["OPTIONS"] as $arOption) {
-		if($request->getCookie($arOption)) {
-			if(!$flush)
-				$flush = true;
-			$cookie = new Cookie($arOption, null, time() - 3600);
-			$vilmedGeoApplyCookieDomain($cookie);
-			$cookie->setHttpOnly(false);
-			$context->getResponse()->addCookie($cookie);
-			unset($cookie);
+	// Do NOT flush() here — early flush sends the response and drops later Set-Cookie
+	// for the newly selected city (city stays stuck after "Выбрать город").
+	if (!empty($arParams["OPTIONS"]) && is_array($arParams["OPTIONS"])) {
+		foreach ($arParams["OPTIONS"] as $arOption) {
+			if ($request->getCookie($arOption)) {
+				$cookie = new Cookie($arOption, null, time() - 3600);
+				$vilmedGeoApplyCookieDomain($cookie);
+				$cookie->setHttpOnly(false);
+				$context->getResponse()->addCookie($cookie);
+				unset($cookie);
+			}
 		}
 	}
-	if($flush)
-		$context->getResponse()->flush("");
 
 	switch($action) {
 		case "searchLocation":
