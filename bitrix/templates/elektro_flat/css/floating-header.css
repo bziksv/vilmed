@@ -1599,6 +1599,13 @@ html.vilmed-drawer-lock {
 /* The site sets a:link/a:visited { color:#660901 } (specificity 0,1,1), which
    beats our single-class rules and paints our anchors maroon. Re-assert the
    grey palette with higher priority so links/icons stay slate, not red. */
+.vilmed-fh__scat-cnt,
+.vilmed-fh__scat-cnt:link,
+.vilmed-fh__scat-cnt:visited { color: #6a6d84 !important; text-decoration: none !important; }
+.vilmed-fh__scat-cnt:hover { color: #fff !important; }
+.vilmed-fh__scat-row.is-active .vilmed-fh__scat-cnt,
+.vilmed-fh__scat-row.is-active .vilmed-fh__scat-cnt:link,
+.vilmed-fh__scat-row.is-active .vilmed-fh__scat-cnt:visited { color: #fff !important; }
 .vilmed-fh__catalog,
 .vilmed-fh__catalog:focus { color: #575b71 !important; }
 .vilmed-fh__catalog:hover { color: #2b2d42 !important; }
