@@ -625,22 +625,33 @@
 		}
 
 		function renderFacetRows(facets, total) {
+			var q = lastEffQ || lastQ || "";
 			var html = "";
-			html += '<button type="button" class="vilmed-fh__scat-row vilmed-fh__scat-row--all' +
+			html += '<div class="vilmed-fh__scat-row vilmed-fh__scat-row--all' +
 				(isSectionActive(0) ? " is-active" : "") + '" data-section="0">' +
-				'<span class="vilmed-fh__scat-check" aria-hidden="true"></span>' +
-				'<span class="vilmed-fh__scat-name">Все результаты</span>' +
-				'<span class="vilmed-fh__scat-cnt">' + total + "</span></button>";
+				'<button type="button" class="vilmed-fh__scat-toggle" data-section="0" title="Фильтровать здесь">' +
+					'<span class="vilmed-fh__scat-check" aria-hidden="true"></span>' +
+					'<span class="vilmed-fh__scat-name">Все результаты</span>' +
+				"</button>" +
+				'<a class="vilmed-fh__scat-cnt" href="' + catalogHref(q, []) + '" title="Открыть все результаты">' +
+					total + ' <i class="fa fa-external-link" aria-hidden="true"></i></a>' +
+				"</div>";
 			for (var f = 0; f < facets.length; f++) {
 				var facet = facets[f];
-				html += '<button type="button" class="vilmed-fh__scat-row' +
+				var ids = [facet.ID];
+				html += '<div class="vilmed-fh__scat-row' +
 					(facet.COUNT <= 0 ? " vilmed-fh__scat-row--zero" : "") +
 					(isSectionActive(facet.ID) ? " is-active" : "") +
-					'" data-section="' + facet.ID + '" data-name="' + escapeHtml(facet.NAME) + '"' +
-					' title="' + escapeHtml(facet.NAME) + '">' +
-					'<span class="vilmed-fh__scat-check" aria-hidden="true"></span>' +
-					'<span class="vilmed-fh__scat-name">' + escapeHtml(facet.NAME) + "</span>" +
-					'<span class="vilmed-fh__scat-cnt">' + facet.COUNT + "</span></button>";
+					'" data-section="' + facet.ID + '" data-name="' + escapeHtml(facet.NAME) + '">' +
+					'<button type="button" class="vilmed-fh__scat-toggle" data-section="' + facet.ID + '"' +
+						' data-name="' + escapeHtml(facet.NAME) + '" title="Фильтровать здесь">' +
+						'<span class="vilmed-fh__scat-check" aria-hidden="true"></span>' +
+						'<span class="vilmed-fh__scat-name">' + escapeHtml(facet.NAME) + "</span>" +
+					"</button>" +
+					'<a class="vilmed-fh__scat-cnt" href="' + catalogHref(q, ids) + '"' +
+						' title="Открыть «' + escapeHtml(facet.NAME) + '» в каталоге">' +
+						facet.COUNT + ' <i class="fa fa-external-link" aria-hidden="true"></i></a>' +
+					"</div>";
 			}
 			return html;
 		}
@@ -1039,14 +1050,22 @@
 				return;
 			}
 
-			var chip = e.target.closest(".vilmed-fh__scat-row, .vilmed-fh__scats-reset, .vilmed-fh__sfilter-chip");
+			// Count badge = go to catalog filtered by this category
+			var goLink = e.target.closest(".vilmed-fh__scat-cnt");
+			if (goLink && goLink.tagName === "A") {
+				e.stopPropagation();
+				return;
+			}
+
+			var chip = e.target.closest(".vilmed-fh__scat-toggle, .vilmed-fh__scats-reset, .vilmed-fh__sfilter-chip");
 			if (!chip) { return; }
 			e.preventDefault();
 			var sectionId = parseInt(chip.getAttribute("data-section"), 10) || 0;
 			var wasActive = sectionId ? isSectionActive(sectionId) : activeSectionIds.length > 0;
 			var facetCount = 0;
+			var row = chip.closest(".vilmed-fh__scat-row");
 			if (sectionId > 0) {
-				var cntEl = chip.querySelector(".vilmed-fh__scat-cnt");
+				var cntEl = row ? row.querySelector(".vilmed-fh__scat-cnt") : null;
 				facetCount = cntEl ? (parseInt(cntEl.textContent, 10) || 0) : 0;
 			}
 			toggleSectionId(chip.getAttribute("data-section"));

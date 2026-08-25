@@ -399,9 +399,9 @@
 	display: flex;
 	align-items: flex-start;
 	justify-content: flex-start;
-	gap: 8px;
+	gap: 6px;
 	width: 100%;
-	padding: 9px 10px;
+	padding: 4px 4px 4px 6px;
 	margin: 0 0 3px;
 	border: 1px solid transparent;
 	border-radius: 10px;
@@ -410,8 +410,28 @@
 	font-size: 13px;
 	line-height: 1.35;
 	text-align: left;
-	cursor: pointer;
 	transition: background .12s ease, border-color .12s ease, box-shadow .12s ease;
+}
+
+.vilmed-fh__scat-toggle {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	flex: 1 1 auto;
+	min-width: 0;
+	margin: 0;
+	padding: 5px 4px;
+	border: none;
+	border-radius: 8px;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.vilmed-fh__scat-toggle:hover {
+	background: rgba(255, 255, 255, .55);
 }
 
 .vilmed-fh__scat-check {
@@ -452,8 +472,10 @@
 
 .vilmed-fh__scat-cnt {
 	flex: 0 0 auto;
-	margin-left: auto;
-	margin-top: 1px;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	margin: 2px 0 0;
 	font-size: 11px;
 	font-weight: 700;
 	color: #6a6d84;
@@ -461,8 +483,26 @@
 	border: 1px solid #e2e3f0;
 	border-radius: 999px;
 	min-width: 26px;
-	padding: 2px 7px;
+	padding: 3px 8px;
 	text-align: center;
+	text-decoration: none;
+	line-height: 1.2;
+	transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+
+.vilmed-fh__scat-cnt .fa {
+	font-size: 9px;
+	opacity: .55;
+}
+
+.vilmed-fh__scat-cnt:hover {
+	background: #2b2d42;
+	border-color: #2b2d42;
+	color: #fff;
+}
+
+.vilmed-fh__scat-cnt:hover .fa {
+	opacity: 1;
 }
 
 .vilmed-fh__scat-row:hover {
@@ -484,6 +524,11 @@
 	background: #2b2d42;
 	border-color: #2b2d42;
 	color: #fff;
+}
+
+.vilmed-fh__scat-row.is-active .vilmed-fh__scat-cnt:hover {
+	background: #1f2133;
+	border-color: #1f2133;
 }
 
 .vilmed-fh__scats-empty {
