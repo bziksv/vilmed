@@ -2130,13 +2130,32 @@ html.vilmed-drawer-lock {
 		min-width: 0;
 		float: none;
 	}
-	/* лента миниатюр — справа, вертикально */
+	/* лента миниатюр — справа, вертикальный слайдер */
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo {
 		order: 2;
 		flex: 0 0 96px;
 		width: 96px;
 		margin: 0;
 		float: none;
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		height: 390px;
+		max-height: 390px;
+		box-sizing: border-box;
+	}
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo__viewport {
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
+		overflow-x: hidden;
+		scrollbar-width: none;
+		-ms-overflow-style: none;
+	}
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo__viewport::-webkit-scrollbar {
+		display: none;
+		width: 0;
+		height: 0;
 	}
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo ul {
 		display: flex;
@@ -2148,10 +2167,49 @@ html.vilmed-drawer-lock {
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo ul li {
 		float: none;
 		margin: 0 !important;
+		flex: 0 0 auto;
 	}
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo ul li.is-active a {
 		outline: 2px solid #e31e24;
 		outline-offset: 1px;
+	}
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo__nav {
+		flex: 0 0 28px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		margin: 0;
+		padding: 0;
+		border: 1px solid #dde1ec;
+		border-radius: 6px;
+		background: #fff;
+		color: #5e6178;
+		cursor: pointer;
+		line-height: 1;
+		transition: background .12s ease, border-color .12s ease, color .12s ease, opacity .12s ease;
+	}
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo__nav .fa {
+		font-size: 16px;
+		line-height: 1;
+	}
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo__nav:hover:not(:disabled) {
+		background: #f3f4f9;
+		border-color: #c5cad9;
+		color: #2b2d42;
+	}
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo__nav:disabled {
+		opacity: .35;
+		cursor: default;
+	}
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo__nav[hidden] {
+		display: none !important;
+	}
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo__nav--prev {
+		margin-bottom: 6px;
+	}
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo__nav--next {
+		margin-top: 6px;
 	}
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .clr { display: none; }
 }

@@ -352,7 +352,11 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 				$vilmedShowMoreStrip = !empty($arResult["PROPERTIES"]["VIDEO"]["VALUE"]) || count($arResult["MORE_PHOTO"]) > 0 || $isDetailImg;
 				if($vilmedShowMoreStrip && (count($arResult["MORE_PHOTO"]) > 0 || !empty($arResult["PROPERTIES"]["VIDEO"]["VALUE"]))) {?>
 					<div class="clr"></div>
-					<div class="more_photo">
+					<div class="more_photo" data-more-photo-slider>
+						<button type="button" class="more_photo__nav more_photo__nav--prev" aria-label="Предыдущие фото" hidden>
+							<i class="fa fa-angle-up" aria-hidden="true"></i>
+						</button>
+						<div class="more_photo__viewport">
 						<ul>
 							<?if($isDetailImg) {
 								$vilmedDetailPreview = !empty($arResult["PREVIEW_IMG"]["SRC"]) ? $arResult["PREVIEW_IMG"] : $arResult["DETAIL_IMG"];
@@ -385,6 +389,10 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 								<?}
 							}?>
 						</ul>
+						</div>
+						<button type="button" class="more_photo__nav more_photo__nav--next" aria-label="Следующие фото" hidden>
+							<i class="fa fa-angle-down" aria-hidden="true"></i>
+						</button>
 					</div>
 				<?}?>
 				<?//VERSIONS_PERFORMANCE//
