@@ -2117,20 +2117,24 @@ html.vilmed-drawer-lock {
 
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures {
 		display: flex;
-		align-items: flex-start;
+		align-items: stretch;
 		gap: 14px;
 		width: 100%;
+		height: 100%;
+		min-height: 100%;
 		float: none;
+		box-sizing: border-box;
 	}
-	/* главное фото — слева, занимает оставшееся место */
+	/* главное фото — слева, сверху, без растягивания */
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .catalog-detail-picture {
 		order: 1;
 		flex: 1 1 auto;
 		width: auto;
 		min-width: 0;
 		float: none;
+		align-self: flex-start;
 	}
-	/* лента миниатюр — справа, вертикальный слайдер */
+	/* лента миниатюр — справа, по высоте колонки (= низ блока покупки) */
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo {
 		order: 2;
 		flex: 0 0 96px;
@@ -2140,8 +2144,10 @@ html.vilmed-drawer-lock {
 		display: flex;
 		flex-direction: column;
 		align-items: stretch;
-		height: 390px;
-		max-height: 390px;
+		align-self: stretch;
+		height: auto;
+		min-height: 390px;
+		max-height: none;
 		box-sizing: border-box;
 	}
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo__viewport {

@@ -2185,17 +2185,28 @@
 		var roots = document.querySelectorAll("[data-more-photo-slider]");
 		for (var i = 0; i < roots.length; i++) {
 			(function (root) {
-				if (root.getAttribute("data-slider-ready") === "1") {
-					if (typeof root._vilmedSyncNav === "function") {
-						root._vilmedSyncNav();
-					}
-					return;
-				}
 				var viewport = root.querySelector(".more_photo__viewport");
 				var prev = root.querySelector(".more_photo__nav--prev");
 				var next = root.querySelector(".more_photo__nav--next");
 				if (!viewport || !prev || !next) {
 					return;
+				}
+
+				function matchPriceHeight() {
+					if (window.matchMedia && !window.matchMedia("(min-width: 992px)").matches) {
+						root.style.height = "";
+						return;
+					}
+					var price = document.querySelector(".price_buy_detail");
+					if (!price) {
+						return;
+					}
+					var priceBottom = price.getBoundingClientRect().bottom;
+					var rootTop = root.getBoundingClientRect().top;
+					var h = Math.round(priceBottom - rootTop);
+					if (h > 200) {
+						root.style.height = h + "px";
+					}
 				}
 
 				function stepSize() {
@@ -2209,16 +2220,24 @@
 				}
 
 				function syncNav() {
+					matchPriceHeight();
 					var maxScroll = Math.max(0, viewport.scrollHeight - viewport.clientHeight);
 					var need = maxScroll > 2;
 					prev.hidden = !need;
 					next.hidden = !need;
 					if (!need) {
 						viewport.scrollTop = 0;
+						prev.disabled = true;
+						next.disabled = true;
 						return;
 					}
 					prev.disabled = viewport.scrollTop <= 1;
 					next.disabled = viewport.scrollTop >= maxScroll - 1;
+				}
+
+				if (root.getAttribute("data-slider-ready") === "1") {
+					syncNav();
+					return;
 				}
 
 				prev.addEventListener("click", function (e) {
