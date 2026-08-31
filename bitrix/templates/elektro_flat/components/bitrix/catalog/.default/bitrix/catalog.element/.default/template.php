@@ -351,6 +351,8 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 				// иначе справа «висит» похожий кадр и кажется дублем главного.
 				$vilmedShowMoreStrip = !empty($arResult["PROPERTIES"]["VIDEO"]["VALUE"]) || count($arResult["MORE_PHOTO"]) > 0 || $isDetailImg;
 				if($vilmedShowMoreStrip && (count($arResult["MORE_PHOTO"]) > 0 || !empty($arResult["PROPERTIES"]["VIDEO"]["VALUE"]))) {?>
+					<?/* inline: композит/старый CSS-бандл не должен оставлять max-height:390 у ленты */?>
+					<style id="vilmed-more-photo-stretch">@media (min-width:992px){.catalog-detail .column.first:not(.colletion){height:1px}.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures{height:100%}.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo{height:100%!important;max-height:none!important;min-height:0}}</style>
 					<div class="clr"></div>
 					<div class="more_photo" data-more-photo-slider>
 						<button type="button" class="more_photo__nav more_photo__nav--prev" aria-label="Предыдущие фото" hidden>
