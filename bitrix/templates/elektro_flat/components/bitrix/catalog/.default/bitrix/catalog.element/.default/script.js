@@ -2194,18 +2194,19 @@
 
 				function matchPriceHeight() {
 					if (window.matchMedia && !window.matchMedia("(min-width: 992px)").matches) {
-						root.style.height = "";
+						root.style.removeProperty("height");
+						root.style.removeProperty("max-height");
 						return;
 					}
 					var price = document.querySelector(".price_buy_detail");
 					if (!price) {
 						return;
 					}
-					var priceBottom = price.getBoundingClientRect().bottom;
-					var rootTop = root.getBoundingClientRect().top;
-					var h = Math.round(priceBottom - rootTop);
+					var h = Math.round(price.getBoundingClientRect().bottom - root.getBoundingClientRect().top);
 					if (h > 200) {
-						root.style.height = h + "px";
+						/* important — перебивает закешированный max-height:390px */
+						root.style.setProperty("max-height", "none", "important");
+						root.style.setProperty("height", h + "px", "important");
 					}
 				}
 
@@ -2250,12 +2251,21 @@
 				});
 				viewport.addEventListener("scroll", syncNav, { passive: true });
 				window.addEventListener("resize", syncNav);
+				window.addEventListener("load", syncNav);
+
+				if (typeof ResizeObserver !== "undefined") {
+					var priceEl = document.querySelector(".price_buy_detail");
+					if (priceEl) {
+						new ResizeObserver(syncNav).observe(priceEl);
+					}
+				}
 
 				root._vilmedSyncNav = syncNav;
 				root.setAttribute("data-slider-ready", "1");
 				syncNav();
 				setTimeout(syncNav, 50);
 				setTimeout(syncNav, 300);
+				setTimeout(syncNav, 1000);
 			})(roots[i]);
 		}
 	};

@@ -2113,7 +2113,14 @@ html.vilmed-drawer-lock {
    расширяем, чтобы заполнить пустоту рядом с блоком покупки.
    ============================================================ */
 @media (min-width: 992px) {
-	.catalog-detail .column.first:not(.colletion) { width: 500px; }
+	/*
+	 * height:1px — трюк для table-cell: ячейка всё равно тянется по ряду
+	 * (высота = колонка с .price_buy_detail), а дети могут брать height:100%.
+	 */
+	.catalog-detail .column.first:not(.colletion) {
+		width: 500px;
+		height: 1px;
+	}
 
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures {
 		display: flex;
@@ -2134,7 +2141,7 @@ html.vilmed-drawer-lock {
 		float: none;
 		align-self: flex-start;
 	}
-	/* лента миниатюр — справа, по высоте колонки (= низ блока покупки) */
+	/* лента миниатюр — справа, на всю высоту колонки (= низ .price_buy_detail) */
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo {
 		order: 2;
 		flex: 0 0 96px;
@@ -2145,9 +2152,9 @@ html.vilmed-drawer-lock {
 		flex-direction: column;
 		align-items: stretch;
 		align-self: stretch;
-		height: auto;
-		min-height: 390px;
-		max-height: none;
+		height: 100% !important;
+		min-height: 0;
+		max-height: none !important;
 		box-sizing: border-box;
 	}
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo__viewport {
