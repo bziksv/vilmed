@@ -2289,7 +2289,7 @@ html.vilmed-drawer-lock {
 		text-align: center;
 		gap: 5px;
 		padding: 9px 4px;
-		font-size: 11px;
+		font-size: 12px;
 		line-height: 1.2;
 		border-radius: 10px;
 		word-break: break-word;
@@ -2675,5 +2675,43 @@ html.vilmed-drawer-lock {
 		margin: 0;
 		padding: 0;
 		overflow: hidden;
+	}
+}
+
+/* ============================================================
+   Yandex Webmaster: читаемый текст на мобиле (≥12px)
+   ============================================================ */
+@media (max-width: 787px) {
+	html {
+		-webkit-text-size-adjust: 100%;
+		text-size-adjust: 100%;
+	}
+
+	.breadcrumb,
+	.breadcrumb__item,
+	.breadcrumb__item > .breadcrumb__link,
+	.breadcrumb__item > .breadcrumb__title {
+		font-size: 12px !important;
+	}
+
+	.catalog-item .catalog-item-image .sticker > span,
+	.catalog-item-card .item-image .sticker > span,
+	.catalog-item-collections-view .catalog-item-card .item-image-cont .sticker > span,
+	.offers-items .catalog-item .catalog-item-image .sticker > span {
+		font-size: 12px !important;
+		line-height: 16px;
+	}
+
+	.footer-bottom__copyright,
+	.footer-bottom__links a {
+		font-size: 12px !important;
+	}
+
+	.catalog-item .item-price .catalog-item-price-old,
+	.catalog-item-card .catalog-item-price-old,
+	.offers-items .catalog-item .catalog-item-props-mob,
+	.catalog-detail .catalog-detail-article,
+	.catalog-detail .article {
+		font-size: 12px !important;
 	}
 }
