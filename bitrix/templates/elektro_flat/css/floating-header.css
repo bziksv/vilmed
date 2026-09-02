@@ -2792,6 +2792,22 @@ html.vilmed-drawer-lock {
 	font-weight: 400;
 	margin: 6px 0 0;
 	text-transform: none;
+	max-width: 100%;
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+/* Длинный артикул («Lympha Press Mini») раздувал .item-price шире остатка
+   справа от описания (~170px) → float уезжал под описание. Держим колонку цены
+   фиксированной ширины; «Не указана цена» (.unit как прямой потомок) — block,
+   иначе table-footer-group темы ломает поток. */
+.catalog-item-list-view .catalog-item .item-price {
+	width: 160px;
+	max-width: 160px;
+	box-sizing: border-box;
+}
+.catalog-item-list-view .catalog-item .item-price > .unit {
+	display: block;
+	line-height: 1.35;
 }
 @media (max-width: 787px) {
 	.catalog-item-list-view .catalog-item .item-price .vilmed-article-inprice { display: none !important; }
