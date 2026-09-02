@@ -526,6 +526,7 @@
 		var baseFacets = [];
 		var catFilterTimer = null;
 		var catLookupController = null;
+		var facetsExpanded = false;
 
 		function isSectionActive(id) {
 			if (!id) { return !activeSectionIds.length; }
@@ -624,7 +625,12 @@
 			return false;
 		}
 
-		function renderFacetRows(facets, total) {
+		function isCompactCats() {
+			return window.matchMedia && window.matchMedia("(max-width: 820px)").matches;
+		}
+
+		function renderFacetRows(facets, total, opts) {
+			opts = opts || {};
 			var q = lastEffQ || lastQ || "";
 			var html = "";
 			html += '<div class="vilmed-fh__scat-row vilmed-fh__scat-row--all' +
@@ -638,7 +644,13 @@
 					' data-tip="Перейти в каталог" title="Перейти в каталог">' +
 					'<span class="vilmed-fh__scat-cnt-num">' + total + "</span></a>" +
 				"</div>";
-			for (var f = 0; f < facets.length; f++) {
+			/* На мобиле по умолчанию 3 строки: «Все» + 2 категории (+ «Ещё») */
+			var maxFacets = 2;
+			var filterOn = !!opts.filterOn;
+			var limitFacets = !filterOn && !facetsExpanded && isCompactCats();
+			var showCount = limitFacets ? Math.min(facets.length, maxFacets) : facets.length;
+			var hiddenCount = facets.length - showCount;
+			for (var f = 0; f < showCount; f++) {
 				var facet = facets[f];
 				var ids = [facet.ID];
 				html += '<div class="vilmed-fh__scat-row' +
@@ -656,15 +668,20 @@
 						'<span class="vilmed-fh__scat-cnt-num">' + facet.COUNT + "</span></a>" +
 					"</div>";
 			}
+			if (hiddenCount > 0) {
+				html += '<button type="button" class="vilmed-fh__scat-more-btn">' +
+					"Ещё " + hiddenCount + "</button>";
+			}
 			return html;
 		}
 
-		function setFacetListHtml(facets, total, emptyHint) {
+		function setFacetListHtml(facets, total, emptyHint, opts) {
+			opts = opts || {};
 			var listEl = pop.querySelector(".vilmed-fh__scats-list");
 			if (!listEl) { return; }
 			var hintEl = pop.querySelector(".vilmed-fh__scats-empty");
 			if (!facets.length && emptyHint) {
-				listEl.innerHTML = renderFacetRows([], total);
+				listEl.innerHTML = renderFacetRows([], total, opts);
 				if (!hintEl) {
 					hintEl = document.createElement("div");
 					hintEl.className = "vilmed-fh__scats-empty";
@@ -673,7 +690,7 @@
 				hintEl.textContent = emptyHint;
 				hintEl.style.display = "";
 			} else {
-				listEl.innerHTML = renderFacetRows(facets, total);
+				listEl.innerHTML = renderFacetRows(facets, total, opts);
 				if (hintEl) { hintEl.style.display = "none"; }
 			}
 			syncCategoryRows();
@@ -701,21 +718,50 @@
 					var facets = data.facets || [];
 					var total = data.total || (lastPayload && lastPayload.total) || 0;
 					if (!facets.length) {
-						setFacetListHtml([], total, "Категория «" + filterQ + "» не найдена");
+						setFacetListHtml([], total, "Категория «" + filterQ + "» не найдена", { filterOn: true });
 					} else {
-						setFacetListHtml(facets, total, "");
+						setFacetListHtml(facets, total, "", { filterOn: true });
 					}
 				}).catch(function () { /* aborted */ });
 		}
 
 		function bindCategoryFilter() {
 			var filterInput = pop.querySelector(".vilmed-fh__scats-filter");
+			var filterWrap = pop.querySelector(".vilmed-fh__scats-filter-wrap");
+			var filterToggle = pop.querySelector(".vilmed-fh__scats-filter-toggle");
+			if (filterToggle && !filterToggle.__bound) {
+				filterToggle.__bound = true;
+				filterToggle.addEventListener("click", function () {
+					var open = !(filterWrap && filterWrap.classList.contains("is-open"));
+					if (filterWrap) { filterWrap.classList.toggle("is-open", open); }
+					filterToggle.classList.toggle("is-active", open);
+					filterToggle.setAttribute("aria-expanded", open ? "true" : "false");
+					if (open && filterInput) {
+						setTimeout(function () { filterInput.focus(); }, 0);
+					} else if (filterInput && filterInput.value) {
+						filterInput.value = "";
+						facetsExpanded = false;
+						setFacetListHtml(baseFacets, (lastPayload && lastPayload.total) || 0, "");
+					}
+				});
+			}
+			if (!pop.__scatMoreBound) {
+				pop.__scatMoreBound = true;
+				pop.addEventListener("click", function (e) {
+					var moreBtn = e.target.closest(".vilmed-fh__scat-more-btn");
+					if (!moreBtn) { return; }
+					e.preventDefault();
+					facetsExpanded = true;
+					setFacetListHtml(baseFacets, (lastPayload && lastPayload.total) || 0, "");
+				});
+			}
 			if (!filterInput || filterInput.__bound) { return; }
 			filterInput.__bound = true;
 			filterInput.addEventListener("input", function () {
 				var q = (filterInput.value || "").trim();
 				if (catFilterTimer) { clearTimeout(catFilterTimer); }
 				if (!q) {
+					facetsExpanded = false;
 					setFacetListHtml(baseFacets, (lastPayload && lastPayload.total) || 0, "");
 					return;
 				}
@@ -727,7 +773,7 @@
 						}
 					}
 					setFacetListHtml(local, (lastPayload && lastPayload.total) || 0,
-						local.length ? "" : "");
+						local.length ? "" : "", { filterOn: true });
 					return;
 				}
 				catFilterTimer = setTimeout(function () { fetchCategoryLookup(q); }, 180);
@@ -899,12 +945,15 @@
 
 			out += '<div class="vilmed-fh__sbody">';
 			if (facets.length) {
+				facetsExpanded = false;
 				out += '<aside class="vilmed-fh__scats" aria-label="Категории">';
 				out += '<div class="vilmed-fh__scats-head">';
 				out += '<div class="vilmed-fh__scats-label"><i class="fa fa-filter"></i> Категории</div>';
+				out += '<div class="vilmed-fh__scats-actions">';
+				out += '<button type="button" class="vilmed-fh__scats-filter-toggle" aria-label="Найти категорию" aria-expanded="false" title="Найти категорию"><i class="fa fa-search"></i></button>';
 				out += '<button type="button" class="vilmed-fh__scats-reset" data-section="0"' +
 					(activeSectionIds.length ? "" : ' style="display:none"') + '>Сбросить</button>';
-				out += "</div>";
+				out += "</div></div>";
 				out += '<div class="vilmed-fh__scats-filter-wrap">';
 				out += '<i class="fa fa-search vilmed-fh__scats-filter-icon"></i>';
 				out += '<input type="text" class="vilmed-fh__scats-filter" placeholder="Найти категорию…" autocomplete="off" />';
