@@ -54,6 +54,29 @@ class VilmedSiteImages
 		return self::PUBLIC_BASE . $path;
 	}
 
+	/** Ссылка на редактирование элемента в админке Bitrix */
+	public static function adminElementUrl(int $iblockId, int $elementId, string $iblockType = ''): string
+	{
+		$type = rawurlencode($iblockType);
+		return '/bitrix/admin/iblock_element_edit.php?IBLOCK_ID=' . $iblockId
+			. '&type=' . $type
+			. '&lang=ru'
+			. '&ID=' . $elementId
+			. '&find_section_section=-1'
+			. '&WF=Y';
+	}
+
+	/** Ссылка на редактирование раздела в админке Bitrix */
+	public static function adminSectionUrl(int $iblockId, int $sectionId, string $iblockType = ''): string
+	{
+		$type = rawurlencode($iblockType);
+		return '/bitrix/admin/iblock_section_edit.php?IBLOCK_ID=' . $iblockId
+			. '&type=' . $type
+			. '&lang=ru'
+			. '&ID=' . $sectionId
+			. '&find_section_section=0';
+	}
+
 	public static function imageWhereSql(): string
 	{
 		$ext = self::IMAGE_EXT;
@@ -315,7 +338,7 @@ class VilmedSiteImages
 
 		$res = $DB->Query("
 			SELECT e.ID, e.IBLOCK_ID, e.IBLOCK_SECTION_ID, e.NAME, e.PREVIEW_PICTURE, e.DETAIL_PICTURE, e.CODE,
-				b.NAME AS IBLOCK_NAME, b.DETAIL_PAGE_URL
+				b.NAME AS IBLOCK_NAME, b.IBLOCK_TYPE_ID, b.DETAIL_PAGE_URL
 			FROM b_iblock_element e
 			LEFT JOIN b_iblock b ON b.ID = e.IBLOCK_ID
 			WHERE e.PREVIEW_PICTURE IN ({$idList}) OR e.DETAIL_PICTURE IN ({$idList})
@@ -323,8 +346,11 @@ class VilmedSiteImages
 		while ($row = $res->Fetch()) {
 			$el = 'IBLOCK «' . $row['IBLOCK_NAME'] . '» #' . $row['IBLOCK_ID']
 				. ' / элемент #' . $row['ID'] . ' «' . $row['NAME'] . '»';
-			$admin = '/bitrix/admin/iblock_element_edit.php?IBLOCK_ID=' . (int)$row['IBLOCK_ID']
-				. '&type=&ID=' . (int)$row['ID'] . '&lang=ru';
+			$admin = self::adminElementUrl(
+				(int)$row['IBLOCK_ID'],
+				(int)$row['ID'],
+				(string)$row['IBLOCK_TYPE_ID']
+			);
 			$public = self::buildPublicUrl((string)$row['DETAIL_PAGE_URL'], [
 				'#ELEMENT_ID#' => (string)$row['ID'],
 				'#ELEMENT_CODE#' => (string)($row['CODE'] ?: $row['ID']),
@@ -343,7 +369,7 @@ class VilmedSiteImages
 
 		$res = $DB->Query("
 			SELECT s.ID, s.IBLOCK_ID, s.IBLOCK_SECTION_ID, s.NAME, s.CODE, s.PICTURE, s.DETAIL_PICTURE,
-				b.NAME AS IBLOCK_NAME, b.SECTION_PAGE_URL
+				b.NAME AS IBLOCK_NAME, b.IBLOCK_TYPE_ID, b.SECTION_PAGE_URL
 			FROM b_iblock_section s
 			LEFT JOIN b_iblock b ON b.ID = s.IBLOCK_ID
 			WHERE s.PICTURE IN ({$idList}) OR s.DETAIL_PICTURE IN ({$idList})
@@ -351,8 +377,11 @@ class VilmedSiteImages
 		while ($row = $res->Fetch()) {
 			$sec = 'IBLOCK «' . $row['IBLOCK_NAME'] . '» #' . $row['IBLOCK_ID']
 				. ' / раздел #' . $row['ID'] . ' «' . $row['NAME'] . '»';
-			$admin = '/bitrix/admin/iblock_section_edit.php?IBLOCK_ID=' . (int)$row['IBLOCK_ID']
-				. '&ID=' . (int)$row['ID'] . '&lang=ru';
+			$admin = self::adminSectionUrl(
+				(int)$row['IBLOCK_ID'],
+				(int)$row['ID'],
+				(string)$row['IBLOCK_TYPE_ID']
+			);
 			$public = self::buildPublicUrl((string)$row['SECTION_PAGE_URL'], [
 				'#SECTION_ID#' => (string)$row['ID'],
 				'#SECTION_CODE#' => (string)($row['CODE'] ?: $row['ID']),
@@ -371,7 +400,7 @@ class VilmedSiteImages
 			SELECT p.IBLOCK_ELEMENT_ID, p.VALUE, p.IBLOCK_PROPERTY_ID,
 				e.NAME AS ELEMENT_NAME, e.IBLOCK_ID, e.CODE AS ELEMENT_CODE, e.IBLOCK_SECTION_ID,
 				pr.NAME AS PROP_NAME, pr.CODE AS PROP_CODE,
-				b.NAME AS IBLOCK_NAME, b.DETAIL_PAGE_URL
+				b.NAME AS IBLOCK_NAME, b.IBLOCK_TYPE_ID, b.DETAIL_PAGE_URL
 			FROM b_iblock_element_property p
 			INNER JOIN b_iblock_property pr ON pr.ID = p.IBLOCK_PROPERTY_ID AND pr.PROPERTY_TYPE = 'F'
 			INNER JOIN b_iblock_element e ON e.ID = p.IBLOCK_ELEMENT_ID
@@ -383,8 +412,11 @@ class VilmedSiteImages
 			if (!isset($map[$fid])) {
 				continue;
 			}
-			$admin = '/bitrix/admin/iblock_element_edit.php?IBLOCK_ID=' . (int)$row['IBLOCK_ID']
-				. '&type=&ID=' . (int)$row['IBLOCK_ELEMENT_ID'] . '&lang=ru';
+			$admin = self::adminElementUrl(
+				(int)$row['IBLOCK_ID'],
+				(int)$row['IBLOCK_ELEMENT_ID'],
+				(string)$row['IBLOCK_TYPE_ID']
+			);
 			$public = self::buildPublicUrl((string)$row['DETAIL_PAGE_URL'], [
 				'#ELEMENT_ID#' => (string)$row['IBLOCK_ELEMENT_ID'],
 				'#ELEMENT_CODE#' => (string)($row['ELEMENT_CODE'] ?: $row['IBLOCK_ELEMENT_ID']),
