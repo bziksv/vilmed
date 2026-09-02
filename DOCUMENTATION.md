@@ -228,7 +228,8 @@ ID инфоблоков зашиты в коде компонентов и inclu
 
 - Контент кладётся в **детальный текст товара** (HTML-исходник), обёрнутый в `<article class="vmd-desc">…</article>`.
 - Иконки — инлайновый `<svg>` в line-стиле (Lucide, MIT): `viewBox="0 0 24 24" fill="none" stroke="currentColor"`; цвет наследуется от блока (красный в карточках, синий/жёлтый в callout).
-- JS не нужен (FAQ — нативный `<details>`).
+- **Админка:** визуальный редактор Bitrix по умолчанию вырезает `<svg>`. Разрешение: `local/js/vilmed/admin-allow-svg.js` + `local/php_interface/include/vilmed_admin_svg.php` (см. `VMD-DESCRIPTION.md`).
+- JS на витрине не нужен (FAQ — нативный `<details>`).
 - Превью полного вида (на dev): `_vmd-preview.html` в корне — статичный снимок страницы товара с вставленным оформленным описанием (генерируется `.local/content-mockups/build_fullpage.py`).
 
 ### Настройки решения
