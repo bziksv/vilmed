@@ -138,6 +138,7 @@ Loc::loadMessages(__FILE__);
 	if(function_exists('isProductDetail') && isProductDetail()) {
 		Asset::getInstance()->addCss($vilmedAssetVer($vilmedTplPath."/css/product-lightbox.css"));
 		Asset::getInstance()->addJs($vilmedAssetVer($vilmedTplPath."/js/product-lightbox.js"));
+		Asset::getInstance()->addJs($vilmedAssetVer($vilmedTplPath."/js/vilmed-product-metrika.js"));
 		// Оформление детального описания (.vmd-desc). Scoped CSS, влияет только на
 		// контент с этими классами в детальном тексте товара. Док: css/VMD-DESCRIPTION.md
 		Asset::getInstance()->addCss($vilmedAssetVer($vilmedTplPath."/css/vmd-description.css"));

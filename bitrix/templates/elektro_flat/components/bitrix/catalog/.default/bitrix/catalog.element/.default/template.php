@@ -2191,7 +2191,7 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 				}
 			}
 			if((!$arResult["COLLECTION"]["THIS"] && (!empty($arResult["DISPLAY_PROPERTIES"]) || $strMainOffersProps)) || ($arResult["COLLECTION"]["THIS"] && !empty($arResult["DISPLAY_PROPERTIES"]))) {?>
-				<li class="tabs__tab">
+				<li class="tabs__tab" data-metrika-goal="knokaharakteristiki310826">
 					<a href="<?=($arParams["AJAX_OPTION_HISTORY"] !== "Y") ? "#tab".$i : "javascript:void(0)"?>"><span><?=GetMessage("CATALOG_ELEMENT_PROPERTIES")?></span></a>
 				</li>
 				<?$i++;
@@ -2205,7 +2205,7 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 				<?$i++;
 			}
 			if(!empty($arResult["PROPERTIES"]["CML2_COMPLECT"]["VALUE"])) {?>
-				<li class="tabs__tab">
+				<li class="tabs__tab" data-metrika-goal="knokakomplektaciya310826">
 					<a href="<?=($arParams["AJAX_OPTION_HISTORY"] !== "Y") ? "#tab".$i : "javascript:void(0)"?>"><span><?=$arResult["PROPERTIES"]["CML2_COMPLECT"]["NAME"]?></span></a>
 				</li>
 				<?$i++;
