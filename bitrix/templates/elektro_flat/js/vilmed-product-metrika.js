@@ -2,6 +2,12 @@
 (function () {
 	"use strict";
 
+	// Бандл Bitrix + отдельный addJs могут выполнить файл дважды.
+	if (window.__vilmedProductMetrika) {
+		return;
+	}
+	window.__vilmedProductMetrika = true;
+
 	var METRIKA_ID = 55225453;
 	var IMG_RE = /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i;
 	var photoGoalSent = false;
