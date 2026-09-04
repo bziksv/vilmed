@@ -6,10 +6,26 @@
 	var IMG_RE = /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i;
 	var photoGoalSent = false;
 
-	function reachGoal(goal) {
-		if (!goal || typeof window.ym !== "function") {
+	/**
+	 * Метрика на сайте грузится отложенно (requestIdleCallback в counter_2.php),
+	 * поэтому к моменту клика window.ym может ещё не быть. Ставим официальный stub —
+	 * вызовы копятся в ym.a и уйдут, когда подтянется tag.js.
+	 */
+	function ensureYm() {
+		if (typeof window.ym === "function") {
 			return;
 		}
+		window.ym = function () {
+			(window.ym.a = window.ym.a || []).push(arguments);
+		};
+		window.ym.l = 1 * new Date();
+	}
+
+	function reachGoal(goal) {
+		if (!goal) {
+			return;
+		}
+		ensureYm();
 		try {
 			ym(METRIKA_ID, "reachGoal", goal);
 		} catch (e) {}
@@ -22,9 +38,9 @@
 
 		document.body.addEventListener("click", function (e) {
 			var tab = e.target.closest
-				? e.target.closest(".tabs-catalog-detail .tabs__tab:not(.current)")
+				? e.target.closest(".tabs-catalog-detail .tabs__tab")
 				: null;
-			if (!tab) {
+			if (!tab || tab.classList.contains("current")) {
 				return;
 			}
 			var goal = tab.getAttribute("data-metrika-goal");
