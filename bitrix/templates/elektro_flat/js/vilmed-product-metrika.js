@@ -11,6 +11,7 @@
 	var METRIKA_ID = 55225453;
 	var IMG_RE = /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i;
 	var photoGoalSent = false;
+	var tabGoalsSent = {};
 	var inited = false;
 
 	/**
@@ -46,9 +47,11 @@
 			return;
 		}
 		var goal = tab.getAttribute("data-metrika-goal");
-		if (goal) {
-			reachGoal(goal);
+		if (!goal || tabGoalsSent[goal]) {
+			return;
 		}
+		tabGoalsSent[goal] = true;
+		reachGoal(goal);
 	}
 
 	function onPhotoClick(e) {
