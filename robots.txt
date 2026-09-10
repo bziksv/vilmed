@@ -54,6 +54,9 @@ Disallow: /about/details/
 Disallow: /about/employees/
 Disallow: /about/responses/
 Disallow: /map/
+###############vnutrennie / sluzhebnye###################
+Disallow: /category-finder/
+Disallow: /captcha.php
 ###############legal / politiki / soglasija###################
 Disallow: /legal/
 Disallow: /upload/oferta-old
