@@ -413,7 +413,7 @@ class Agent
 	protected static function isTransientRemoteError(string $err): bool
 	{
 		$err = mb_strtolower($err);
-		foreach (['timed out', 'timeout', 'curl error 28', 'curl error 52', 'curl error 56', '502', '503', '504', '429'] as $needle) {
+		foreach (['timed out', 'timeout', 'таймаут', 'curl error 28', 'curl error 52', 'curl error 56', '502', '503', '504', '429'] as $needle) {
 			if (mb_strpos($err, $needle) !== false) {
 				return true;
 			}
@@ -468,6 +468,12 @@ class Agent
 	protected static function stepRecheck(ApiClient $client, array $row): void
 	{
 		$id = (int) $row['ID'];
+		$entityType = strtoupper((string) ($row['ENTITY_TYPE'] ?? 'E')) === 'S' ? 'S' : 'E';
+		CatalogRepository::flushPublicPageCache(
+			(int) ($row['ENTITY_ID'] ?? 0),
+			$entityType,
+			(string) ($row['URL'] ?? '')
+		);
 		$result = $client->startAnalysis(self::crawlUrl($row), (string) $row['PHRASE'], [
 			'engine' => Config::analysisEngineDefault(),
 			'region' => Config::analysisRegionDefault(),

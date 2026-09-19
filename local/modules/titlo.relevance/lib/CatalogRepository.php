@@ -1001,6 +1001,21 @@ class CatalogRepository
 		self::deleteCompositePage($publicUrl);
 	}
 
+	protected static function siteDocumentRoot(): string
+	{
+		$doc = rtrim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
+		if ($doc !== '' && is_dir($doc . '/bitrix/html_pages')) {
+			return $doc;
+		}
+		// Агент Bitrix иногда без DOCUMENT_ROOT. lib → module → modules → local → корень сайта.
+		$guess = dirname(__DIR__, 4);
+		if (is_dir($guess . '/bitrix/html_pages')) {
+			return $guess;
+		}
+
+		return $doc;
+	}
+
 	protected static function deleteCompositePage(string $publicUrl): void
 	{
 		$path = parse_url($publicUrl, PHP_URL_PATH);
@@ -1019,7 +1034,7 @@ class CatalogRepository
 			}
 		}
 
-		$doc = rtrim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
+		$doc = self::siteDocumentRoot();
 		$base = $doc . '/bitrix/html_pages';
 		if ($doc === '' || !is_dir($base)) {
 			return;
@@ -1033,6 +1048,11 @@ class CatalogRepository
 				continue;
 			}
 			$target = $base . '/' . $hostDir . $path;
+			foreach ([$target . '@.html', $target . '/index@.html', $target . '.html'] as $file) {
+				if (is_file($file)) {
+					@unlink($file);
+				}
+			}
 			if (is_dir($target)) {
 				self::rrmdir($target);
 			}
