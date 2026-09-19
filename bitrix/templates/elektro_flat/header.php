@@ -139,9 +139,18 @@ Loc::loadMessages(__FILE__);
 		Asset::getInstance()->addCss($vilmedAssetVer($vilmedTplPath."/css/product-lightbox.css"));
 		Asset::getInstance()->addJs($vilmedAssetVer($vilmedTplPath."/js/product-lightbox.js"));
 		Asset::getInstance()->addJs($vilmedAssetVer($vilmedTplPath."/js/vilmed-product-metrika.js"));
-		// Оформление детального описания (.vmd-desc). Scoped CSS, влияет только на
-		// контент с этими классами в детальном тексте товара. Док: css/VMD-DESCRIPTION.md
+	}
+	// Оформление .vmd-desc: карточка товара и SEO-текст категории (DESCRIPTION).
+	// Scoped CSS — влияет только на контент с этими классами. Док: css/VMD-DESCRIPTION.md
+	if (
+		(function_exists('isProductDetail') && isProductDetail())
+		|| (function_exists('isCatalogDir') && isCatalogDir())
+	) {
 		Asset::getInstance()->addCss($vilmedAssetVer($vilmedTplPath."/css/vmd-description.css"));
+	}
+	// Категории: h1 + лид видны сразу, остальное .vmd-desc — за «Подробнее».
+	if (function_exists('isCatalogDir') && isCatalogDir()) {
+		Asset::getInstance()->addJs($vilmedAssetVer($vilmedTplPath."/js/vmd-desc-collapse.js"));
 	}
 	Asset::getInstance()->addJs($vilmedTplPath."/js/jquery.cookie.js");
 	Asset::getInstance()->addJs($vilmedTplPath."/js/moremenu.js");

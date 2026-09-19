@@ -40,6 +40,41 @@
 /* --- Заголовки h1–h3 --- */
 .vmd-desc h1 { font-size: 28px; line-height: 1.25; font-weight: 800; margin: 0 0 6px; letter-spacing: -.01em; }
 .vmd-desc .vmd-subtitle { font-size: 17px; color: var(--muted); margin: 0 0 26px; font-weight: 400; }
+.vmd-desc.vmd-desc--collapsible > .vmd-subtitle { margin-bottom: 12px; }
+
+/* --- Категории: тизер + «Подробнее» --- */
+.vmd-desc .vmd-desc__toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0 0 8px;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--accent);
+	font: inherit;
+	font-size: 15.5px;
+	font-weight: 650;
+	cursor: pointer;
+	line-height: 1.4;
+}
+.vmd-desc .vmd-desc__toggle::after {
+	content: "";
+	width: 7px;
+	height: 7px;
+	border-right: 2px solid currentColor;
+	border-bottom: 2px solid currentColor;
+	transform: rotate(45deg);
+	margin-top: -3px;
+	transition: transform .18s ease;
+}
+.vmd-desc.vmd-desc--expanded > .vmd-desc__toggle::after {
+	transform: rotate(-135deg);
+	margin-top: 3px;
+}
+.vmd-desc .vmd-desc__toggle:hover { text-decoration: underline; }
+.vmd-desc.vmd-desc--collapsed > .vmd-desc__more { display: none; }
+.vmd-desc.vmd-desc--expanded > .vmd-desc__more { display: block; margin-top: 10px; }
 .vmd-desc h2 { font-size: 22px; font-weight: 700; margin: 34px 0 14px; padding-bottom: 10px; position: relative; letter-spacing: -.01em; }
 .vmd-desc h2::after { content: ""; position: absolute; left: 0; bottom: 0; width: 54px; height: 3px; background: var(--accent); border-radius: 3px; }
 .vmd-desc h3 { font-size: 18px; font-weight: 700; margin: 24px 0 10px; color: #2a3040; }

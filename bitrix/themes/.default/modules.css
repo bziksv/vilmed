@@ -7499,6 +7499,36 @@ a.product-unavailable:hover {
 }
 .subscribe_border {border:1px solid #BDC6E0; padding:4px;}
 
+/*Menu icons — Titlo Relevance (install theme copy)*/
+.titlo_relevance_menu_icon {
+	background: url(icons/titlo.relevance/titlo_menu.png) 9px center no-repeat !important;
+	background-size: 18px 18px !important;
+}
+.titlo_relevance_page_icon {
+	background: url(icons/titlo.relevance/titlo_menu.png) center center no-repeat !important;
+	background-size: 32px 32px !important;
+}
+.titlo_relevance_useful_icon {
+	background: url(icons/titlo.relevance/useful_checklist.png) 5px center no-repeat !important;
+	background-size: 16px 16px !important;
+}
+.titlo_relevance_useful_audit_icon {
+	background: url(icons/titlo.relevance/useful_audit.png) 5px center no-repeat !important;
+	background-size: 16px 16px !important;
+}
+.titlo_relevance_useful_checklist_icon {
+	background: url(icons/titlo.relevance/useful_checklist.png) 5px center no-repeat !important;
+	background-size: 16px 16px !important;
+}
+.titlo_relevance_useful_site_mon_icon {
+	background: url(icons/titlo.relevance/useful_site_mon.png) 5px center no-repeat !important;
+	background-size: 16px 16px !important;
+}
+.titlo_relevance_useful_pos_mon_icon {
+	background: url(icons/titlo.relevance/useful_pos_mon.png) 5px center no-repeat !important;
+	background-size: 16px 16px !important;
+}
+
 /*Menu icon*/
 #translate_menu_icon {background-image:url(icons/translate/mnu_translate.gif);}
 #translate_page_icon {background-image:url(icons/translate/title.gif);}
