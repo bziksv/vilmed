@@ -967,9 +967,99 @@ class CatalogRepository
 		$el = new \CIBlockElement();
 		$ok = (bool) $el->Update($id, $fields);
 		if ($ok) {
-			\CIBlock::clearIblockTagCache(Config::iblockId());
+			self::flushPublicPageCache($id, 'E');
 		}
 		return $ok;
+	}
+
+	/**
+	 * Публичная карточка кешируется отдельно от БД.
+	 * catalog: CACHE_TYPE=Y / CACHE_TIME=36000000 — clearIblockTagCache это не сбрасывает.
+	 * Плюс композит html_pages. Без сброса повторный анализ видит старый HTML и тот же балл.
+	 */
+	public static function flushPublicPageCache(int $entityId, string $entityType = 'E', ?string $publicUrl = null): void
+	{
+		$iblockId = Config::iblockId();
+		if ($iblockId > 0) {
+			\CIBlock::clearIblockTagCache($iblockId);
+		}
+
+		if (class_exists('\\CBitrixComponent')) {
+			\CBitrixComponent::clearComponentCache('bitrix:catalog');
+			\CBitrixComponent::clearComponentCache('bitrix:catalog.element');
+			\CBitrixComponent::clearComponentCache('bitrix:catalog.section');
+		}
+
+		if ($publicUrl === null || $publicUrl === '') {
+			if ($entityType === 'S') {
+				$entity = self::findSection($entityId);
+			} else {
+				$entity = self::findElement($entityId);
+			}
+			$publicUrl = (string) ($entity['url'] ?? '');
+		}
+		self::deleteCompositePage($publicUrl);
+	}
+
+	protected static function deleteCompositePage(string $publicUrl): void
+	{
+		$path = parse_url($publicUrl, PHP_URL_PATH);
+		if (!is_string($path) || $path === '' || $path === '/') {
+			return;
+		}
+		$path = '/' . trim($path, '/');
+
+		$host = parse_url($publicUrl, PHP_URL_HOST);
+		$host = is_string($host) ? $host : '';
+		if ($host !== '' && class_exists('\\Bitrix\\Main\\Composite\\Helper')) {
+			try {
+				\Bitrix\Main\Composite\Helper::delete($host, $path . '/');
+			} catch (\Throwable $e) {
+				// версия ядра может отличаться сигнатурой — ниже файловый fallback
+			}
+		}
+
+		$doc = rtrim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
+		$base = $doc . '/bitrix/html_pages';
+		if ($doc === '' || !is_dir($base)) {
+			return;
+		}
+		$hosts = @scandir($base);
+		if (!is_array($hosts)) {
+			return;
+		}
+		foreach ($hosts as $hostDir) {
+			if ($hostDir === '.' || $hostDir === '..' || $hostDir === '') {
+				continue;
+			}
+			$target = $base . '/' . $hostDir . $path;
+			if (is_dir($target)) {
+				self::rrmdir($target);
+			}
+		}
+	}
+
+	protected static function rrmdir(string $dir): void
+	{
+		if (!is_dir($dir)) {
+			return;
+		}
+		$items = @scandir($dir);
+		if (!is_array($items)) {
+			return;
+		}
+		foreach ($items as $item) {
+			if ($item === '.' || $item === '..') {
+				continue;
+			}
+			$full = $dir . '/' . $item;
+			if (is_dir($full)) {
+				self::rrmdir($full);
+			} else {
+				@unlink($full);
+			}
+		}
+		@rmdir($dir);
 	}
 
 	/**
@@ -1458,7 +1548,7 @@ class CatalogRepository
 			'DESCRIPTION_TYPE' => 'html',
 		]);
 		if ($ok) {
-			\CIBlock::clearIblockTagCache(Config::iblockId());
+			self::flushPublicPageCache($id, 'S');
 		}
 		return $ok;
 	}
