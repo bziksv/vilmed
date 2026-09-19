@@ -199,7 +199,11 @@ $tabControl->Begin();
 		</td>
 	</tr>
 	<?php
-	$tabControl->Buttons();
+	$tabControl->Buttons([
+		'btnSave' => true,
+		'btnApply' => true,
+		'btnCancel' => false,
+	]);
 	$tabControl->End();
 	?>
 </form>
