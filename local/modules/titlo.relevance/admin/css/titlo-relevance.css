@@ -78,40 +78,28 @@
 .titlo-names th .titlo-help,
 .titlo-auto-products th .titlo-help { vertical-align: middle; }
 
-/* Автопроработка: название/фраза не должны наезжать друг на друга */
+/* Автопроработка: колонка «Название» без ширины — при table-layout:fixed
+   проценты + px в шапке схлопывали её в 0 и раздували высоту строки. */
 .titlo-auto-products {
 	max-width: none;
+	overflow-x: auto;
 }
 .titlo-auto-products .titlo-auto-table {
-	table-layout: fixed;
+	table-layout: auto;
 	width: 100%;
 }
 .titlo-auto-products .titlo-auto-table th,
 .titlo-auto-products .titlo-auto-table td {
 	vertical-align: top;
-	overflow: hidden;
-	word-wrap: break-word;
-	overflow-wrap: break-word;
+	height: auto;
 	white-space: normal;
+	word-break: normal;
+	overflow-wrap: break-word;
 }
-.titlo-auto-products .titlo-auto-table th:nth-child(1),
-.titlo-auto-products .titlo-auto-table td:nth-child(1) { width: 36px; }
-.titlo-auto-products .titlo-auto-table th:nth-child(2),
-.titlo-auto-products .titlo-auto-table td:nth-child(2) { width: 70px; }
 .titlo-auto-products .titlo-auto-table th:nth-child(3),
-.titlo-auto-products .titlo-auto-table td:nth-child(3) { width: 28%; }
-.titlo-auto-products .titlo-auto-table th:nth-child(4),
-.titlo-auto-products .titlo-auto-table td:nth-child(4) { width: 22%; }
-.titlo-auto-products .titlo-auto-table th:nth-child(5),
-.titlo-auto-products .titlo-auto-table td:nth-child(5) { width: 90px; }
-.titlo-auto-products .titlo-auto-table th:nth-child(6),
-.titlo-auto-products .titlo-auto-table td:nth-child(6) { width: 110px; }
-.titlo-auto-products .titlo-auto-table th:nth-child(7),
-.titlo-auto-products .titlo-auto-table td:nth-child(7) { width: 130px; }
-.titlo-auto-products .titlo-auto-table th:nth-child(8),
-.titlo-auto-products .titlo-auto-table td:nth-child(8) { width: 120px; }
-.titlo-auto-products .titlo-auto-table th:nth-child(9),
-.titlo-auto-products .titlo-auto-table td:nth-child(9) { width: 140px; }
+.titlo-auto-products .titlo-auto-table td:nth-child(3) {
+	min-width: 180px;
+}
 .titlo-hist-table tr.is-current { background: #ecfdf5; }
 .titlo-hist-table button.linkish {
 	background: none;
