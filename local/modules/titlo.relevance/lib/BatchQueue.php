@@ -139,6 +139,7 @@ class BatchQueue
 			'STEP' => "ALTER TABLE titlo_relevance_queue ADD COLUMN STEP varchar(32) NOT NULL DEFAULT 'analyze' AFTER STATUS",
 			'GEN_RECORD_ID' => 'ALTER TABLE titlo_relevance_queue ADD COLUMN GEN_RECORD_ID int(11) DEFAULT NULL AFTER ANALYSIS_ID',
 			'GEN_PREVIEW_RECORD_ID' => 'ALTER TABLE titlo_relevance_queue ADD COLUMN GEN_PREVIEW_RECORD_ID int(11) DEFAULT NULL AFTER GEN_RECORD_ID',
+			'GEN_ATTEMPTS' => 'ALTER TABLE titlo_relevance_queue ADD COLUMN GEN_ATTEMPTS int(11) NOT NULL DEFAULT 0 AFTER GEN_PREVIEW_RECORD_ID',
 			'DETAIL_TEXT' => 'ALTER TABLE titlo_relevance_queue ADD COLUMN DETAIL_TEXT mediumtext AFTER GEN_PREVIEW_RECORD_ID',
 			'PREVIEW_TEXT' => 'ALTER TABLE titlo_relevance_queue ADD COLUMN PREVIEW_TEXT mediumtext AFTER DETAIL_TEXT',
 			'PROMPT_DETAIL_ID' => 'ALTER TABLE titlo_relevance_queue ADD COLUMN PROMPT_DETAIL_ID int(11) NOT NULL DEFAULT 0 AFTER PREVIEW_TEXT',
@@ -597,6 +598,7 @@ class BatchQueue
 			'ANALYSIS_ID' => 'ANALYSIS_ID',
 			'GEN_RECORD_ID' => 'GEN_RECORD_ID',
 			'GEN_PREVIEW_RECORD_ID' => 'GEN_PREVIEW_RECORD_ID',
+			'GEN_ATTEMPTS' => 'GEN_ATTEMPTS',
 			'DETAIL_TEXT' => 'DETAIL_TEXT',
 			'PREVIEW_TEXT' => 'PREVIEW_TEXT',
 			'WORK_HISTORY_ID' => 'WORK_HISTORY_ID',
@@ -609,7 +611,7 @@ class BatchQueue
 			$val = $extra[$key];
 			if ($val === null) {
 				$sets[] = $col . ' = NULL';
-			} elseif (in_array($col, ['HISTORY_ID', 'GEN_RECORD_ID', 'GEN_PREVIEW_RECORD_ID', 'WORK_HISTORY_ID'], true)) {
+			} elseif (in_array($col, ['HISTORY_ID', 'GEN_RECORD_ID', 'GEN_PREVIEW_RECORD_ID', 'WORK_HISTORY_ID', 'GEN_ATTEMPTS'], true)) {
 				$sets[] = $col . ' = ' . (int) $val;
 			} else {
 				$sets[] = $col . " = '" . $DB->ForSql((string) $val) . "'";

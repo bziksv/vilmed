@@ -366,7 +366,17 @@ class Agent
 		$res = $client->getGenerate($recordId);
 		$st = (string) ($res['status'] ?? '');
 		if ($st === 'failed') {
-			throw new \RuntimeException((string) ($res['error'] ?? 'generate_failed'));
+			$err = (string) ($res['error'] ?? 'generate_failed');
+			$attempt = (int) ($row['GEN_ATTEMPTS'] ?? 0);
+			if ($attempt < 2 && self::isTransientRemoteError($err)) {
+				BatchQueue::mark($id, BatchQueue::STATUS_RUNNING, [
+					'STEP' => $preview ? BatchQueue::STEP_GENERATE_PREVIEW : BatchQueue::STEP_GENERATE,
+					'GEN_ATTEMPTS' => $attempt + 1,
+					'ERROR' => null,
+				]);
+				return;
+			}
+			throw new \RuntimeException($err);
 		}
 		if ($st !== 'completed' && $st !== 'done') {
 			// Не bump UPDATED_AT на poll — иначе ceiling не сработает
@@ -398,6 +408,18 @@ class Agent
 				: BatchQueue::STEP_SAVE;
 		}
 		BatchQueue::mark($id, BatchQueue::STATUS_RUNNING, $next);
+	}
+
+	protected static function isTransientRemoteError(string $err): bool
+	{
+		$err = mb_strtolower($err);
+		foreach (['timed out', 'timeout', 'curl error 28', 'curl error 52', 'curl error 56', '502', '503', '504', '429'] as $needle) {
+			if (mb_strpos($err, $needle) !== false) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	protected static function stepSave(array $row): void
