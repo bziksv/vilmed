@@ -232,7 +232,7 @@ class BatchQueue
 		if ($runMode !== self::MODE_ANALYZE_ONLY) {
 			$runMode = self::MODE_FULL;
 		}
-		$missLim = (int) ($opts['tlp_missing_limit'] ?? 200);
+		$missLim = (int) ($opts['tlp_missing_limit'] ?? 300);
 		$diffLim = (int) ($opts['tlp_diff_limit'] ?? 5);
 		if ($missLim < 0) {
 			$missLim = 0;

@@ -37,7 +37,7 @@ $policy = Config::getAutoOption('existing_policy', 'E', BatchQueue::POLICY_OVERW
 if ($policy !== BatchQueue::POLICY_SKIP) {
 	$policy = BatchQueue::POLICY_OVERWRITE;
 }
-$tlpMissing = (int) Config::getAutoOption('tlp_missing', 'E', '200');
+$tlpMissing = (int) Config::getAutoOption('tlp_missing', 'E', '300');
 $tlpDiff = (int) Config::getAutoOption('tlp_diff', 'E', '5');
 $genPreview = Config::getAutoOption('gen_preview', 'E', 'N') === 'Y';
 $runMode = Config::getAutoOption('run_mode', 'E', BatchQueue::MODE_FULL);

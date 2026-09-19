@@ -143,7 +143,7 @@ try {
 					'diff' => $res['diff'] ?? [],
 					'missing_total' => (int) ($res['missing_total'] ?? 0),
 					'diff_total' => (int) ($res['diff_total'] ?? 0),
-					'defaults' => $res['defaults'] ?? ['missing_limit' => 200, 'diff_limit' => 5],
+					'defaults' => $res['defaults'] ?? ['missing_limit' => 300, 'diff_limit' => 5],
 				]);
 			}
 			$res = $client->getMissingPhrases($historyId, 'zero');
@@ -407,7 +407,7 @@ try {
 						'prompt_preview_id' => (int) ($_POST['prompt_preview_id'] ?? 0),
 						'gen_preview' => in_array((string) ($_POST['gen_preview'] ?? ''), ['1', 'Y', 'y', 'true'], true),
 						'existing_policy' => (string) ($_POST['existing_policy'] ?? BatchQueue::POLICY_OVERWRITE),
-						'tlp_missing_limit' => (int) ($_POST['tlp_missing_limit'] ?? 200),
+						'tlp_missing_limit' => (int) ($_POST['tlp_missing_limit'] ?? 300),
 						'tlp_diff_limit' => (int) ($_POST['tlp_diff_limit'] ?? 5),
 					]
 				);
@@ -468,7 +468,7 @@ try {
 				'prompt_preview_id' => (int) ($_POST['prompt_preview_id'] ?? 0),
 				'gen_preview' => $entityType !== 'S' && in_array((string) ($_POST['gen_preview'] ?? ''), ['1', 'Y', 'y', 'true'], true),
 				'existing_policy' => (string) ($_POST['existing_policy'] ?? BatchQueue::POLICY_OVERWRITE),
-				'tlp_missing_limit' => (int) ($_POST['tlp_missing_limit'] ?? 200),
+				'tlp_missing_limit' => (int) ($_POST['tlp_missing_limit'] ?? 300),
 				'tlp_diff_limit' => (int) ($_POST['tlp_diff_limit'] ?? 5),
 				'run_mode' => (string) ($_POST['run_mode'] ?? BatchQueue::MODE_FULL),
 			];
@@ -518,7 +518,7 @@ try {
 				'prompt_detail_id' => (int) ($_POST['prompt_detail_id'] ?? 0),
 				'prompt_preview_id' => (int) ($_POST['prompt_preview_id'] ?? 0),
 				'gen_preview' => $entityType !== 'S' && in_array((string) ($_POST['gen_preview'] ?? ''), ['1', 'Y', 'y', 'true'], true),
-				'tlp_missing_limit' => (int) ($_POST['tlp_missing_limit'] ?? 200),
+				'tlp_missing_limit' => (int) ($_POST['tlp_missing_limit'] ?? 300),
 				'tlp_diff_limit' => (int) ($_POST['tlp_diff_limit'] ?? 5),
 			];
 			if ($opts['run_mode'] === BatchQueue::MODE_FULL) {
