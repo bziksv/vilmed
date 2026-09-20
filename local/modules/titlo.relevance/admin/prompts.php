@@ -57,14 +57,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_bitrix_sessid()) {
 		$messageType = !empty($res['ok']) ? 'OK' : 'ERROR';
 	} elseif ($action === 'default') {
 		$res = Prompts::setDefault($id);
-		$message = !empty($res['ok']) ? 'Назначен промптом по умолчанию (будет подставляться при генерации).' : ($res['error'] ?? 'Ошибка');
+		$message = !empty($res['ok'])
+			? 'Назначен по умолчанию для своего режима (полная или повторная).'
+			: ($res['error'] ?? 'Ошибка');
 		$messageType = !empty($res['ok']) ? 'OK' : 'ERROR';
 	} elseif ($action === 'activate') {
 		if ($id > 0) {
 			$row = Prompts::find($id);
 			if ($row) {
 				Prompts::setActiveId($row['type'], $id);
-				$message = 'Выбран для генерации: «' . $row['name'] . '».';
+				$modeLabel = Prompts::runModeLabel((string) ($row['run_mode'] ?? Prompts::RUN_MODE_FULL));
+				$message = 'Выбран для режима «' . $modeLabel . '»: «' . $row['name'] . '».';
 			}
 		}
 	}
@@ -73,6 +76,122 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_bitrix_sessid()) {
 require_once $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_admin_after.php';
 
 $catalog = Prompts::catalog();
+
+/**
+ * @param array $it
+ * @param string $type
+ * @param int $activeId
+ * @param int $typeTotal
+ * @param string $self
+ * @param bool $lockMode
+ * @param string $fixedMode
+ */
+$renderPromptCard = static function (
+	array $it,
+	string $type,
+	int $activeId,
+	int $typeTotal,
+	string $self,
+	bool $lockMode = false,
+	string $fixedMode = ''
+): void {
+	$mode = Prompts::normalizePromptRunMode((string) ($it['run_mode'] ?? Prompts::RUN_MODE_FULL));
+	?>
+	<form method="post" action="<?= htmlspecialcharsbx($self) ?>" class="card<?= $it['id'] === $activeId ? ' is-active' : '' ?>">
+		<?= bitrix_sessid_post() ?>
+		<input type="hidden" name="titlo_action" value="save">
+		<input type="hidden" name="type" value="<?= htmlspecialcharsbx($type) ?>">
+		<input type="hidden" name="id" value="<?= (int) $it['id'] ?>">
+		<input type="hidden" name="focus_type" value="<?= htmlspecialcharsbx($type) ?>">
+		<?php if ($lockMode): ?>
+			<input type="hidden" name="run_mode" value="<?= htmlspecialcharsbx($fixedMode !== '' ? $fixedMode : $mode) ?>">
+		<?php endif; ?>
+		<div class="card-h">
+			<input type="text" name="name" class="adm-input" value="<?= htmlspecialcharsbx($it['name']) ?>" placeholder="Название варианта">
+			<?php if (!$lockMode): ?>
+				<label class="titlo-prompt-mode">
+					Режим
+					<select name="run_mode" class="adm-input">
+						<option value="<?= htmlspecialcharsbx(Prompts::RUN_MODE_FULL) ?>" <?= $mode === Prompts::RUN_MODE_FULL ? 'selected' : '' ?>>полная проработка</option>
+						<option value="<?= htmlspecialcharsbx(Prompts::RUN_MODE_REFINE) ?>" <?= $mode === Prompts::RUN_MODE_REFINE ? 'selected' : '' ?>>повторная доработка</option>
+						<option value="<?= htmlspecialcharsbx(Prompts::RUN_MODE_ANY) ?>" <?= $mode === Prompts::RUN_MODE_ANY ? 'selected' : '' ?>>любой режим</option>
+					</select>
+				</label>
+			<?php endif; ?>
+			<?php if ($it['is_default']): ?>
+				<span class="badge badge-def">по умолчанию в режиме</span>
+			<?php endif; ?>
+			<?php if ($it['id'] === $activeId): ?>
+				<span class="badge badge-active">выбран для режима</span>
+			<?php endif; ?>
+			<?php if (!$lockMode): ?>
+				<span class="badge badge-mode"><?= htmlspecialcharsbx($it['run_mode_label'] ?? Prompts::runModeLabel($mode)) ?></span>
+			<?php endif; ?>
+			<span class="badge badge-used"><?= htmlspecialcharsbx($it['last_used_label']) ?></span>
+		</div>
+		<textarea name="body" rows="9"><?= htmlspecialcharsbx($it['body']) ?></textarea>
+		<div class="card-actions">
+			<input type="submit" class="adm-btn-save" value="Сохранить"
+				onclick="this.form.titlo_action.value='save'">
+			<input type="submit" class="adm-btn" value="Выбрать для режима"
+				onclick="this.form.titlo_action.value='activate'">
+			<?php if (!$it['is_default']): ?>
+				<input type="submit" class="adm-btn" value="По умолчанию в режиме"
+					onclick="this.form.titlo_action.value='default'">
+			<?php endif; ?>
+			<?php if ($typeTotal > 1): ?>
+				<input type="submit" class="adm-btn" value="Удалить"
+					onclick="this.form.titlo_action.value='delete'; return confirm('Удалить «<?= htmlspecialcharsbx($it['name']) ?>»?');">
+			<?php endif; ?>
+		</div>
+	</form>
+	<?php
+};
+
+/**
+ * @param string $type
+ * @param string $mode
+ * @param array $items
+ * @param string $self
+ * @param callable $renderPromptCard
+ */
+$renderModeSection = static function (
+	string $type,
+	string $mode,
+	array $items,
+	string $self,
+	callable $renderPromptCard,
+	bool $isActive = false
+): void {
+	$meta = Prompts::runModeSectionMeta($mode);
+	$activeId = Prompts::getActiveId($type, $mode);
+	$typeTotal = count(Prompts::listByType($type));
+	$count = count($items);
+	?>
+	<div class="mode-block mode-block--<?= htmlspecialcharsbx($mode) ?><?= $isActive ? ' is-open' : '' ?>"
+		data-mode-panel="<?= htmlspecialcharsbx($mode) ?>"
+		<?= $isActive ? '' : 'hidden' ?>>
+		<div class="mode-block__h">
+			<h4><?= htmlspecialcharsbx($meta['title']) ?> <span class="mode-count">(<?= (int) $count ?>)</span></h4>
+			<p><?= htmlspecialcharsbx($meta['hint']) ?></p>
+		</div>
+		<?php if (!$items): ?>
+			<p class="meta">В этом режиме пока нет промптов.</p>
+		<?php endif; ?>
+		<?php foreach ($items as $it): ?>
+			<?php $renderPromptCard($it, $type, $activeId, $typeTotal, $self, true, $mode); ?>
+		<?php endforeach; ?>
+		<form method="post" action="<?= htmlspecialcharsbx($self) ?>" class="add-row">
+			<?= bitrix_sessid_post() ?>
+			<input type="hidden" name="titlo_action" value="add">
+			<input type="hidden" name="type" value="<?= htmlspecialcharsbx($type) ?>">
+			<input type="hidden" name="focus_type" value="<?= htmlspecialcharsbx($type) ?>">
+			<input type="hidden" name="run_mode" value="<?= htmlspecialcharsbx($mode) ?>">
+			<input type="submit" class="adm-btn" value="+ Добавить в «<?= htmlspecialcharsbx($meta['title']) ?>»">
+		</form>
+	</div>
+	<?php
+};
 ?>
 
 <?php AdminUi::renderCss(); ?>
@@ -85,11 +204,15 @@ $catalog = Prompts::catalog();
 	<?php endif; ?>
 
 	<div class="hint-box">
-		Можно завести <b>несколько вариантов</b> промпта (например «короткий», «продающий», «технический») и на генерации выбирать нужный.
-		У каждого видно, <b>когда использовали последний раз</b>. Плейсхолдеры <code>{link}</code>, <code>{name}</code>, <code>{list}</code> не удаляйте.
+		Разделы: <b>товары</b> и <b>категории</b>. Внутри детального текста / текста категории —
+		два режима:
+		<br>
+		• <b>полная проработка</b> — пишем описание с нуля (первый проход);
+		<br>
+		• <b>повторная доработка</b> — уже есть текст, дописываем под TLP без урезания стилей.
 		<br><br>
-		У промпта есть <b>режим</b>: <i>полная проработка</i>, <i>повторная доработка</i> или <i>любой</i> —
-		в автопроработке в селекте остаются только подходящие варианты.
+		«По умолчанию» и «Выбрать» работают <b>отдельно для каждого режима</b>: дефолт полной
+		не затирает дефолт доработки. В автопроработке в селекте видны только промпты текущего режима.
 	</div>
 
 	<?php foreach (Prompts::groups() as $groupKey => $group): ?>
@@ -106,7 +229,7 @@ $catalog = Prompts::catalog();
 				<?php
 				$meta = $catalog[$type];
 				$items = Prompts::listByType($type);
-				$activeId = Prompts::getActiveId($type);
+				$usesModes = Prompts::typeUsesRunModes($type);
 				$last = null;
 				$lastTs = null;
 				foreach ($items as $it) {
@@ -122,70 +245,64 @@ $catalog = Prompts::catalog();
 					<p class="ph">Плейсхолдеры: <?= htmlspecialcharsbx($meta['placeholders']) ?></p>
 					<?php if ($last): ?>
 						<p class="meta">Последний запуск: <b><?= htmlspecialcharsbx($last['name']) ?></b> — <?= htmlspecialcharsbx($last['last_used_label']) ?>
-							(всего запусков этого варианта: <?= (int) $last['use_count'] ?>)</p>
+							(режим: <?= htmlspecialcharsbx($last['run_mode_label'] ?? '') ?>,
+							запусков варианта: <?= (int) $last['use_count'] ?>)</p>
 					<?php else: ?>
 						<p class="meta">По этому типу генераций ещё не было.</p>
 					<?php endif; ?>
 
-					<?php foreach ($items as $it): ?>
-						<form method="post" action="<?= htmlspecialcharsbx($self) ?>" class="card<?= $it['id'] === $activeId ? ' is-active' : '' ?>">
+					<?php if ($usesModes): ?>
+						<?php
+						$parts = Prompts::partitionByRunMode($items);
+						$tabModes = [Prompts::RUN_MODE_FULL, Prompts::RUN_MODE_REFINE];
+						if ($parts[Prompts::RUN_MODE_ANY]) {
+							$tabModes[] = Prompts::RUN_MODE_ANY;
+						}
+						$openMode = Prompts::RUN_MODE_FULL;
+						if ($message && $openType === $type) {
+							$postedMode = (string) ($_POST['run_mode'] ?? '');
+							if (in_array($postedMode, $tabModes, true)) {
+								$openMode = $postedMode;
+							}
+						}
+						?>
+						<div class="mode-tabs" data-mode-tabs>
+							<?php foreach ($tabModes as $modeKey): ?>
+								<?php
+								$sec = Prompts::runModeSectionMeta($modeKey);
+								$n = count($parts[$modeKey] ?? []);
+								?>
+								<button type="button"
+									class="mode-tab<?= $modeKey === $openMode ? ' is-active' : '' ?>"
+									data-mode-tab="<?= htmlspecialcharsbx($modeKey) ?>">
+									<?= htmlspecialcharsbx($sec['title']) ?>
+									<span class="mode-tab__n"><?= (int) $n ?></span>
+								</button>
+							<?php endforeach; ?>
+						</div>
+						<div class="mode-panels">
+							<?php foreach ($tabModes as $modeKey): ?>
+								<?php $renderModeSection($type, $modeKey, $parts[$modeKey] ?? [], $self, $renderPromptCard, $modeKey === $openMode); ?>
+							<?php endforeach; ?>
+						</div>
+					<?php else: ?>
+						<?php
+						$activeId = Prompts::getActiveId($type);
+						$typeTotal = count($items);
+						foreach ($items as $it) {
+							// анонс / фразы — без свалки режимов
+							$renderPromptCard($it, $type, $activeId, $typeTotal, $self, true, Prompts::RUN_MODE_FULL);
+						}
+						?>
+						<form method="post" action="<?= htmlspecialcharsbx($self) ?>" class="add-row">
 							<?= bitrix_sessid_post() ?>
-							<input type="hidden" name="titlo_action" value="save">
+							<input type="hidden" name="titlo_action" value="add">
 							<input type="hidden" name="type" value="<?= htmlspecialcharsbx($type) ?>">
-							<input type="hidden" name="id" value="<?= (int) $it['id'] ?>">
 							<input type="hidden" name="focus_type" value="<?= htmlspecialcharsbx($type) ?>">
-							<div class="card-h">
-								<input type="text" name="name" class="adm-input" value="<?= htmlspecialcharsbx($it['name']) ?>" placeholder="Название варианта">
-								<label class="titlo-prompt-mode">
-									Режим
-									<select name="run_mode" class="adm-input">
-										<option value="<?= htmlspecialcharsbx(Prompts::RUN_MODE_FULL) ?>" <?= ($it['run_mode'] ?? '') === Prompts::RUN_MODE_FULL ? 'selected' : '' ?>>полная проработка</option>
-										<option value="<?= htmlspecialcharsbx(Prompts::RUN_MODE_REFINE) ?>" <?= ($it['run_mode'] ?? '') === Prompts::RUN_MODE_REFINE ? 'selected' : '' ?>>повторная доработка</option>
-										<option value="<?= htmlspecialcharsbx(Prompts::RUN_MODE_ANY) ?>" <?= ($it['run_mode'] ?? '') === Prompts::RUN_MODE_ANY ? 'selected' : '' ?>>любой режим</option>
-									</select>
-								</label>
-								<?php if ($it['is_default']): ?>
-									<span class="badge badge-def">по умолчанию</span>
-								<?php endif; ?>
-								<?php if ($it['id'] === $activeId): ?>
-									<span class="badge badge-active">выбран для генерации</span>
-								<?php endif; ?>
-								<span class="badge badge-mode"><?= htmlspecialcharsbx($it['run_mode_label'] ?? 'полная проработка') ?></span>
-								<span class="badge badge-used"><?= htmlspecialcharsbx($it['last_used_label']) ?></span>
-							</div>
-							<textarea name="body" rows="9"><?= htmlspecialcharsbx($it['body']) ?></textarea>
-							<div class="card-actions">
-								<input type="submit" class="adm-btn-save" value="Сохранить"
-									onclick="this.form.titlo_action.value='save'">
-								<input type="submit" class="adm-btn" value="Выбрать для генерации"
-									onclick="this.form.titlo_action.value='activate'">
-								<?php if (!$it['is_default']): ?>
-									<input type="submit" class="adm-btn" value="Сделать по умолчанию"
-										onclick="this.form.titlo_action.value='default'">
-								<?php endif; ?>
-								<?php if (count($items) > 1): ?>
-									<input type="submit" class="adm-btn" value="Удалить"
-										onclick="this.form.titlo_action.value='delete'; return confirm('Удалить «<?= htmlspecialcharsbx($it['name']) ?>»?');">
-								<?php endif; ?>
-							</div>
+							<input type="hidden" name="run_mode" value="<?= htmlspecialcharsbx(Prompts::RUN_MODE_FULL) ?>">
+							<input type="submit" class="adm-btn" value="+ Добавить вариант промпта">
 						</form>
-					<?php endforeach; ?>
-
-					<form method="post" action="<?= htmlspecialcharsbx($self) ?>" class="add-row">
-						<?= bitrix_sessid_post() ?>
-						<input type="hidden" name="titlo_action" value="add">
-						<input type="hidden" name="type" value="<?= htmlspecialcharsbx($type) ?>">
-						<input type="hidden" name="focus_type" value="<?= htmlspecialcharsbx($type) ?>">
-						<label class="titlo-prompt-mode">
-							Режим нового
-							<select name="run_mode" class="adm-input">
-								<option value="<?= htmlspecialcharsbx(Prompts::RUN_MODE_FULL) ?>">полная проработка</option>
-								<option value="<?= htmlspecialcharsbx(Prompts::RUN_MODE_REFINE) ?>">повторная доработка</option>
-								<option value="<?= htmlspecialcharsbx(Prompts::RUN_MODE_ANY) ?>">любой режим</option>
-							</select>
-						</label>
-						<input type="submit" class="adm-btn" value="+ Добавить вариант промпта">
-					</form>
+					<?php endif; ?>
 				</div>
 			<?php endforeach; ?>
 			</div>
@@ -195,8 +312,7 @@ $catalog = Prompts::catalog();
 
 <script>
 (function () {
-	var storageKey = 'titlo_prompts_groups_v1';
-	// Только после POST кратко раскрываем группу с сохранённым типом (в память не пишем)
+	var storageKey = 'titlo_prompts_groups_v2';
 	var forceOpenType = <?= json_encode($message ? $openType : '') ?>;
 
 	function loadState() {
@@ -220,7 +336,6 @@ $catalog = Prompts::catalog();
 		var collapsed = Object.prototype.hasOwnProperty.call(state, key) ? !!state[key] : false;
 		setCollapsed(group, collapsed);
 
-		// Временный фокус после сохранения — без перезаписи localStorage
 		if (forceOpenType && group.querySelector('#type-' + forceOpenType)) {
 			setCollapsed(group, false);
 		}
@@ -248,15 +363,29 @@ $catalog = Prompts::catalog();
 				toggle(ev);
 			});
 			head.addEventListener('keydown', function (ev) {
-				if (ev.key === 'Enter' || ev.key === ' ') toggle(ev);
+				if (ev.key === 'Enter' || ev.key === ' ') {
+					toggle(ev);
+				}
 			});
 		}
 	});
-
-	if (forceOpenType) {
-		var el = document.getElementById('type-' + forceOpenType);
-		if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
-	}
+	Array.prototype.forEach.call(document.querySelectorAll('.titlo-prompts [data-mode-tabs]'), function (tabs) {
+		var host = tabs.closest('.type-block');
+		if (!host) return;
+		Array.prototype.forEach.call(tabs.querySelectorAll('[data-mode-tab]'), function (btn) {
+			btn.addEventListener('click', function () {
+				var mode = btn.getAttribute('data-mode-tab') || '';
+				Array.prototype.forEach.call(tabs.querySelectorAll('[data-mode-tab]'), function (b) {
+					b.classList.toggle('is-active', b === btn);
+				});
+				Array.prototype.forEach.call(host.querySelectorAll('[data-mode-panel]'), function (panel) {
+					var on = panel.getAttribute('data-mode-panel') === mode;
+					panel.hidden = !on;
+					panel.classList.toggle('is-open', on);
+				});
+			});
+		});
+	});
 })();
 </script>
 

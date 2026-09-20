@@ -43,12 +43,12 @@ class Prompts
 		return [
 			'product' => [
 				'title' => 'Товары',
-				'hint' => 'Тексты карточки товара: анонс и детальное описание. На проработке выбираете, каким промптом генерировать.',
+				'hint' => 'Анонс и детальное описание. Детальное разделено на «полную проработку» и «повторную доработку».',
 				'types' => [self::TYPE_PREVIEW, self::TYPE_DETAIL],
 			],
 			'category' => [
 				'title' => 'Категории',
-				'hint' => 'SEO-текст раздела каталога (DESCRIPTION).',
+				'hint' => 'SEO-текст раздела (DESCRIPTION). Внутри — отдельно полная проработка и повторная доработка.',
 				'types' => [self::TYPE_CATEGORY],
 			],
 			'names' => [
@@ -157,6 +157,7 @@ class Prompts
 		self::seedVilmedCategoryExtra();
 		self::seedRefineDetailPrompts();
 		self::seedRefineCategoryPrompts();
+		self::seedLengthGuardPrompts();
 		self::seedSectionPhraseKupitEnd();
 		self::seedSectionPhraseKeepBrand();
 		self::seedSectionPhraseMeaningFirst();
@@ -191,6 +192,76 @@ class Prompts
 		}
 
 		return 'полная проработка';
+	}
+
+	/** Типы, где есть полная / повторная (остальные — без режимов). */
+	public static function typeUsesRunModes(string $type): bool
+	{
+		return $type === self::TYPE_DETAIL || $type === self::TYPE_CATEGORY;
+	}
+
+	/**
+	 * @return array{full:array,refine:array,any:array}
+	 */
+	public static function partitionByRunMode(array $items): array
+	{
+		$out = [
+			self::RUN_MODE_FULL => [],
+			self::RUN_MODE_REFINE => [],
+			self::RUN_MODE_ANY => [],
+		];
+		foreach ($items as $it) {
+			$m = self::normalizePromptRunMode((string) ($it['run_mode'] ?? self::RUN_MODE_FULL));
+			$out[$m][] = $it;
+		}
+
+		return $out;
+	}
+
+	/** Подпись секции режима в админке. */
+	public static function runModeSectionMeta(string $mode): array
+	{
+		$mode = self::normalizePromptRunMode($mode);
+		if ($mode === self::RUN_MODE_REFINE) {
+			return [
+				'title' => 'Повторная доработка',
+				'hint' => 'Уже есть текст на сайте: дописываем под TLP, стили и блоки не урезаем. В автопроработке показывается только при режиме «повторная доработка».',
+			];
+		}
+		if ($mode === self::RUN_MODE_ANY) {
+			return [
+				'title' => 'Любой режим',
+				'hint' => 'Вариант доступен и в полной проработке, и в повторной. Обычно не нужен — лучше завести отдельные промпты под каждый режим.',
+			];
+		}
+
+		return [
+			'title' => 'Полная проработка',
+			'hint' => 'Первый проход: пишем описание с нуля. В автопроработке показывается при режиме «полная проработка».',
+		];
+	}
+
+	protected static function activeOptionKey(string $type, string $runMode = ''): string
+	{
+		$runMode = trim(strtolower($runMode));
+		if ($runMode === self::RUN_MODE_FULL || $runMode === self::RUN_MODE_REFINE) {
+			return 'prompt_active_' . $type . '_' . $runMode;
+		}
+
+		return 'prompt_active_' . $type;
+	}
+
+	protected static function promptFitsRunMode(array $it, string $runMode): bool
+	{
+		$m = self::normalizePromptRunMode((string) ($it['run_mode'] ?? self::RUN_MODE_FULL));
+		if ($runMode === self::RUN_MODE_REFINE || $runMode === BatchQueue::MODE_REFINE) {
+			return $m === self::RUN_MODE_REFINE || $m === self::RUN_MODE_ANY;
+		}
+		if ($runMode === self::RUN_MODE_FULL || $runMode === BatchQueue::MODE_FULL) {
+			return $m === self::RUN_MODE_FULL || $m === self::RUN_MODE_ANY;
+		}
+
+		return true;
 	}
 
 	protected static function ensureRunModeColumn(): void
@@ -750,6 +821,92 @@ TXT;
 		);
 	}
 
+	public const VILMED_DETAIL_MIN13K_NAME = 'Пример: со стилями (Vilmed) не менее 13 000 символов';
+	public const REFINE_DETAIL_VMD_PLUS3K_NAME = 'Повторная доработка: со стилями (Vilmed) + 3 000 символов';
+	public const REFINE_CATEGORY_VMD_PLUS3K_NAME = 'Повторная доработка: со стилями (Vilmed, категория) + 3 000 символов';
+
+	/** Полный Vilmed + жёсткий минимум длины (товары). */
+	public static function vilmedDetailMin13kBody(): string
+	{
+		$guard = <<<'TXT'
+ДЛИНА ТЕКСТА — ЖЁСТКО (главное требование этого варианта):
+- видимый текст внутри <article class="vmd-desc"> (без SVG и без атрибутов)
+  должен быть НЕ МЕНЕЕ 13 000 символов (с пробелами);
+- если после первой сборки короче — ДОПИШИ разделы/абзацы/пункты/FAQ по теме
+  товара, пока не наберёшь минимум; укорачивать ниже 13 000 ЗАПРЕЩЕНО;
+- считай именно пользовательский текст, не разметку тегов.
+
+---
+TXT;
+
+		return $guard . "\n" . self::vilmedDetailBody();
+	}
+
+	/** Доработка товаров: прирост не меньше 3 000 символов. */
+	public static function refineVilmedDetailPlus3kBody(): string
+	{
+		$guard = <<<'TXT'
+ПРИРОСТ ОБЪЁМА — ЖЁСТКО (главное требование этого варианта доработки):
+- итоговый видимый текст (без SVG) должен быть ДЛИННЕЕ исходного на странице
+  минимум на 3 000 символов;
+- ЗАПРЕЩЕНО укорачивать или оставлять тот же объём; если прирост меньше 3 000 —
+  допиши ещё абзацы/пункты/карточки/FAQ по теме, пока не наберёшь прирост;
+- стили .vmd-desc и существующие блоки не выкидывай.
+
+---
+TXT;
+
+		return $guard . "\n" . self::refineVilmedDetailBody();
+	}
+
+	/** Доработка категорий: прирост не меньше 3 000 символов. */
+	public static function refineVilmedCategoryPlus3kBody(): string
+	{
+		$guard = <<<'TXT'
+ПРИРОСТ ОБЪЁМА — ЖЁСТКО (главное требование этого варианта доработки):
+- итоговый видимый текст (без SVG) должен быть ДЛИННЕЕ исходного на странице
+  минимум на 3 000 символов;
+- ЗАПРЕЩЕНО укорачивать или оставлять тот же объём; если прирост меньше 3 000 —
+  допиши ещё абзацы/пункты/карточки/FAQ по теме раздела, пока не наберёшь прирост;
+- стили .vmd-desc и существующие блоки не выкидывай.
+
+---
+TXT;
+
+		return $guard . "\n" . self::refineVilmedCategoryBody();
+	}
+
+	/**
+	 * Варианты с жёстким минимумом/приростом длины (чтобы не дорабатывать вручную).
+	 */
+	protected static function seedLengthGuardPrompts(): void
+	{
+		self::upsertPromptByName(
+			self::TYPE_DETAIL,
+			self::VILMED_DETAIL_MIN13K_NAME,
+			self::vilmedDetailMin13kBody(),
+			210,
+			'seed_vmd_detail_min13k_v1',
+			self::RUN_MODE_FULL
+		);
+		self::upsertPromptByName(
+			self::TYPE_DETAIL,
+			self::REFINE_DETAIL_VMD_PLUS3K_NAME,
+			self::refineVilmedDetailPlus3kBody(),
+			170,
+			'seed_refine_vmd_detail_plus3k_v1',
+			self::RUN_MODE_REFINE
+		);
+		self::upsertPromptByName(
+			self::TYPE_CATEGORY,
+			self::REFINE_CATEGORY_VMD_PLUS3K_NAME,
+			self::refineVilmedCategoryPlus3kBody(),
+			170,
+			'seed_refine_vmd_category_plus3k_v1',
+			self::RUN_MODE_REFINE
+		);
+	}
+
 	/**
 	 * Второй промпт category: пример со стилями (Vilmed .vmd-desc) для DESCRIPTION раздела.
 	 */
@@ -958,18 +1115,18 @@ TXT;
 			$items = [];
 		} elseif ($runMode === self::RUN_MODE_REFINE || $runMode === BatchQueue::MODE_REFINE) {
 			$items = array_values(array_filter($items, static function (array $it) {
-				$m = self::normalizePromptRunMode((string) ($it['run_mode'] ?? self::RUN_MODE_FULL));
-
-				return $m === self::RUN_MODE_REFINE || $m === self::RUN_MODE_ANY;
+				return self::promptFitsRunMode($it, self::RUN_MODE_REFINE);
 			}));
+			$runMode = self::RUN_MODE_REFINE;
 		} elseif ($runMode === self::RUN_MODE_FULL || $runMode === BatchQueue::MODE_FULL) {
 			$items = array_values(array_filter($items, static function (array $it) {
-				$m = self::normalizePromptRunMode((string) ($it['run_mode'] ?? self::RUN_MODE_FULL));
-
-				return $m === self::RUN_MODE_FULL || $m === self::RUN_MODE_ANY;
+				return self::promptFitsRunMode($it, self::RUN_MODE_FULL);
 			}));
+			$runMode = self::RUN_MODE_FULL;
+		} else {
+			$runMode = '';
 		}
-		$activeId = self::getActiveId($type);
+		$activeId = self::getActiveId($type, $runMode);
 		$ids = [];
 		foreach ($items as $it) {
 			$ids[(int) $it['id']] = true;
@@ -992,27 +1149,81 @@ TXT;
 		];
 	}
 
-	public static function getActiveId(string $type): int
+	public static function getActiveId(string $type, string $runMode = ''): int
 	{
 		self::ensureTables();
+		$runMode = trim(strtolower($runMode));
+		if ($runMode === BatchQueue::MODE_FULL) {
+			$runMode = self::RUN_MODE_FULL;
+		} elseif ($runMode === BatchQueue::MODE_REFINE) {
+			$runMode = self::RUN_MODE_REFINE;
+		} elseif ($runMode !== self::RUN_MODE_FULL && $runMode !== self::RUN_MODE_REFINE) {
+			$runMode = '';
+		}
+
+		$items = self::listByType($type);
+		if ($runMode !== '') {
+			$modeItems = array_values(array_filter($items, static function (array $it) use ($runMode) {
+				return self::promptFitsRunMode($it, $runMode);
+			}));
+			$key = self::activeOptionKey($type, $runMode);
+			$stored = (int) Option::get(Config::MODULE_ID, $key, '0');
+			if ($stored > 0) {
+				foreach ($modeItems as $it) {
+					if ((int) $it['id'] === $stored) {
+						return $stored;
+					}
+				}
+			}
+			foreach ($modeItems as $it) {
+				if (!empty($it['is_default'])) {
+					return (int) $it['id'];
+				}
+			}
+			// legacy общий active, если подходит под режим
+			$legacy = (int) Option::get(Config::MODULE_ID, 'prompt_active_' . $type, '0');
+			if ($legacy > 0) {
+				foreach ($modeItems as $it) {
+					if ((int) $it['id'] === $legacy) {
+						return $legacy;
+					}
+				}
+			}
+
+			return (int) ($modeItems[0]['id'] ?? 0);
+		}
+
 		$stored = (int) Option::get(Config::MODULE_ID, 'prompt_active_' . $type, '0');
 		if ($stored > 0 && self::find($stored)) {
 			return $stored;
 		}
-		foreach (self::listByType($type) as $it) {
+		foreach ($items as $it) {
 			if ($it['is_default']) {
 				return $it['id'];
 			}
 		}
-		$items = self::listByType($type);
+
 		return $items[0]['id'] ?? 0;
 	}
 
-	public static function setActiveId(string $type, int $id): void
+	public static function setActiveId(string $type, int $id, ?string $runMode = null): void
 	{
-		if ($id > 0 && self::find($id)) {
-			Option::set(Config::MODULE_ID, 'prompt_active_' . $type, (string) $id);
+		$row = $id > 0 ? self::find($id) : null;
+		if (!$row || $row['type'] !== $type) {
+			return;
 		}
+		$mode = $runMode !== null && trim($runMode) !== ''
+			? self::normalizePromptRunMode($runMode)
+			: self::normalizePromptRunMode((string) ($row['run_mode'] ?? self::RUN_MODE_FULL));
+		if ($mode === self::RUN_MODE_FULL || $mode === self::RUN_MODE_REFINE) {
+			Option::set(Config::MODULE_ID, self::activeOptionKey($type, $mode), (string) $id);
+		}
+		if ($mode === self::RUN_MODE_ANY) {
+			Option::set(Config::MODULE_ID, self::activeOptionKey($type, self::RUN_MODE_FULL), (string) $id);
+			Option::set(Config::MODULE_ID, self::activeOptionKey($type, self::RUN_MODE_REFINE), (string) $id);
+		}
+		// общий ключ — для типов без режимов и как fallback
+		Option::set(Config::MODULE_ID, 'prompt_active_' . $type, (string) $id);
 	}
 
 	/**
@@ -1088,7 +1299,15 @@ TXT;
 		global $DB;
 		$now = date('Y-m-d H:i:s');
 		if ($asDefault) {
-			$DB->Query("UPDATE titlo_prompts SET IS_DEFAULT='N' WHERE TYPE='" . $DB->ForSql($type) . "'");
+			if (self::typeUsesRunModes($type)) {
+				$DB->Query("
+					UPDATE titlo_prompts SET IS_DEFAULT='N'
+					WHERE TYPE='" . $DB->ForSql($type) . "'
+					  AND RUN_MODE='" . $DB->ForSql($runMode) . "'
+				");
+			} else {
+				$DB->Query("UPDATE titlo_prompts SET IS_DEFAULT='N' WHERE TYPE='" . $DB->ForSql($type) . "'");
+			}
 		}
 		$DB->Query("
 			INSERT INTO titlo_prompts (TYPE, NAME, BODY, IS_DEFAULT, RUN_MODE, SORT, USE_COUNT, CREATED_AT, UPDATED_AT)
@@ -1106,7 +1325,7 @@ TXT;
 		");
 		$id = (int) $DB->LastID();
 		if ($asDefault) {
-			self::setActiveId($type, $id);
+			self::setActiveId($type, $id, $runMode);
 		}
 		return ['ok' => true, 'id' => $id];
 	}
@@ -1151,9 +1370,20 @@ TXT;
 			return ['ok' => false, 'error' => 'not found'];
 		}
 		global $DB;
-		$DB->Query("UPDATE titlo_prompts SET IS_DEFAULT='N' WHERE TYPE='" . $DB->ForSql($row['type']) . "'");
+		$mode = self::normalizePromptRunMode((string) ($row['run_mode'] ?? self::RUN_MODE_FULL));
+		// «по умолчанию» только внутри своего режима (full/refine/any), не сбрасывая другой режим
+		if (self::typeUsesRunModes($row['type'])) {
+			$DB->Query("
+				UPDATE titlo_prompts
+				SET IS_DEFAULT='N'
+				WHERE TYPE='" . $DB->ForSql($row['type']) . "'
+				  AND RUN_MODE='" . $DB->ForSql($mode) . "'
+			");
+		} else {
+			$DB->Query("UPDATE titlo_prompts SET IS_DEFAULT='N' WHERE TYPE='" . $DB->ForSql($row['type']) . "'");
+		}
 		$DB->Query("UPDATE titlo_prompts SET IS_DEFAULT='Y' WHERE ID=" . (int) $id);
-		self::setActiveId($row['type'], $id);
+		self::setActiveId($row['type'], $id, $mode);
 		return ['ok' => true];
 	}
 
@@ -1173,9 +1403,20 @@ TXT;
 		global $DB;
 		$DB->Query('DELETE FROM titlo_prompts WHERE ID=' . (int) $id);
 		if ($row['is_default']) {
+			$mode = self::normalizePromptRunMode((string) ($row['run_mode'] ?? self::RUN_MODE_FULL));
 			$rest = self::listByType($row['type']);
-			if ($rest) {
-				self::setDefault($rest[0]['id']);
+			$pick = null;
+			foreach ($rest as $it) {
+				if (self::normalizePromptRunMode((string) ($it['run_mode'] ?? self::RUN_MODE_FULL)) === $mode) {
+					$pick = $it;
+					break;
+				}
+			}
+			if (!$pick && $rest) {
+				$pick = $rest[0];
+			}
+			if ($pick) {
+				self::setDefault((int) $pick['id']);
 			}
 		}
 		return ['ok' => true];

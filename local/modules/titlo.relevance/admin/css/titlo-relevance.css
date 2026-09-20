@@ -756,6 +756,88 @@
 	border-top: 1px solid #eef2f7;
 }
 .titlo-prompts .type-block h3 { margin: 0 0 4px; font-size: 14px; }
+.titlo-prompts .mode-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 12px 0 10px;
+}
+.titlo-prompts .mode-tab {
+	appearance: none;
+	border: 1px solid #cbd5e1;
+	background: #fff;
+	color: #334155;
+	border-radius: 999px;
+	padding: 7px 14px;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	line-height: 1.2;
+}
+.titlo-prompts .mode-tab:hover {
+	border-color: #94a3b8;
+	background: #f8fafc;
+}
+.titlo-prompts .mode-tab.is-active {
+	background: #0f172a;
+	border-color: #0f172a;
+	color: #fff;
+}
+.titlo-prompts .mode-tab__n {
+	display: inline-block;
+	margin-left: 6px;
+	min-width: 1.4em;
+	padding: 1px 6px;
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 700;
+	background: rgba(15, 23, 42, 0.08);
+}
+.titlo-prompts .mode-tab.is-active .mode-tab__n {
+	background: rgba(255, 255, 255, 0.2);
+}
+.titlo-prompts .mode-block {
+	margin: 0 0 8px;
+	padding: 12px 12px 10px;
+	border: 1px solid #e2e8f0;
+	border-radius: 8px;
+	background: #f8fafc;
+}
+.titlo-prompts .mode-block--full {
+	border-color: #bae6fd;
+	background: #f0f9ff;
+}
+.titlo-prompts .mode-block--refine {
+	border-color: #e9d5ff;
+	background: #faf5ff;
+}
+.titlo-prompts .mode-block--any {
+	border-color: #e2e8f0;
+	background: #f8fafc;
+}
+.titlo-prompts .mode-block__h h4 {
+	margin: 0 0 4px;
+	font-size: 13px;
+	font-weight: 700;
+}
+.titlo-prompts .mode-block__h .mode-count {
+	font-weight: 600;
+	color: #64748b;
+}
+.titlo-prompts .mode-block__h p {
+	margin: 0 0 10px;
+	font-size: 12px;
+	color: #64748b;
+	line-height: 1.4;
+}
+.titlo-prompts .mode-block .card {
+	background: #fff;
+}
+.titlo-prompts .mode-block .add-row {
+	margin-top: 8px;
+	padding-top: 0;
+	border-top: none;
+}
 .titlo-prompts .meta {
 	color: #64748b;
 	font-size: 12px;
