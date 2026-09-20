@@ -45,7 +45,7 @@ if (\Bitrix\Main\Config\Option::get('titlo.relevance', 'phrase_bulk_schema', '')
 	\Bitrix\Main\Config\Option::set('titlo.relevance', 'phrase_bulk_schema', $bulkVer);
 }
 
-$promptSchema = '1.3.1';
+$promptSchema = '1.3.2';
 if (\Bitrix\Main\Config\Option::get('titlo.relevance', 'prompts_schema', '') !== $promptSchema) {
 	\Titlo\Relevance\Prompts::ensureTables();
 	\Bitrix\Main\Config\Option::set('titlo.relevance', 'prompts_schema', $promptSchema);

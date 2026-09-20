@@ -445,59 +445,93 @@ TXT;
 	}
 
 	/**
-	 * Второй промпт detail по умолчанию: пример со стилями (Vilmed .vmd-desc).
-	 * Наглядное пособие для других магазинов — не делает его «выбранным для генерации».
+	 * Каноническое имя полного detail-промпта Vilmed (не плодить короткие дубли).
+	 */
+	public const VILMED_DETAIL_NAME = 'Пример: со стилями - (Vilmed) - товары';
+	public const VILMED_DETAIL_NAME_LEGACY = 'Пример: со стилями (Vilmed)';
+
+	/**
+	 * Второй промпт detail: пример со стилями (Vilmed .vmd-desc).
+	 * Обновляет ТОЛЬКО каноническое имя; короткий дубль удаляет.
 	 */
 	protected static function seedVilmedDetailExtra(): void
 	{
 		global $DB;
-		$flag = 'seed_vmd_detail_v7';
+		$flag = 'seed_vmd_detail_v8';
 		if (Option::get(Config::MODULE_ID, $flag, '') === 'Y') {
 			return;
 		}
 
-		$name = 'Пример: со стилями (Vilmed)';
-		$oldNames = ['Vilmed (.vmd-desc)', $name];
-		$foundId = 0;
-		foreach ($oldNames as $tryName) {
-			$row = $DB->Query(
-				"SELECT ID FROM titlo_prompts
-				 WHERE TYPE='" . $DB->ForSql(self::TYPE_DETAIL) . "'
-				   AND NAME='" . $DB->ForSql($tryName) . "'
-				 LIMIT 1"
-			)->Fetch();
-			if ($row) {
-				$foundId = (int) $row['ID'];
-				break;
-			}
-		}
-
 		$now = date('Y-m-d H:i:s');
 		$body = self::vilmedDetailBody();
-		if ($foundId > 0) {
+		$canonical = self::VILMED_DETAIL_NAME;
+		$legacy = self::VILMED_DETAIL_NAME_LEGACY;
+
+		$canon = $DB->Query(
+			"SELECT ID FROM titlo_prompts
+			 WHERE TYPE='" . $DB->ForSql(self::TYPE_DETAIL) . "'
+			   AND NAME='" . $DB->ForSql($canonical) . "'
+			 LIMIT 1"
+		)->Fetch();
+		$legacyRow = $DB->Query(
+			"SELECT ID FROM titlo_prompts
+			 WHERE TYPE='" . $DB->ForSql(self::TYPE_DETAIL) . "'
+			   AND NAME='" . $DB->ForSql($legacy) . "'
+			 LIMIT 1"
+		)->Fetch();
+
+		$canonId = $canon ? (int) $canon['ID'] : 0;
+		$legacyId = $legacyRow ? (int) $legacyRow['ID'] : 0;
+
+		if ($canonId > 0) {
 			$DB->Query("
 				UPDATE titlo_prompts
-				SET NAME='" . $DB->ForSql($name) . "',
+				SET BODY='" . $DB->ForSql($body) . "',
+				    SORT=200,
+				    IS_DEFAULT='N',
+				    RUN_MODE='" . $DB->ForSql(self::RUN_MODE_FULL) . "',
+				    UPDATED_AT='" . $DB->ForSql($now) . "'
+				WHERE ID=" . $canonId
+			);
+			if ($legacyId > 0 && $legacyId !== $canonId) {
+				$DB->Query('DELETE FROM titlo_prompts WHERE ID=' . $legacyId);
+			}
+		} elseif ($legacyId > 0) {
+			// был только короткий дубль — переименовать в канон, не плодить второй
+			$DB->Query("
+				UPDATE titlo_prompts
+				SET NAME='" . $DB->ForSql($canonical) . "',
 				    BODY='" . $DB->ForSql($body) . "',
 				    SORT=200,
 				    IS_DEFAULT='N',
+				    RUN_MODE='" . $DB->ForSql(self::RUN_MODE_FULL) . "',
 				    UPDATED_AT='" . $DB->ForSql($now) . "'
-				WHERE ID=" . $foundId
+				WHERE ID=" . $legacyId
 			);
+			$canonId = $legacyId;
 		} else {
 			$DB->Query("
-				INSERT INTO titlo_prompts (TYPE, NAME, BODY, IS_DEFAULT, SORT, USE_COUNT, CREATED_AT, UPDATED_AT)
+				INSERT INTO titlo_prompts (TYPE, NAME, BODY, IS_DEFAULT, RUN_MODE, SORT, USE_COUNT, CREATED_AT, UPDATED_AT)
 				VALUES (
 					'" . $DB->ForSql(self::TYPE_DETAIL) . "',
-					'" . $DB->ForSql($name) . "',
+					'" . $DB->ForSql($canonical) . "',
 					'" . $DB->ForSql($body) . "',
 					'N',
+					'" . $DB->ForSql(self::RUN_MODE_FULL) . "',
 					200,
 					0,
 					'" . $DB->ForSql($now) . "',
 					'" . $DB->ForSql($now) . "'
 				)
 			");
+			$canonId = (int) $DB->LastID();
+		}
+
+		if ($canonId > 0) {
+			$active = (int) Option::get(Config::MODULE_ID, 'prompt_active_detail', '0');
+			if ($active <= 0) {
+				Option::set(Config::MODULE_ID, 'prompt_active_detail', (string) $canonId);
+			}
 		}
 
 		Option::set(Config::MODULE_ID, $flag, 'Y');
@@ -519,9 +553,10 @@ TXT;
 На странице уже есть описание после первого прохода. Сохрани его структуру, факты
 и характеристики. Не выдумывай числа и свойства, которых нет на странице.
 
-ОБЪЁМ: текст ДОЛЖЕН вырасти — допиши абзацы/пункты, чтобы вплести недостающие
-слова из TLP. Не держи прежний размер «ради краткости». Без воды и спама, но
-объём больше исходного — нормально и ожидаемо.
+ОБЪЁМ — ЖЁСТКО:
+- ЗАПРЕЩЕНО укорачивать текст: ответ не короче исходного по видимому объёму;
+- допиши абзацы/пункты под TLP; уменьшение объёма — ошибка;
+- без воды и спама, но рост или равенство объёма обязательно.
 
 Цель доработки:
 - естественнее вписать недостающие слова из TLP (они будут дописаны к запросу);
@@ -535,70 +570,39 @@ TXT;
 TXT;
 	}
 
+	/**
+	 * Доработка = тот же полный промпт Vilmed + жёсткий запрет урезать.
+	 */
 	public static function refineVilmedDetailBody(): string
 	{
-		return <<<'TXT'
-ПРИМЕР промпта повторной доработки со стилями (магазин Vilmed, .vmd-desc).
+		$preamble = <<<'TXT'
+ПОВТОРНАЯ ДОРАБОТКА на базе промпта «Пример: со стилями - (Vilmed) - товары».
 
-Ты — контент-редактор интернет-магазина медтехники. ДОРАБОТАЙ уже размещённое
-HTML-описание товара на странице {link}. Это РЕДАКТУРА поверх текущего текста,
-но объём можно и нужно УВЕЛИЧИТЬ.
+Страница с уже размещённым HTML: {link}
 
-ОБЪЁМ ТЕКСТА:
-- цель доработки — выше покрытие TLP; для этого текст ДОЛЖЕН вырасти
-  (новые абзацы, пункты списков, 1–2 карточки features или FAQ по теме — ок);
-- не держи прежний размер: если ключи не влезают без расширения — расширяй;
-- без канцелярской воды и без off-topic абзацев «ради ключей».
+ЗАПРЕТ НА УРЕЗАНИЕ (нарушение = провал задачи):
+- НЕ сокращай объём текста (ни символы, ни слова).
+- НЕ выкидывай и не схлопывай блоки: h1, vmd-subtitle, вводные, h2,
+  .vmd-features, .vmd-list, .vmd-table-wrap/.vmd-spec, .vmd-faq, .vmd-note, .vmd-manager.
+- Итоговый видимый текст (без SVG) должен быть НЕ КОРОЧЕ исходного на странице.
+  Если не уверен — ДОПИШИ ещё 1–2 абзаца по теме товара.
+- Дописывай абзацы / пункты списка / 1–2 карточки features / 1–2 FAQ, чтобы вплести TLP.
 
-СТИЛЬ (как у первого прохода «Пример: со стилями»):
-- деловой, по делу, спокойный B2B-тон медтехники;
-- без рекламной воды и превосходных степеней без оснований;
-- НЕ пиши «купить по цене производителя», «с доставкой по России», «премиум»,
-  «оперативно подготовим КП», «узнать / запрос» как SEO-вставки — если этого
-  не было в исходном тексте на странице, не добавляй;
-- ритм и формулировки держи близко к уже размещённому тексту, но дополняй его.
+Как работать:
+1) Возьми текущее описание со страницы как основу — сохрани смысл и разметку.
+2) Дополни по правилам ниже (те же, что у полного прохода).
+3) Верни ТОЛЬКО <article class="vmd-desc">…</article>, без markdown и пояснений.
 
-Верни ТОЛЬКО HTML внутри <article class="vmd-desc">…</article>, без markdown и пояснений.
+<strong>/<mark>: максимум 1–3 смысловых акцента. ЗАПРЕЩЕНО жирнить каждое слово из TLP.
+Чужие off-topic слова из TLP (стоматология к УЗИ и т.п.) — ПРОПУСКАЙ.
 
-ОБЯЗАТЕЛЬНО СОХРАНИ / ВОССТАНОВИ (если на странице уже были или положены правилами):
-1) Корень <article class="vmd-desc">, <h1>, <p class="vmd-subtitle"> (один спокойный
-   лид без коммерческих клише), вводные <p>, разделы <h2>.
-2) Блоки .vmd-features (карточки), .vmd-list, .vmd-table-wrap + .vmd-spec —
-   не выкидывай и не схлопывай в голые абзацы; можно добавить 1–2 карточки/пункта
-   по теме товара, если это помогает вплести TLP.
-3) FAQ: <div class="vmd-faq"> с пунктами
-   <details><summary>…</summary><div class="vmd-faq__a">…</div></details>.
-   У <details> НЕ ставь атрибут open — вопросы свёрнуты (плюс), раскрываются кликом.
-   Не заменяй FAQ на обычный список; можно добавить 1–2 вопроса по теме.
-4) Опционально .vmd-note (info/warn/accent) — если был коммерческий note, сохрани
-   смысл; почту только как mailto.
-5) В самом конце ОБЯЗАТЕЛЬНО блок .vmd-manager (даже если его «забыли» в прошлом
-   тексте). Точный смысл:
-   «Характеристики и комплектация устройства могут быть изменены производителем
-   без предварительного уведомления. Уточнить актуальную информацию можно по адресу
-   <a href="mailto:info@vilmed.ru">info@vilmed.ru</a>.»
-   Иконка mail/info — инлайновый SVG Lucide. Этот дисклеймер нигде больше не дублируй.
-6) Любой info@vilmed.ru — только
-   <a href="mailto:info@vilmed.ru">info@vilmed.ru</a>, не голый текст.
-7) Блок vmd-cta не добавляй. Иконки — только инлайновый SVG Lucide
-   (viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" …).
+Ниже — полные правила стиля и разметки первого прохода. Для доработки читай
+«сформируй» как «доработай, сохранив всё существующее и РАСШИРИВ»:
 
-<strong> / <mark> — ЖЁСТКО:
-- в исходном стиле их мало (1–3 акцента на смысл, не на ключи);
-- ЗАПРЕЩЕНО оборачивать в <strong>/<mark>/<b> каждое слово из TLP
-  («монитор», «запрос», «узнать», «плода», «аксессуары» и т.п.) —
-  это спам и ломает стилистику;
-- слова из TLP вплетай обычным текстом (в новые и существующие фразы).
-
-Цель доработки:
-- выше покрытие TLP и плотность; объём текста РАСТЁТ осмысленно;
-- вплетай из TLP ТОЛЬКО слова по теме этого товара (УЗИ / модель / клинические задачи).
-  Чужие категории (стоматология, пинцеты, кресла, микроскопы и т.п.) — ПРОПУСКАЙ,
-  даже если они в списке TLP;
-- не выкидывай обязательные блоки выше;
-- не выдумывай характеристики и коммерческие условия (лизинг/рассрочка/«в наличии»),
-  которых нет на странице; в FAQ не отвечай «да, доступен лизинг».
+---
 TXT;
+
+		return $preamble . "\n" . self::vilmedDetailBody();
 	}
 
 	public static function refineCategoryBody(): string
@@ -713,7 +717,7 @@ TXT;
 			self::REFINE_DETAIL_NAME,
 			self::refineDetailBody(),
 			150,
-			'seed_refine_detail_v3',
+			'seed_refine_detail_v4',
 			self::RUN_MODE_REFINE
 		);
 		self::upsertPromptByName(
@@ -721,7 +725,7 @@ TXT;
 			self::REFINE_DETAIL_VMD_NAME,
 			self::refineVilmedDetailBody(),
 			160,
-			'seed_refine_vmd_detail_v6',
+			'seed_refine_vmd_detail_v7',
 			self::RUN_MODE_REFINE
 		);
 	}
