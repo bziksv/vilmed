@@ -69,10 +69,24 @@ class Agent
 			if (!BatchQueue::claim($id)) {
 				return;
 			}
-			$step = BatchQueue::STEP_ANALYZE;
+			$runMode = BatchQueue::normalizeRunMode((string) ($row['RUN_MODE'] ?? BatchQueue::MODE_FULL));
+			if ($runMode === BatchQueue::MODE_REFINE) {
+				$historyId = (int) ($row['HISTORY_ID'] ?? 0);
+				if ($historyId <= 0) {
+					throw new \RuntimeException('нет прошлого анализа (history_id) для повторной доработки');
+				}
+				$step = BatchQueue::STEP_GENERATE;
+				self::seedRefineBeforeScore($row, $historyId);
+			} else {
+				$step = BatchQueue::STEP_ANALYZE;
+			}
 			$row['STATUS'] = BatchQueue::STATUS_RUNNING;
 			$row['STEP'] = $step;
 			$row['UPDATED_AT'] = BatchQueue::now();
+			BatchQueue::mark($id, BatchQueue::STATUS_RUNNING, [
+				'STEP' => $step,
+				'ERROR' => null,
+			]);
 		}
 
 		$client = new ApiClient();
@@ -109,6 +123,39 @@ class Agent
 				BatchQueue::mark($id, BatchQueue::STATUS_FAILED, [
 					'ERROR' => 'Unknown step: ' . $step,
 				]);
+		}
+	}
+
+	/**
+	 * Для refine нет первого анализа в этом цикле — фиксируем текущий балл как «до»,
+	 * чтобы повторный анализ записался как «после».
+	 */
+	protected static function seedRefineBeforeScore(array $row, int $historyId): void
+	{
+		$entityType = strtoupper((string) ($row['ENTITY_TYPE'] ?? 'E')) === 'S' ? 'S' : 'E';
+		$entityId = (int) ($row['ENTITY_ID'] ?? 0);
+		$scores = WorkHistory::mapLatestScores([$entityId], $entityType);
+		$score = $scores[$entityId] ?? [];
+		$entity = $entityType === 'S'
+			? CatalogRepository::findSection($entityId)
+			: CatalogRepository::findElement($entityId);
+		$wh = WorkHistory::recordScore([
+			'entity_type' => $entityType,
+			'entity_id' => $entityId,
+			'name' => (string) ($entity['name'] ?? ''),
+			'url' => (string) ($row['URL'] ?? ''),
+			'phrase' => (string) ($row['PHRASE'] ?? ''),
+			'history_id' => $historyId,
+			'points' => $score['points'] ?? null,
+			'points_ideal' => $score['points_ideal'] ?? null,
+			'role' => 'before',
+		]);
+		$workId = isset($wh['row']['id']) ? (int) $wh['row']['id'] : 0;
+		if ($workId > 0) {
+			BatchQueue::mark((int) $row['ID'], BatchQueue::STATUS_RUNNING, [
+				'WORK_HISTORY_ID' => $workId,
+			]);
+			$row['WORK_HISTORY_ID'] = $workId;
 		}
 	}
 
@@ -329,7 +376,11 @@ class Agent
 			(int) ($row['TLP_MISSING_LIMIT'] ?? 200),
 			(int) ($row['TLP_DIFF_LIMIT'] ?? 5)
 		);
-		$type = $preview ? Prompts::TYPE_PREVIEW : Prompts::TYPE_DETAIL;
+		$type = $preview
+			? Prompts::TYPE_PREVIEW
+			: (strtoupper((string) ($row['ENTITY_TYPE'] ?? 'E')) === 'S'
+				? Prompts::TYPE_CATEGORY
+				: Prompts::TYPE_DETAIL);
 		$promptId = $preview
 			? (int) ($row['PROMPT_PREVIEW_ID'] ?? 0)
 			: (int) ($row['PROMPT_DETAIL_ID'] ?? 0);

@@ -473,10 +473,11 @@ try {
 				'run_mode' => (string) ($_POST['run_mode'] ?? BatchQueue::MODE_FULL),
 			];
 			// сохранить дефолты панели
-			$runMode = $opts['run_mode'] === BatchQueue::MODE_ANALYZE_ONLY
-				? BatchQueue::MODE_ANALYZE_ONLY
-				: BatchQueue::MODE_FULL;
+			$runMode = BatchQueue::normalizeRunMode((string) $opts['run_mode']);
 			$opts['run_mode'] = $runMode;
+			if ($runMode === BatchQueue::MODE_REFINE) {
+				$opts['existing_policy'] = BatchQueue::POLICY_OVERWRITE;
+			}
 			Config::setAutoOption('existing_policy', $entityType, $opts['existing_policy'] === BatchQueue::POLICY_SKIP ? BatchQueue::POLICY_SKIP : BatchQueue::POLICY_OVERWRITE);
 			Config::setAutoOption('tlp_missing', $entityType, (string) $opts['tlp_missing_limit']);
 			Config::setAutoOption('tlp_diff', $entityType, (string) $opts['tlp_diff_limit']);
@@ -485,7 +486,8 @@ try {
 				Config::setAutoOption('gen_preview', $entityType, $opts['gen_preview'] ? 'Y' : 'N');
 			}
 			if ($opts['prompt_detail_id'] > 0) {
-				Prompts::setActiveId(Prompts::TYPE_DETAIL, $opts['prompt_detail_id']);
+				$promptType = $entityType === 'S' ? Prompts::TYPE_CATEGORY : Prompts::TYPE_DETAIL;
+				Prompts::setActiveId($promptType, $opts['prompt_detail_id']);
 			}
 			if ($opts['prompt_preview_id'] > 0) {
 				Prompts::setActiveId(Prompts::TYPE_PREVIEW, $opts['prompt_preview_id']);
@@ -521,15 +523,21 @@ try {
 				'tlp_missing_limit' => (int) ($_POST['tlp_missing_limit'] ?? 300),
 				'tlp_diff_limit' => (int) ($_POST['tlp_diff_limit'] ?? 5),
 			];
-			if ($opts['run_mode'] === BatchQueue::MODE_FULL) {
-				Config::setAutoOption('run_mode', $entityType, BatchQueue::MODE_FULL);
+			if ($opts['run_mode'] === BatchQueue::MODE_FULL || $opts['run_mode'] === BatchQueue::MODE_REFINE) {
+				$opts['run_mode'] = BatchQueue::normalizeRunMode((string) $opts['run_mode']);
+				Config::setAutoOption('run_mode', $entityType, $opts['run_mode']);
 				Config::setAutoOption(
 					'existing_policy',
 					$entityType,
-					$opts['existing_policy'] === BatchQueue::POLICY_SKIP ? BatchQueue::POLICY_SKIP : BatchQueue::POLICY_OVERWRITE
+					$opts['existing_policy'] === BatchQueue::POLICY_SKIP && $opts['run_mode'] !== BatchQueue::MODE_REFINE
+						? BatchQueue::POLICY_SKIP
+						: BatchQueue::POLICY_OVERWRITE
 				);
-			} else {
+			} elseif ($opts['run_mode'] === BatchQueue::MODE_ANALYZE_ONLY) {
 				Config::setAutoOption('run_mode', $entityType, BatchQueue::MODE_ANALYZE_ONLY);
+			} else {
+				$opts['run_mode'] = BatchQueue::MODE_FULL;
+				Config::setAutoOption('run_mode', $entityType, BatchQueue::MODE_FULL);
 			}
 			if ($entityType !== 'S') {
 				Config::setAutoOption('gen_preview', $entityType, !empty($opts['gen_preview']) ? 'Y' : 'N');

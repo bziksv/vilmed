@@ -52,10 +52,10 @@ class BatchQueue
 		}
 		global $DB;
 		$now = self::now();
+		// STEP не трогаем: у refine уже generate + HISTORY_ID
 		$DB->Query("
 			UPDATE titlo_relevance_queue SET
 				STATUS = '" . self::STATUS_RUNNING . "',
-				STEP = '" . self::STEP_ANALYZE . "',
 				ERROR = NULL,
 				UPDATED_AT = '" . $now . "'
 			WHERE ID = " . $id . "
@@ -87,8 +87,35 @@ class BatchQueue
 
 	public const MODE_FULL = 'full';
 	public const MODE_ANALYZE_ONLY = 'analyze_only';
+	public const MODE_REFINE = 'refine';
 
 	public const SCHEMA_VER = '1.3.0';
+
+	public static function normalizeRunMode(string $runMode): string
+	{
+		$runMode = strtolower(trim($runMode));
+		if ($runMode === self::MODE_ANALYZE_ONLY) {
+			return self::MODE_ANALYZE_ONLY;
+		}
+		if ($runMode === self::MODE_REFINE) {
+			return self::MODE_REFINE;
+		}
+
+		return self::MODE_FULL;
+	}
+
+	public static function runModeLabel(string $runMode): string
+	{
+		$runMode = self::normalizeRunMode($runMode);
+		if ($runMode === self::MODE_ANALYZE_ONLY) {
+			return 'только анализ';
+		}
+		if ($runMode === self::MODE_REFINE) {
+			return 'повторная доработка';
+		}
+
+		return 'полная';
+	}
 
 	/** @var bool */
 	protected static $schemaReady = false;
@@ -228,9 +255,20 @@ class BatchQueue
 		if ($policy !== self::POLICY_SKIP) {
 			$policy = self::POLICY_OVERWRITE;
 		}
-		$runMode = strtolower((string) ($opts['run_mode'] ?? self::MODE_FULL));
-		if ($runMode !== self::MODE_ANALYZE_ONLY) {
-			$runMode = self::MODE_FULL;
+		$runMode = self::normalizeRunMode((string) ($opts['run_mode'] ?? self::MODE_FULL));
+		$historyId = 0;
+		$workHistoryId = 0;
+		$step = self::STEP_ANALYZE;
+		if ($runMode === self::MODE_REFINE) {
+			$policy = self::POLICY_OVERWRITE;
+			$scores = WorkHistory::mapLatestScores([$entityId], $entityType);
+			$score = $scores[$entityId] ?? null;
+			$historyId = (int) ($score['history_id'] ?? 0);
+			$workHistoryId = (int) ($score['work_id'] ?? 0);
+			if ($historyId <= 0) {
+				throw new \InvalidArgumentException('нет прошлого анализа (history_id) — сначала полный проход или только анализ');
+			}
+			$step = self::STEP_GENERATE;
 		}
 		$missLim = (int) ($opts['tlp_missing_limit'] ?? 300);
 		$diffLim = (int) ($opts['tlp_diff_limit'] ?? 5);
@@ -254,9 +292,11 @@ class BatchQueue
 			$batchKey = date('YmdHis') . '_' . substr(md5(uniqid('', true)), 0, 8);
 		}
 		$genPreview = !empty($opts['gen_preview']) ? 'Y' : 'N';
+		$histSql = $historyId > 0 ? (string) (int) $historyId : 'NULL';
+		$workSql = $workHistoryId > 0 ? (string) (int) $workHistoryId : 'NULL';
 		$DB->Query("
 			INSERT INTO titlo_relevance_queue
-			(ENTITY_TYPE, ENTITY_ID, URL, PHRASE, STATUS, STEP,
+			(ENTITY_TYPE, ENTITY_ID, URL, PHRASE, STATUS, STEP, HISTORY_ID, WORK_HISTORY_ID,
 			 PROMPT_DETAIL_ID, PROMPT_PREVIEW_ID, GEN_PREVIEW, EXISTING_POLICY,
 			 TLP_MISSING_LIMIT, TLP_DIFF_LIMIT, RUN_MODE, BATCH_KEY, CREATED_AT, UPDATED_AT)
 			VALUES (
@@ -265,7 +305,9 @@ class BatchQueue
 				'" . $DB->ForSql($url) . "',
 				'" . $DB->ForSql($phrase) . "',
 				'" . self::STATUS_QUEUED . "',
-				'" . self::STEP_ANALYZE . "',
+				'" . $DB->ForSql($step) . "',
+				" . $histSql . ",
+				" . $workSql . ",
 				" . (int) ($opts['prompt_detail_id'] ?? 0) . ",
 				" . (int) ($opts['prompt_preview_id'] ?? 0) . ",
 				'" . $genPreview . "',
@@ -328,7 +370,7 @@ class BatchQueue
 					throw new \InvalidArgumentException('no phrase');
 				}
 				self::enqueue($entityType, $id, $url, $phrase, $opts);
-				$runMode = strtolower((string) ($opts['run_mode'] ?? self::MODE_FULL));
+				$runMode = self::normalizeRunMode((string) ($opts['run_mode'] ?? self::MODE_FULL));
 				if ($runMode !== self::MODE_ANALYZE_ONLY) {
 					if ($entityType === 'S') {
 						CatalogRepository::clearSectionAutoAt($id);
@@ -371,52 +413,16 @@ class BatchQueue
 		}
 
 		$now = self::now();
-		$sets = [
-			"STATUS = '" . self::STATUS_QUEUED . "'",
-			"STEP = '" . self::STEP_ANALYZE . "'",
-			'ANALYSIS_ID = NULL',
-			'HISTORY_ID = NULL',
-			'GEN_RECORD_ID = NULL',
-			'GEN_PREVIEW_RECORD_ID = NULL',
-			'WORK_HISTORY_ID = NULL',
-			'DETAIL_TEXT = NULL',
-			'PREVIEW_TEXT = NULL',
-			'ERROR = NULL',
-			"UPDATED_AT = '" . $now . "'",
-		];
-
-		$runMode = isset($opts['run_mode']) ? strtolower((string) $opts['run_mode']) : '';
-		if ($runMode !== self::MODE_ANALYZE_ONLY) {
-			$runMode = self::MODE_FULL;
-		}
-		$sets[] = "RUN_MODE = '" . $DB->ForSql($runMode) . "'";
-
+		$runMode = self::normalizeRunMode((string) ($opts['run_mode'] ?? self::MODE_FULL));
 		$policy = isset($opts['existing_policy']) ? strtolower((string) $opts['existing_policy']) : '';
 		if ($policy !== self::POLICY_SKIP) {
 			$policy = self::POLICY_OVERWRITE;
 		}
-		$sets[] = "EXISTING_POLICY = '" . $DB->ForSql($policy) . "'";
-
-		if (array_key_exists('prompt_detail_id', $opts)) {
-			$sets[] = 'PROMPT_DETAIL_ID = ' . (int) $opts['prompt_detail_id'];
-		}
-		if (array_key_exists('prompt_preview_id', $opts)) {
-			$sets[] = 'PROMPT_PREVIEW_ID = ' . (int) $opts['prompt_preview_id'];
-		}
-		if (array_key_exists('gen_preview', $opts)) {
-			$sets[] = "GEN_PREVIEW = '" . (!empty($opts['gen_preview']) ? 'Y' : 'N') . "'";
-		}
-		if (array_key_exists('tlp_missing_limit', $opts)) {
-			$miss = max(0, min(500, (int) $opts['tlp_missing_limit']));
-			$sets[] = 'TLP_MISSING_LIMIT = ' . $miss;
-		}
-		if (array_key_exists('tlp_diff_limit', $opts)) {
-			$diff = max(0, min(200, (int) $opts['tlp_diff_limit']));
-			$sets[] = 'TLP_DIFF_LIMIT = ' . $diff;
+		if ($runMode === self::MODE_REFINE) {
+			$policy = self::POLICY_OVERWRITE;
 		}
 
 		$in = implode(',', $ids);
-		// Не трогаем уже выполняющиеся — только завершённые/ошибочные/ожидающие.
 		$allowed = "'" . self::STATUS_FAILED . "','" . self::STATUS_SKIPPED . "','"
 			. self::STATUS_DONE . "','" . self::STATUS_QUEUED . "'";
 		$typeFilter = '';
@@ -426,13 +432,13 @@ class BatchQueue
 		}
 		$entityIdsE = [];
 		$entityIdsS = [];
+		$candidates = [];
 		$res = $DB->Query("
 			SELECT ID, ENTITY_TYPE, ENTITY_ID FROM titlo_relevance_queue
 			WHERE ID IN ({$in}) AND STATUS IN ({$allowed})" . $typeFilter . '
 		');
-		$okIds = [];
 		while ($row = $res->Fetch()) {
-			$okIds[] = (int) $row['ID'];
+			$candidates[] = $row;
 			$etype = strtoupper((string) ($row['ENTITY_TYPE'] ?? 'E')) === 'S' ? 'S' : 'E';
 			$eid = (int) $row['ENTITY_ID'];
 			if ($etype === 'S') {
@@ -441,11 +447,88 @@ class BatchQueue
 				$entityIdsE[] = $eid;
 			}
 		}
-		if ($okIds === []) {
+		if ($candidates === []) {
 			return ['ok' => false, 'requeued' => 0, 'ids' => [], 'error' => 'nothing_to_requeue'];
 		}
-		$inOk = implode(',', $okIds);
-		$DB->Query('UPDATE titlo_relevance_queue SET ' . implode(', ', $sets) . ' WHERE ID IN (' . $inOk . ')');
+
+		$scoresE = $runMode === self::MODE_REFINE
+			? WorkHistory::mapLatestScores(array_unique($entityIdsE), 'E')
+			: [];
+		$scoresS = $runMode === self::MODE_REFINE
+			? WorkHistory::mapLatestScores(array_unique($entityIdsS), 'S')
+			: [];
+
+		$okIds = [];
+		$errors = [];
+		foreach ($candidates as $row) {
+			$qid = (int) $row['ID'];
+			$etype = strtoupper((string) ($row['ENTITY_TYPE'] ?? 'E')) === 'S' ? 'S' : 'E';
+			$eid = (int) $row['ENTITY_ID'];
+			$historyId = 0;
+			$workId = 0;
+			$step = self::STEP_ANALYZE;
+			$histSql = 'NULL';
+			$workSql = 'NULL';
+			if ($runMode === self::MODE_REFINE) {
+				$score = $etype === 'S'
+					? ($scoresS[$eid] ?? null)
+					: ($scoresE[$eid] ?? null);
+				$historyId = (int) ($score['history_id'] ?? 0);
+				$workId = (int) ($score['work_id'] ?? 0);
+				if ($historyId <= 0) {
+					$errors[$qid] = 'нет прошлого анализа (history_id)';
+					continue;
+				}
+				$step = self::STEP_GENERATE;
+				$histSql = (string) (int) $historyId;
+				$workSql = $workId > 0 ? (string) (int) $workId : 'NULL';
+			}
+
+			$sets = [
+				"STATUS = '" . self::STATUS_QUEUED . "'",
+				"STEP = '" . $DB->ForSql($step) . "'",
+				'ANALYSIS_ID = NULL',
+				'HISTORY_ID = ' . $histSql,
+				'GEN_RECORD_ID = NULL',
+				'GEN_PREVIEW_RECORD_ID = NULL',
+				'WORK_HISTORY_ID = ' . $workSql,
+				'DETAIL_TEXT = NULL',
+				'PREVIEW_TEXT = NULL',
+				'ERROR = NULL',
+				"UPDATED_AT = '" . $now . "'",
+				"RUN_MODE = '" . $DB->ForSql($runMode) . "'",
+				"EXISTING_POLICY = '" . $DB->ForSql($policy) . "'",
+			];
+			if (array_key_exists('prompt_detail_id', $opts)) {
+				$sets[] = 'PROMPT_DETAIL_ID = ' . (int) $opts['prompt_detail_id'];
+			}
+			if (array_key_exists('prompt_preview_id', $opts)) {
+				$sets[] = 'PROMPT_PREVIEW_ID = ' . (int) $opts['prompt_preview_id'];
+			}
+			if (array_key_exists('gen_preview', $opts)) {
+				$sets[] = "GEN_PREVIEW = '" . (!empty($opts['gen_preview']) ? 'Y' : 'N') . "'";
+			}
+			if (array_key_exists('tlp_missing_limit', $opts)) {
+				$miss = max(0, min(500, (int) $opts['tlp_missing_limit']));
+				$sets[] = 'TLP_MISSING_LIMIT = ' . $miss;
+			}
+			if (array_key_exists('tlp_diff_limit', $opts)) {
+				$diff = max(0, min(200, (int) $opts['tlp_diff_limit']));
+				$sets[] = 'TLP_DIFF_LIMIT = ' . $diff;
+			}
+			$DB->Query('UPDATE titlo_relevance_queue SET ' . implode(', ', $sets) . ' WHERE ID = ' . $qid);
+			$okIds[] = $qid;
+		}
+
+		if ($okIds === []) {
+			return [
+				'ok' => false,
+				'requeued' => 0,
+				'ids' => [],
+				'error' => $errors !== [] ? implode('; ', array_slice($errors, 0, 5)) : 'nothing_to_requeue',
+				'errors' => $errors,
+			];
+		}
 
 		if ($runMode !== self::MODE_ANALYZE_ONLY) {
 			foreach (array_unique($entityIdsE) as $eid) {
@@ -460,7 +543,12 @@ class BatchQueue
 			}
 		}
 
-		return ['ok' => true, 'requeued' => count($okIds), 'ids' => $okIds];
+		return [
+			'ok' => true,
+			'requeued' => count($okIds),
+			'ids' => $okIds,
+			'errors' => $errors,
+		];
 	}
 
 	/**
@@ -734,7 +822,7 @@ class BatchQueue
 			'step_label' => self::stepLabel($step),
 			'result_label' => self::resultLabel($status, $step, $runMode, $policy),
 			'run_mode' => $runMode,
-			'run_mode_label' => $runMode === self::MODE_ANALYZE_ONLY ? 'только анализ' : 'полная',
+			'run_mode_label' => self::runModeLabel($runMode),
 			'history_id' => isset($row['HISTORY_ID']) && $row['HISTORY_ID'] !== null ? (int) $row['HISTORY_ID'] : null,
 			'analysis_id' => $row['ANALYSIS_ID'] !== null && $row['ANALYSIS_ID'] !== '' ? (string) $row['ANALYSIS_ID'] : null,
 			'gen_record_id' => isset($row['GEN_RECORD_ID']) && $row['GEN_RECORD_ID'] !== null ? (int) $row['GEN_RECORD_ID'] : null,
@@ -792,6 +880,9 @@ class BatchQueue
 		}
 		if ($runMode === self::MODE_ANALYZE_ONLY && ($status === self::STATUS_DONE || $status === self::STATUS_SKIPPED)) {
 			return 'Только анализ (текст не писали)';
+		}
+		if ($runMode === self::MODE_REFINE && $status === self::STATUS_DONE) {
+			return 'Готово: повторная доработка';
 		}
 		if ($status === self::STATUS_SKIPPED && $policy === self::POLICY_SKIP) {
 			return 'Текст не писали: описание уже было';

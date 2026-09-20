@@ -40,9 +40,7 @@ if ($policy !== BatchQueue::POLICY_SKIP) {
 $tlpMissing = (int) Config::getAutoOption('tlp_missing', 'S', '300');
 $tlpDiff = (int) Config::getAutoOption('tlp_diff', 'S', '5');
 $runMode = Config::getAutoOption('run_mode', 'S', BatchQueue::MODE_FULL);
-if ($runMode !== BatchQueue::MODE_ANALYZE_ONLY) {
-	$runMode = BatchQueue::MODE_FULL;
-}
+$runMode = BatchQueue::normalizeRunMode($runMode);
 $sort = (string) ($_GET['sort'] ?? 'score_asc');
 if ($sort !== 'id_desc') {
 	$sort = 'score_asc';
@@ -142,19 +140,20 @@ if ($sort !== 'id_desc') {
 	<div class="bulk-bar">
 		<label>Режим
 			<span class="titlo-help" tabindex="0" aria-label="Режим очереди">?
-				<span class="titlo-help__tip"><b>Только анализ</b> — считает балл и останавливается (удобно выбрать низкие).<br><b>Полная проработка</b> — анализ, генерация описания, сохранение, повторный анализ.</span>
+				<span class="titlo-help__tip"><b>Только анализ</b> — считает балл и останавливается (удобно выбрать низкие).<br><b>Полная проработка</b> — анализ, генерация описания, сохранение, повторный анализ.<br><b>Повторная доработка</b> — без первого анализа: берёт последний history_id / TLP, генерирует по промпту доработки, сохраняет и снова считает балл. Без прошлого балла в очередь не ставит.</span>
 			</span>:
 			<select id="titlo-auto-run-mode" class="adm-input" style="min-width:180px">
 				<option value="analyze_only" <?= $runMode === 'analyze_only' ? 'selected' : '' ?>>Только анализ</option>
 				<option value="full" <?= $runMode === 'full' ? 'selected' : '' ?>>Полная проработка</option>
+				<option value="refine" <?= $runMode === 'refine' ? 'selected' : '' ?>>Повторная доработка</option>
 			</select>
 		</label>
 		<span class="titlo-auto-full-opts" id="titlo-auto-full-opts">
 		<label>Промпт описания категории
 			<span class="titlo-help" tabindex="0" aria-label="Промпт описания категории">?
-				<span class="titlo-help__tip">Генерирует текст раздела (DESCRIPTION). Текст промпта — в «Промпты» → «Детальное». К нему дописываются TLP и HTML страницы категории.</span>
+				<span class="titlo-help__tip">Генерирует текст раздела (DESCRIPTION). Текст промпта — в «Промпты» → «Категория». К нему дописываются TLP и HTML страницы категории.</span>
 			</span>:
-			<select id="titlo-auto-prompt-detail" class="adm-input titlo-prompt-select" data-type="detail" style="min-width:240px"></select>
+			<select id="titlo-auto-prompt-detail" class="adm-input titlo-prompt-select" data-type="category" style="min-width:240px"></select>
 		</label>
 		<label>Если описание уже есть
 			<span class="titlo-help" tabindex="0" aria-label="Политика существующего описания">?
@@ -341,16 +340,32 @@ if ($sort !== 'id_desc') {
 		return document.getElementById('titlo-auto-run-mode').value === 'analyze_only';
 	}
 
+	function selectRefinePrompt() {
+		var mode = document.getElementById('titlo-auto-run-mode').value;
+		if (mode !== 'refine') return;
+		var sel = document.getElementById('titlo-auto-prompt-detail');
+		if (!sel || !sel.options) return;
+		var want = <?= json_encode(Prompts::REFINE_CATEGORY_NAME, JSON_UNESCAPED_UNICODE) ?>;
+		for (var i = 0; i < sel.options.length; i++) {
+			var t = sel.options[i].textContent || '';
+			if (t.indexOf(want) === 0 || t === want) {
+				sel.selectedIndex = i;
+				return;
+			}
+		}
+	}
+
 	function syncModeUi() {
 		var full = document.getElementById('titlo-auto-full-opts');
 		if (!full) return;
 		full.classList.toggle('is-muted', isAnalyzeOnly());
+		selectRefinePrompt();
 	}
 
 	function loadPrompts() {
 		return post('list_prompts', {}).then(function (res) {
 			if (!res.ok || !res.by_type) return;
-			['detail'].forEach(function (type) {
+			['category'].forEach(function (type) {
 				var payload = res.by_type[type] || {};
 				var items = payload.items || [];
 				var active = payload.active_id || 0;
@@ -365,6 +380,7 @@ if ($sort !== 'id_desc') {
 					sel.appendChild(opt);
 				});
 			});
+			syncModeUi();
 		});
 	}
 

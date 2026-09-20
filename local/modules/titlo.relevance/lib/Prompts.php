@@ -153,6 +153,8 @@ class Prompts
 		self::seedAndMigrate();
 		self::seedVilmedDetailExtra();
 		self::seedVilmedCategoryExtra();
+		self::seedRefineDetailPrompts();
+		self::seedRefineCategoryPrompts();
 		self::seedSectionPhraseKupitEnd();
 		self::seedSectionPhraseKeepBrand();
 		self::seedSectionPhraseMeaningFirst();
@@ -409,6 +411,179 @@ TXT;
 		}
 
 		Option::set(Config::MODULE_ID, $flag, 'Y');
+	}
+
+	public const REFINE_DETAIL_NAME = 'Повторная доработка';
+	public const REFINE_DETAIL_VMD_NAME = 'Повторная доработка: со стилями (Vilmed)';
+	public const REFINE_CATEGORY_NAME = 'Повторная доработка (категория)';
+	public const REFINE_CATEGORY_VMD_NAME = 'Повторная доработка: со стилями (Vilmed, категория)';
+
+	public static function refineDetailBody(): string
+	{
+		return <<<'TXT'
+Роль:
+Ты — редактор SEO-текстов интернет-магазина. Задача — ДОРАБОТАТЬ уже размещённое
+описание товара, а не писать карточку с нуля.
+
+Страница товара: {link}
+На странице уже есть описание после первого прохода. Сохрани его структуру, факты
+и характеристики. Не выдумывай числа и свойства, которых нет на странице.
+
+Цель доработки:
+- естественнее вписать недостающие слова из TLP (они будут дописаны к запросу);
+- подтянуть плотность без спама и без ломания читаемости;
+- улучшить покрытие фразы, не раздувая текст водой.
+
+Требования к ответу:
+- один полный HTML-вариант описания;
+- абзацы <p>, при необходимости <h2>/<h3> и списки <ul><li>;
+- без markdown, без комментариев и без пояснений вокруг HTML.
+TXT;
+	}
+
+	public static function refineVilmedDetailBody(): string
+	{
+		return <<<'TXT'
+ПРИМЕР промпта повторной доработки со стилями (магазин Vilmed, .vmd-desc).
+
+Ты — контент-редактор. ДОРАБОТАЙ уже размещённое HTML-описание товара на странице {link}.
+Не пиши карточку с нуля: сохрани смысл, факты и структуру .vmd-desc, усили текст
+словами из TLP (они будут дописаны к запросу).
+
+Верни ТОЛЬКО HTML внутри <article class="vmd-desc">…</article>, без markdown и пояснений.
+
+Правила разметки — те же, что у полного промпта Vilmed:
+- корень <article class="vmd-desc">;
+- <h1>, <p class="vmd-subtitle">, <strong>, <mark>, <h2>;
+- при необходимости .vmd-features / .vmd-list / .vmd-spec / .vmd-faq / .vmd-manager;
+- иконки только инлайновый SVG Lucide;
+- не выдумывай характеристики и коммерческие условия (лизинг/рассрочка/«в наличии»),
+  которых нет на странице;
+- блок vmd-cta не добавляй.
+
+Цель: выше покрытие TLP и читаемый текст без спама ключевых слов.
+TXT;
+	}
+
+	public static function refineCategoryBody(): string
+	{
+		return <<<'TXT'
+Роль:
+Ты — редактор SEO-текстов. ДОРАБОТАЙ уже размещённый текст категории по ссылке {link},
+а не пиши раздел с нуля.
+
+Сохрани факты и структуру. Впиши недостающие слова из TLP (будут дописаны к запросу)
+естественно, без спама. Не выдумывай ассортимент и условия, которых нет на странице.
+
+Ответ — один HTML-вариант (абзацы <p>, при необходимости <h2>/<h3> и списки),
+без markdown и пояснений.
+TXT;
+	}
+
+	public static function refineVilmedCategoryBody(): string
+	{
+		return <<<'TXT'
+ПРИМЕР повторной доработки SEO-текста категории (Vilmed, .vmd-desc).
+
+ДОРАБОТАЙ уже размещённый HTML раздела {link}. Сохрани разметку .vmd-desc и факты.
+Впиши слова из TLP без спама. Верни только <article class="vmd-desc">…</article>.
+
+Правила классов — как у полного category-промпта Vilmed (h1, vmd-subtitle, features,
+list, faq, manager). Не выдумывай ассортимент и коммерческие обещания.
+TXT;
+	}
+
+	/**
+	 * ID промпта по точному имени и типу (для автовыбора режима refine).
+	 */
+	public static function findIdByName(string $type, string $name): int
+	{
+		self::ensureTables();
+		global $DB;
+		$row = $DB->Query(
+			"SELECT ID FROM titlo_prompts
+			 WHERE TYPE='" . $DB->ForSql($type) . "'
+			   AND NAME='" . $DB->ForSql($name) . "'
+			 LIMIT 1"
+		)->Fetch();
+
+		return $row ? (int) $row['ID'] : 0;
+	}
+
+	protected static function upsertPromptByName(string $type, string $name, string $body, int $sort, string $flag): void
+	{
+		global $DB;
+		if (Option::get(Config::MODULE_ID, $flag, '') === 'Y') {
+			return;
+		}
+		$now = date('Y-m-d H:i:s');
+		$row = $DB->Query(
+			"SELECT ID FROM titlo_prompts
+			 WHERE TYPE='" . $DB->ForSql($type) . "'
+			   AND NAME='" . $DB->ForSql($name) . "'
+			 LIMIT 1"
+		)->Fetch();
+		if ($row) {
+			$DB->Query("
+				UPDATE titlo_prompts
+				SET BODY='" . $DB->ForSql($body) . "',
+				    SORT=" . (int) $sort . ",
+				    IS_DEFAULT='N',
+				    UPDATED_AT='" . $DB->ForSql($now) . "'
+				WHERE ID=" . (int) $row['ID']
+			);
+		} else {
+			$DB->Query("
+				INSERT INTO titlo_prompts (TYPE, NAME, BODY, IS_DEFAULT, SORT, USE_COUNT, CREATED_AT, UPDATED_AT)
+				VALUES (
+					'" . $DB->ForSql($type) . "',
+					'" . $DB->ForSql($name) . "',
+					'" . $DB->ForSql($body) . "',
+					'N',
+					" . (int) $sort . ",
+					0,
+					'" . $DB->ForSql($now) . "',
+					'" . $DB->ForSql($now) . "'
+				)
+			");
+		}
+		Option::set(Config::MODULE_ID, $flag, 'Y');
+	}
+
+	protected static function seedRefineDetailPrompts(): void
+	{
+		self::upsertPromptByName(
+			self::TYPE_DETAIL,
+			self::REFINE_DETAIL_NAME,
+			self::refineDetailBody(),
+			150,
+			'seed_refine_detail_v1'
+		);
+		self::upsertPromptByName(
+			self::TYPE_DETAIL,
+			self::REFINE_DETAIL_VMD_NAME,
+			self::refineVilmedDetailBody(),
+			160,
+			'seed_refine_vmd_detail_v1'
+		);
+	}
+
+	protected static function seedRefineCategoryPrompts(): void
+	{
+		self::upsertPromptByName(
+			self::TYPE_CATEGORY,
+			self::REFINE_CATEGORY_NAME,
+			self::refineCategoryBody(),
+			150,
+			'seed_refine_category_v1'
+		);
+		self::upsertPromptByName(
+			self::TYPE_CATEGORY,
+			self::REFINE_CATEGORY_VMD_NAME,
+			self::refineVilmedCategoryBody(),
+			160,
+			'seed_refine_vmd_category_v1'
+		);
 	}
 
 	/**
