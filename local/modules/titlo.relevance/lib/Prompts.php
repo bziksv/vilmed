@@ -272,11 +272,19 @@ HTML-описание товара строго в разметке дизайн
   <div class="ic">SVG</div><div>…</div></div>.
   НЕ дублируй здесь дисклеймер про изменение характеристик — он только в конце.
 - FAQ (если есть вопросы): <div class="vmd-faq">
-  <details open><summary>Вопрос?</summary><div class="vmd-faq__a">Ответ.</div></details>…</div>.
+  <details><summary>Вопрос?</summary><div class="vmd-faq__a">Ответ.</div></details>…</div>.
+  Важно: у <details> НЕ ставь атрибут open — пункты должны быть свёрнуты
+  (плюс справа), раскрываются по клику на summary.
 - Блок vmd-cta (форма «Запросить цену») НЕ добавляй.
-- В самом конце ОДИН раз — <div class="vmd-manager"><div class="ic">SVG</div><div>…</div></div>
-  с текстом про возможное изменение характеристик/комплектации и контактом
-  info@vilmed.ru. Эту фразу больше нигде не повторяй.
+- В самом конце ОБЯЗАТЕЛЬНО ОДИН раз —
+  <div class="vmd-manager"><div class="ic">SVG</div><div>…</div></div>
+  с точным смыслом (можно чуть перефразировать, но смысл сохрани):
+  «Характеристики и комплектация устройства могут быть изменены производителем
+  без предварительного уведомления. Уточнить актуальную информацию можно по адресу
+  <a href="mailto:info@vilmed.ru">info@vilmed.ru</a>.»
+  Почту пиши ТОЛЬКО как кликабельную ссылку mailto. Эту фразу больше нигде не повторяй.
+- Любой info@vilmed.ru в тексте — только как
+  <a href="mailto:info@vilmed.ru">info@vilmed.ru</a>, не голый текст.
 
 ИКОНКИ (.ic): только инлайновый <svg> в line-стиле Lucide:
 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -292,12 +300,15 @@ gauge, monitor, printer, shield-check, truck, info, alert-triangle, mail).
   «официальное КП» / «в наличии на складе» / гарантированные сроки поставки —
   если этого ДОСЛОВНО нет на странице товара.
 - Не создавай FAQ вида «Есть ли лизинг/рассрочка?» с ответом «Да…».
-- Если тема коммерческих условий нужна — максимум одна нейтральная фраза:
-  «По действующим программам лизинга, рассрочки и условиям поставки напишите
-  на info@vilmed.ru — менеджер уточнит актуальные возможности.»
+- Если тема коммерческих условий нужна — максимум одна нейтральная фраза
+  в vmd-note (не в manager):
+  «Для получения КП по запросу, уточнения наличия на складе и условий поставки
+  напишите на <a href="mailto:info@vilmed.ru">info@vilmed.ru</a>. По действующим
+  программам лизинга, рассрочки и условиям поставки менеджер уточнит актуальные
+  возможности.»
   Без слова «да», без «доступны», без «по запросу рассчитаем».
 - В блоке vmd-manager не упоминай лизинг/рассрочку — только характеристики/
-  комплектация и контакт info@vilmed.ru.
+  комплектация и контакт mailto.
 TXT;
 	}
 
@@ -340,11 +351,15 @@ SEO-текст раздела каталога строго в разметке 
 - Примечания по смыслу (необязательно): <div class="vmd-note vmd-note--info|--warn|--accent">
   <div class="ic">SVG</div><div>…</div></div>.
 - FAQ (2–4 вопроса): <div class="vmd-faq">
-  <details open><summary>Вопрос?</summary><div class="vmd-faq__a">Ответ.</div></details>…</div>.
+  <details><summary>Вопрос?</summary><div class="vmd-faq__a">Ответ.</div></details>…</div>.
+  У <details> НЕ ставь open — пункты свёрнуты, раскрываются по клику.
 - Блок vmd-cta НЕ добавляй.
-- В самом конце ОДИН раз — <div class="vmd-manager"><div class="ic">SVG</div><div>…</div></div>
-  с нейтральной фразой про подбор оборудования и контактом info@vilmed.ru.
+- В самом конце ОБЯЗАТЕЛЬНО ОДИН раз —
+  <div class="vmd-manager"><div class="ic">SVG</div><div>…</div></div>
+  с нейтральной фразой про подбор оборудования и контактом
+  <a href="mailto:info@vilmed.ru">info@vilmed.ru</a>.
   Эту фразу больше нигде не повторяй.
+- Любой info@vilmed.ru — только как mailto-ссылка, не голый текст.
 
 ИКОНКИ (.ic): только инлайновый <svg> в line-стиле Lucide:
 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -363,9 +378,10 @@ info, alert-triangle, mail, check-circle).
 - Не создавай FAQ вида «Есть ли лизинг/рассрочка?» с ответом «Да…».
 - Если тема коммерческих условий нужна — максимум одна нейтральная фраза:
   «По действующим программам лизинга, рассрочки и условиям поставки напишите
-  на info@vilmed.ru — менеджер уточнит актуальные возможности.»
+  на <a href="mailto:info@vilmed.ru">info@vilmed.ru</a> — менеджер уточнит
+  актуальные возможности.»
 - В блоке vmd-manager не упоминай лизинг/рассрочку — только подбор/
-  консультация и контакт info@vilmed.ru.
+  консультация и контакт mailto.
 TXT;
 	}
 
@@ -435,7 +451,7 @@ TXT;
 	protected static function seedVilmedDetailExtra(): void
 	{
 		global $DB;
-		$flag = 'seed_vmd_detail_v6';
+		$flag = 'seed_vmd_detail_v7';
 		if (Option::get(Config::MODULE_ID, $flag, '') === 'Y') {
 			return;
 		}
@@ -521,21 +537,38 @@ TXT;
 ПРИМЕР промпта повторной доработки со стилями (магазин Vilmed, .vmd-desc).
 
 Ты — контент-редактор. ДОРАБОТАЙ уже размещённое HTML-описание товара на странице {link}.
-Не пиши карточку с нуля: сохрани смысл, факты и структуру .vmd-desc, усили текст
-словами из TLP (они будут дописаны к запросу).
+Не пиши карточку с нуля: сохрани смысл, факты, объём и полную структуру .vmd-desc.
+Усили текст словами из TLP (они будут дописаны к запросу) — без спама и без урезания блоков.
 
 Верни ТОЛЬКО HTML внутри <article class="vmd-desc">…</article>, без markdown и пояснений.
 
-Правила разметки — те же, что у полного промпта Vilmed:
-- корень <article class="vmd-desc">;
-- <h1>, <p class="vmd-subtitle">, <strong>, <mark>, <h2>;
-- при необходимости .vmd-features / .vmd-list / .vmd-spec / .vmd-faq / .vmd-manager;
-- иконки только инлайновый SVG Lucide;
-- не выдумывай характеристики и коммерческие условия (лизинг/рассрочка/«в наличии»),
-  которых нет на странице;
-- блок vmd-cta не добавляй.
+ОБЯЗАТЕЛЬНО СОХРАНИ / ВОССТАНОВИ (если на странице уже были или положены правилами):
+1) Корень <article class="vmd-desc">, <h1>, <p class="vmd-subtitle">, вводные <p>,
+   <strong>/<mark>, разделы <h2>.
+2) Блоки .vmd-features (карточки), .vmd-list, .vmd-table-wrap + .vmd-spec —
+   не выкидывай и не схлопывай в голые абзацы.
+3) FAQ: <div class="vmd-faq"> с пунктами
+   <details><summary>…</summary><div class="vmd-faq__a">…</div></details>.
+   У <details> НЕ ставь атрибут open — вопросы свёрнуты (плюс), раскрываются кликом.
+   Не заменяй FAQ на обычный список или div без details.
+4) Опционально .vmd-note (info/warn/accent) — если был коммерческий note, сохрани
+   смысл; почту только как mailto.
+5) В самом конце ОБЯЗАТЕЛЬНО блок .vmd-manager (даже если его «забыли» в прошлом
+   тексте). Точный смысл:
+   «Характеристики и комплектация устройства могут быть изменены производителем
+   без предварительного уведомления. Уточнить актуальную информацию можно по адресу
+   <a href="mailto:info@vilmed.ru">info@vilmed.ru</a>.»
+   Иконка mail/info — инлайновый SVG Lucide. Этот дисклеймер нигде больше не дублируй.
+6) Любой info@vilmed.ru — только
+   <a href="mailto:info@vilmed.ru">info@vilmed.ru</a>, не голый текст.
+7) Блок vmd-cta не добавляй. Иконки — только инлайновый SVG Lucide
+   (viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" …).
 
-Цель: выше покрытие TLP и читаемый текст без спама ключевых слов.
+Цель доработки:
+- выше покрытие TLP и плотность без спама;
+- не укорачивай текст «для краткости» и не выкидывай обязательные блоки выше;
+- не выдумывай характеристики и коммерческие условия (лизинг/рассрочка/«в наличии»),
+  которых нет на странице.
 TXT;
 	}
 
@@ -559,11 +592,19 @@ TXT;
 		return <<<'TXT'
 ПРИМЕР повторной доработки SEO-текста категории (Vilmed, .vmd-desc).
 
-ДОРАБОТАЙ уже размещённый HTML раздела {link}. Сохрани разметку .vmd-desc и факты.
+ДОРАБОТАЙ уже размещённый HTML раздела {link}. Не пиши с нуля и не урезай структуру.
 Впиши слова из TLP без спама. Верни только <article class="vmd-desc">…</article>.
 
-Правила классов — как у полного category-промпта Vilmed (h1, vmd-subtitle, features,
-list, faq, manager). Не выдумывай ассортимент и коммерческие обещания.
+ОБЯЗАТЕЛЬНО сохрани / восстанови:
+- h1 + .vmd-subtitle первыми, затем вводные, .vmd-features, .vmd-list, .vmd-note;
+- FAQ: <div class="vmd-faq"><details><summary>…</summary><div class="vmd-faq__a">…</div></details>…
+  без атрибута open (пункты свёрнуты);
+- в конце .vmd-manager с контактом
+  <a href="mailto:info@vilmed.ru">info@vilmed.ru</a>;
+- любой email — только mailto-ссылка;
+- vmd-cta не добавляй; иконки — SVG Lucide.
+
+Не выдумывай ассортимент и коммерческие обещания.
 TXT;
 	}
 
@@ -648,7 +689,7 @@ TXT;
 			self::REFINE_DETAIL_VMD_NAME,
 			self::refineVilmedDetailBody(),
 			160,
-			'seed_refine_vmd_detail_v1',
+			'seed_refine_vmd_detail_v2',
 			self::RUN_MODE_REFINE
 		);
 	}
@@ -668,7 +709,7 @@ TXT;
 			self::REFINE_CATEGORY_VMD_NAME,
 			self::refineVilmedCategoryBody(),
 			160,
-			'seed_refine_vmd_category_v1',
+			'seed_refine_vmd_category_v2',
 			self::RUN_MODE_REFINE
 		);
 	}
@@ -679,7 +720,7 @@ TXT;
 	protected static function seedVilmedCategoryExtra(): void
 	{
 		global $DB;
-		$flag = 'seed_vmd_category_v2';
+		$flag = 'seed_vmd_category_v3';
 		if (Option::get(Config::MODULE_ID, $flag, '') === 'Y') {
 			return;
 		}

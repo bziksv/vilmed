@@ -150,7 +150,11 @@ $hasKey = Config::apiKey() !== '';
 					<span class="titlo-help" tabindex="0" aria-label="Про рекомендуемый балл">?
 						<span class="titlo-help__tip">До рекомендованного балла доходить не всегда нужно. Изучите конкурентов: часть слов часто в меню, шапке, футере и других сквозных блоках — их не обязательно вшивать в текст посадочной.</span>
 					</span>
-				</th><th>Δ</th><th>Покрытие</th><th>Позиция</th><th></th></tr></thead>
+				</th><th>Δ</th><th>Текст, сл.
+					<span class="titlo-help" tabindex="0" aria-label="Размер текста">?
+						<span class="titlo-help__tip">Сколько слов анализатор посчитал на посадочной (текст + ссылки зоны контента). Рядом — среднее по конкурентам из ТОПа. Δ — изменение к предыдущей проверке этой посадочной.</span>
+					</span>
+				</th><th>Покрытие</th><th>Позиция</th><th></th></tr></thead>
 				<tbody id="titlo-hist-body"></tbody>
 			</table>
 		</div>
@@ -931,6 +935,23 @@ $hasKey = Config::apiKey() !== '';
 		};
 	}
 
+	function fmtTextWords(h) {
+		if (!h || h.text_words == null || h.text_words === '') return '—';
+		var s = String(h.text_words);
+		if (h.text_words_avg != null && h.text_words_avg !== '') {
+			s += ' / ср. ' + h.text_words_avg;
+		}
+		return s;
+	}
+
+	function fmtDeltaText(delta) {
+		if (delta == null || delta === '' || isNaN(delta)) return '';
+		var n = parseInt(delta, 10);
+		if (n === 0) return ' <span class="delta-same">0</span>';
+		if (n > 0) return ' <span class="delta-up">+' + n + '</span>';
+		return ' <span class="delta-down">' + n + '</span>';
+	}
+
 	function recordWorkScore(h, role) {
 		var id = parseInt(document.getElementById('titlo-entity-id').value, 10) || 0;
 		if (!id || !h || !h.history_id) return Promise.resolve();
@@ -976,6 +997,14 @@ $hasKey = Config::apiKey() !== '';
 			? 'ваш / рекомендуемый' + pointsIdealHelpHtml()
 			: 'баллов';
 		var params = fmtHistoryParams(h);
+		var textLine = '';
+		if (h.text_words != null && h.text_words !== '') {
+			textLine = ' · текст: <b>' + escapeHtml(String(h.text_words)) + '</b> сл.';
+			if (h.text_words_avg != null && h.text_words_avg !== '') {
+				textLine += ' (ср. конкуренты <b>' + escapeHtml(String(h.text_words_avg)) + '</b>)';
+			}
+			textLine += fmtDeltaText(h.delta_text_words);
+		}
 		el.innerHTML =
 			'<div class="big">' + ptsHtml + ' <span style="font-size:14px;font-weight:500;color:#64748b">' + label + '</span> ' + fmtDelta(delta) + '</div>' +
 			'<div class="titlo-scores-meta">' +
@@ -986,6 +1015,7 @@ $hasKey = Config::apiKey() !== '';
 			' · покрытие: <b>' + (h.coverage != null ? h.coverage : '—') + '</b>' +
 			' · плотность: <b>' + (h.density != null ? h.density : '—') + '</b>' +
 			' · позиция: <b>' + (h.position != null ? h.position : '—') + '</b>' +
+			textLine +
 			(h.last_check || h.created_at ? ' · ' + fmtDate(h.last_check || h.created_at) : '') +
 			'</div>';
 	}
@@ -1013,16 +1043,22 @@ $hasKey = Config::apiKey() !== '';
 				'<td>' + escapeHtml(p.top) + '</td>' +
 				'<td>' + fmtPointsPair(it) + '</td>' +
 				'<td>' + fmtDelta(it.delta_points) + '</td>' +
+				'<td>' + escapeHtml(fmtTextWords(it)) + fmtDeltaText(it.delta_text_words) + '</td>' +
 				'<td>' + (it.coverage != null ? it.coverage : '—') + '</td>' +
 				'<td>' + (it.position != null ? it.position : '—') + '</td>' +
-				'<td><button type="button" class="linkish" data-hid="' + it.history_id + '" data-delta="' + (it.delta_points != null ? it.delta_points : '') + '">открыть</button></td>' +
+				'<td><button type="button" class="linkish" data-hid="' + it.history_id + '" data-delta="' + (it.delta_points != null ? it.delta_points : '') + '" data-delta-text="' + (it.delta_text_words != null ? it.delta_text_words : '') + '">открыть</button></td>' +
 				'</tr>';
 		}).join('');
 		Array.prototype.forEach.call(body.querySelectorAll('button[data-hid]'), function (btn) {
 			btn.onclick = function () {
 				var hid = btn.getAttribute('data-hid');
 				var d = btn.getAttribute('data-delta');
-				loadHistoryBundle(hid, d === '' ? null : parseFloat(d));
+				var dt = btn.getAttribute('data-delta-text');
+				loadHistoryBundle(
+					hid,
+					d === '' || d == null ? null : parseFloat(d),
+					dt === '' || dt == null ? null : parseInt(dt, 10)
+				);
 			};
 		});
 	}
@@ -1096,13 +1132,16 @@ $hasKey = Config::apiKey() !== '';
 		});
 	}
 
-	function loadHistoryBundle(hid, delta) {
+	function loadHistoryBundle(hid, delta, deltaText) {
 		historyId = parseInt(hid, 10) || 0;
 		if (!historyId) return Promise.resolve();
 		document.getElementById('titlo-history-id').value = historyId;
 		showCloudsWrap(historyId);
 		return post('get_history', {history_id: historyId}).then(function (h) {
 			if (h.ok) {
+				if (deltaText != null && !isNaN(deltaText)) {
+					h.delta_text_words = deltaText;
+				}
 				renderScores(h, delta != null ? delta : h.delta_points);
 				Array.prototype.forEach.call(document.querySelectorAll('#titlo-hist-body tr'), function (tr) {
 					var cell = tr.cells[1];
