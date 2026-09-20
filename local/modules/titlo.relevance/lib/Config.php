@@ -297,6 +297,27 @@ class Config
 	}
 
 	/**
+	 * Старый дефолт «нет на сайте» был 200 — один раз поднимаем сохранённые 200 → 300.
+	 */
+	public static function migrateTlpMissingDefault300(): void
+	{
+		if (Option::get(self::MODULE_ID, 'tlp_missing_300_v1', '') === 'Y') {
+			return;
+		}
+		foreach (['E', 'S'] as $entityType) {
+			$cur = self::getAutoOption('tlp_missing', $entityType, '');
+			if ($cur === '' || $cur === '200') {
+				self::setAutoOption('tlp_missing', $entityType, '300');
+			}
+		}
+		$legacy = self::get('auto_tlp_missing', '');
+		if ($legacy === '200') {
+			Option::set(self::MODULE_ID, 'auto_tlp_missing', '300');
+		}
+		Option::set(self::MODULE_ID, 'tlp_missing_300_v1', 'Y');
+	}
+
+	/**
 	 * Безопасный публичный URL для href в админке (только http/https или относительный path).
 	 */
 	public static function safeHrefUrl(string $url): string

@@ -373,7 +373,7 @@ class Agent
 		$keywords = self::buildKeywordsFromTlp(
 			$client,
 			$historyId,
-			(int) ($row['TLP_MISSING_LIMIT'] ?? 200),
+			(int) ($row['TLP_MISSING_LIMIT'] ?? 300),
 			(int) ($row['TLP_DIFF_LIMIT'] ?? 5)
 		);
 		$type = $preview

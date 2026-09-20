@@ -140,6 +140,7 @@ class Prompts
 				NAME varchar(255) NOT NULL DEFAULT '',
 				BODY mediumtext,
 				IS_DEFAULT char(1) NOT NULL DEFAULT 'N',
+				RUN_MODE varchar(16) NOT NULL DEFAULT 'full',
 				SORT int(11) NOT NULL DEFAULT 100,
 				LAST_USED_AT datetime DEFAULT NULL,
 				USE_COUNT int(11) NOT NULL DEFAULT 0,
@@ -149,6 +150,7 @@ class Prompts
 				KEY ix_type_sort (TYPE, SORT, ID)
 			)
 		");
+		self::ensureRunModeColumn();
 		self::$tablesReady = true;
 		self::seedAndMigrate();
 		self::seedVilmedDetailExtra();
@@ -158,6 +160,78 @@ class Prompts
 		self::seedSectionPhraseKupitEnd();
 		self::seedSectionPhraseKeepBrand();
 		self::seedSectionPhraseMeaningFirst();
+		self::migratePromptRunModes();
+	}
+
+	public const RUN_MODE_FULL = 'full';
+	public const RUN_MODE_REFINE = 'refine';
+	public const RUN_MODE_ANY = 'any';
+
+	public static function normalizePromptRunMode(string $mode): string
+	{
+		$mode = strtolower(trim($mode));
+		if ($mode === self::RUN_MODE_REFINE) {
+			return self::RUN_MODE_REFINE;
+		}
+		if ($mode === self::RUN_MODE_ANY) {
+			return self::RUN_MODE_ANY;
+		}
+
+		return self::RUN_MODE_FULL;
+	}
+
+	public static function runModeLabel(string $mode): string
+	{
+		$mode = self::normalizePromptRunMode($mode);
+		if ($mode === self::RUN_MODE_REFINE) {
+			return 'повторная доработка';
+		}
+		if ($mode === self::RUN_MODE_ANY) {
+			return 'любой режим';
+		}
+
+		return 'полная проработка';
+	}
+
+	protected static function ensureRunModeColumn(): void
+	{
+		global $DB;
+		$cols = [];
+		$res = $DB->Query('SHOW COLUMNS FROM titlo_prompts');
+		while ($row = $res->Fetch()) {
+			$field = (string) ($row['Field'] ?? $row['FIELD'] ?? '');
+			if ($field !== '') {
+				$cols[$field] = true;
+			}
+		}
+		if (!isset($cols['RUN_MODE'])) {
+			$DB->Query("ALTER TABLE titlo_prompts ADD COLUMN RUN_MODE varchar(16) NOT NULL DEFAULT 'full' AFTER IS_DEFAULT");
+		}
+	}
+
+	/**
+	 * Сиды доработки → refine; остальные без явной метки остаются full.
+	 */
+	protected static function migratePromptRunModes(): void
+	{
+		if (Option::get(Config::MODULE_ID, 'prompts_run_mode_v1', '') === 'Y') {
+			return;
+		}
+		global $DB;
+		$refineNames = [
+			self::REFINE_DETAIL_NAME,
+			self::REFINE_DETAIL_VMD_NAME,
+			self::REFINE_CATEGORY_NAME,
+			self::REFINE_CATEGORY_VMD_NAME,
+		];
+		foreach ($refineNames as $name) {
+			$DB->Query("
+				UPDATE titlo_prompts
+				SET RUN_MODE='" . $DB->ForSql(self::RUN_MODE_REFINE) . "'
+				WHERE NAME='" . $DB->ForSql($name) . "'
+			");
+		}
+		Option::set(Config::MODULE_ID, 'prompts_run_mode_v1', 'Y');
 	}
 
 	/**
@@ -510,10 +584,17 @@ TXT;
 		return $row ? (int) $row['ID'] : 0;
 	}
 
-	protected static function upsertPromptByName(string $type, string $name, string $body, int $sort, string $flag): void
+	protected static function upsertPromptByName(string $type, string $name, string $body, int $sort, string $flag, string $runMode = self::RUN_MODE_FULL): void
 	{
 		global $DB;
+		$runMode = self::normalizePromptRunMode($runMode);
 		if (Option::get(Config::MODULE_ID, $flag, '') === 'Y') {
+			$DB->Query("
+				UPDATE titlo_prompts
+				SET RUN_MODE='" . $DB->ForSql($runMode) . "'
+				WHERE TYPE='" . $DB->ForSql($type) . "'
+				  AND NAME='" . $DB->ForSql($name) . "'
+			");
 			return;
 		}
 		$now = date('Y-m-d H:i:s');
@@ -529,17 +610,19 @@ TXT;
 				SET BODY='" . $DB->ForSql($body) . "',
 				    SORT=" . (int) $sort . ",
 				    IS_DEFAULT='N',
+				    RUN_MODE='" . $DB->ForSql($runMode) . "',
 				    UPDATED_AT='" . $DB->ForSql($now) . "'
 				WHERE ID=" . (int) $row['ID']
 			);
 		} else {
 			$DB->Query("
-				INSERT INTO titlo_prompts (TYPE, NAME, BODY, IS_DEFAULT, SORT, USE_COUNT, CREATED_AT, UPDATED_AT)
+				INSERT INTO titlo_prompts (TYPE, NAME, BODY, IS_DEFAULT, RUN_MODE, SORT, USE_COUNT, CREATED_AT, UPDATED_AT)
 				VALUES (
 					'" . $DB->ForSql($type) . "',
 					'" . $DB->ForSql($name) . "',
 					'" . $DB->ForSql($body) . "',
 					'N',
+					'" . $DB->ForSql($runMode) . "',
 					" . (int) $sort . ",
 					0,
 					'" . $DB->ForSql($now) . "',
@@ -557,14 +640,16 @@ TXT;
 			self::REFINE_DETAIL_NAME,
 			self::refineDetailBody(),
 			150,
-			'seed_refine_detail_v1'
+			'seed_refine_detail_v1',
+			self::RUN_MODE_REFINE
 		);
 		self::upsertPromptByName(
 			self::TYPE_DETAIL,
 			self::REFINE_DETAIL_VMD_NAME,
 			self::refineVilmedDetailBody(),
 			160,
-			'seed_refine_vmd_detail_v1'
+			'seed_refine_vmd_detail_v1',
+			self::RUN_MODE_REFINE
 		);
 	}
 
@@ -575,14 +660,16 @@ TXT;
 			self::REFINE_CATEGORY_NAME,
 			self::refineCategoryBody(),
 			150,
-			'seed_refine_category_v1'
+			'seed_refine_category_v1',
+			self::RUN_MODE_REFINE
 		);
 		self::upsertPromptByName(
 			self::TYPE_CATEGORY,
 			self::REFINE_CATEGORY_VMD_NAME,
 			self::refineVilmedCategoryBody(),
 			160,
-			'seed_refine_vmd_category_v1'
+			'seed_refine_vmd_category_v1',
+			self::RUN_MODE_REFINE
 		);
 	}
 
@@ -782,13 +869,37 @@ TXT;
 
 	/**
 	 * Для селекта на страницах генерации.
+	 * $runMode: full|refine|'' — пусто = все; иначе full+any или refine+any.
 	 *
 	 * @return array{items:array,active_id:int,last:?array}
 	 */
-	public static function selectPayload(string $type): array
+	public static function selectPayload(string $type, string $runMode = ''): array
 	{
 		$items = self::listByType($type);
+		$runMode = trim(strtolower($runMode));
+		if ($runMode === BatchQueue::MODE_ANALYZE_ONLY) {
+			$items = [];
+		} elseif ($runMode === self::RUN_MODE_REFINE || $runMode === BatchQueue::MODE_REFINE) {
+			$items = array_values(array_filter($items, static function (array $it) {
+				$m = self::normalizePromptRunMode((string) ($it['run_mode'] ?? self::RUN_MODE_FULL));
+
+				return $m === self::RUN_MODE_REFINE || $m === self::RUN_MODE_ANY;
+			}));
+		} elseif ($runMode === self::RUN_MODE_FULL || $runMode === BatchQueue::MODE_FULL) {
+			$items = array_values(array_filter($items, static function (array $it) {
+				$m = self::normalizePromptRunMode((string) ($it['run_mode'] ?? self::RUN_MODE_FULL));
+
+				return $m === self::RUN_MODE_FULL || $m === self::RUN_MODE_ANY;
+			}));
+		}
 		$activeId = self::getActiveId($type);
+		$ids = [];
+		foreach ($items as $it) {
+			$ids[(int) $it['id']] = true;
+		}
+		if ($activeId > 0 && !isset($ids[$activeId])) {
+			$activeId = $items[0]['id'] ?? 0;
+		}
 		$last = null;
 		$lastTs = null;
 		foreach ($items as $it) {
@@ -882,7 +993,7 @@ TXT;
 	/**
 	 * @return array{ok:bool,id?:int,error?:string}
 	 */
-	public static function create(string $type, string $name, string $body, bool $asDefault = false): array
+	public static function create(string $type, string $name, string $body, bool $asDefault = false, string $runMode = self::RUN_MODE_FULL): array
 	{
 		self::ensureTables();
 		if (!isset(self::catalog()[$type])) {
@@ -890,6 +1001,7 @@ TXT;
 		}
 		$name = trim($name);
 		$body = trim(str_replace("\r\n", "\n", $body));
+		$runMode = self::normalizePromptRunMode($runMode);
 		if ($name === '') {
 			$name = 'Вариант';
 		}
@@ -902,12 +1014,13 @@ TXT;
 			$DB->Query("UPDATE titlo_prompts SET IS_DEFAULT='N' WHERE TYPE='" . $DB->ForSql($type) . "'");
 		}
 		$DB->Query("
-			INSERT INTO titlo_prompts (TYPE, NAME, BODY, IS_DEFAULT, SORT, USE_COUNT, CREATED_AT, UPDATED_AT)
+			INSERT INTO titlo_prompts (TYPE, NAME, BODY, IS_DEFAULT, RUN_MODE, SORT, USE_COUNT, CREATED_AT, UPDATED_AT)
 			VALUES (
 				'" . $DB->ForSql($type) . "',
 				'" . $DB->ForSql($name) . "',
 				'" . $DB->ForSql($body) . "',
 				'" . ($asDefault ? 'Y' : 'N') . "',
+				'" . $DB->ForSql($runMode) . "',
 				50,
 				0,
 				'" . $DB->ForSql($now) . "',
@@ -924,7 +1037,7 @@ TXT;
 	/**
 	 * @return array{ok:bool,error?:string}
 	 */
-	public static function update(int $id, string $name, string $body): array
+	public static function update(int $id, string $name, string $body, ?string $runMode = null): array
 	{
 		$row = self::find($id);
 		if (!$row) {
@@ -937,10 +1050,14 @@ TXT;
 		}
 		global $DB;
 		$now = date('Y-m-d H:i:s');
+		$modeSql = '';
+		if ($runMode !== null) {
+			$modeSql = ", RUN_MODE='" . $DB->ForSql(self::normalizePromptRunMode($runMode)) . "'";
+		}
 		$DB->Query("
 			UPDATE titlo_prompts
 			SET NAME='" . $DB->ForSql($name) . "',
-			    BODY='" . $DB->ForSql($body) . "',
+			    BODY='" . $DB->ForSql($body) . "'" . $modeSql . ",
 			    UPDATED_AT='" . $DB->ForSql($now) . "'
 			WHERE ID=" . (int) $id
 		);
@@ -1006,12 +1123,15 @@ TXT;
 	protected static function mapRow(array $row): array
 	{
 		$last = $row['LAST_USED_AT'] ?? null;
+		$runMode = self::normalizePromptRunMode((string) ($row['RUN_MODE'] ?? self::RUN_MODE_FULL));
 		return [
 			'id' => (int) $row['ID'],
 			'type' => (string) $row['TYPE'],
 			'name' => (string) $row['NAME'],
 			'body' => (string) ($row['BODY'] ?? ''),
 			'is_default' => ($row['IS_DEFAULT'] ?? 'N') === 'Y',
+			'run_mode' => $runMode,
+			'run_mode_label' => self::runModeLabel($runMode),
 			'sort' => (int) ($row['SORT'] ?? 100),
 			'last_used_at' => $last ?: null,
 			'use_count' => (int) ($row['USE_COUNT'] ?? 0),

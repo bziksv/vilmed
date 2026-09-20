@@ -32,12 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_bitrix_sessid()) {
 	if ($action === 'save') {
 		$name = (string) ($_POST['name'] ?? '');
 		$body = (string) ($_POST['body'] ?? '');
+		$runMode = (string) ($_POST['run_mode'] ?? Prompts::RUN_MODE_FULL);
 		if ($id > 0) {
-			$res = Prompts::update($id, $name, $body);
+			$res = Prompts::update($id, $name, $body, $runMode);
 			$message = !empty($res['ok']) ? 'Промпт сохранён.' : ($res['error'] ?? 'Ошибка');
 			$messageType = !empty($res['ok']) ? 'OK' : 'ERROR';
 		} else {
-			$res = Prompts::create($type, $name !== '' ? $name : 'Новый вариант', $body);
+			$res = Prompts::create($type, $name !== '' ? $name : 'Новый вариант', $body, false, $runMode);
 			$message = !empty($res['ok']) ? 'Добавлен промпт #' . (int) ($res['id'] ?? 0) : ($res['error'] ?? 'Ошибка');
 			$messageType = !empty($res['ok']) ? 'OK' : 'ERROR';
 		}
@@ -45,7 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_bitrix_sessid()) {
 		$meta = Prompts::catalog()[$type] ?? null;
 		if ($meta) {
 			$n = count(Prompts::listByType($type)) + 1;
-			$res = Prompts::create($type, 'Вариант ' . $n, $meta['default']);
+			$runMode = (string) ($_POST['run_mode'] ?? Prompts::RUN_MODE_FULL);
+			$res = Prompts::create($type, 'Вариант ' . $n, $meta['default'], false, $runMode);
 			$message = !empty($res['ok']) ? 'Добавлен «Вариант ' . $n . '». Отредактируйте и сохраните.' : ($res['error'] ?? 'Ошибка');
 			$messageType = !empty($res['ok']) ? 'OK' : 'ERROR';
 		}
@@ -85,6 +87,9 @@ $catalog = Prompts::catalog();
 	<div class="hint-box">
 		Можно завести <b>несколько вариантов</b> промпта (например «короткий», «продающий», «технический») и на генерации выбирать нужный.
 		У каждого видно, <b>когда использовали последний раз</b>. Плейсхолдеры <code>{link}</code>, <code>{name}</code>, <code>{list}</code> не удаляйте.
+		<br><br>
+		У промпта есть <b>режим</b>: <i>полная проработка</i>, <i>повторная доработка</i> или <i>любой</i> —
+		в автопроработке в селекте остаются только подходящие варианты.
 	</div>
 
 	<?php foreach (Prompts::groups() as $groupKey => $group): ?>
@@ -131,12 +136,21 @@ $catalog = Prompts::catalog();
 							<input type="hidden" name="focus_type" value="<?= htmlspecialcharsbx($type) ?>">
 							<div class="card-h">
 								<input type="text" name="name" class="adm-input" value="<?= htmlspecialcharsbx($it['name']) ?>" placeholder="Название варианта">
+								<label class="titlo-prompt-mode">
+									Режим
+									<select name="run_mode" class="adm-input">
+										<option value="<?= htmlspecialcharsbx(Prompts::RUN_MODE_FULL) ?>" <?= ($it['run_mode'] ?? '') === Prompts::RUN_MODE_FULL ? 'selected' : '' ?>>полная проработка</option>
+										<option value="<?= htmlspecialcharsbx(Prompts::RUN_MODE_REFINE) ?>" <?= ($it['run_mode'] ?? '') === Prompts::RUN_MODE_REFINE ? 'selected' : '' ?>>повторная доработка</option>
+										<option value="<?= htmlspecialcharsbx(Prompts::RUN_MODE_ANY) ?>" <?= ($it['run_mode'] ?? '') === Prompts::RUN_MODE_ANY ? 'selected' : '' ?>>любой режим</option>
+									</select>
+								</label>
 								<?php if ($it['is_default']): ?>
 									<span class="badge badge-def">по умолчанию</span>
 								<?php endif; ?>
 								<?php if ($it['id'] === $activeId): ?>
 									<span class="badge badge-active">выбран для генерации</span>
 								<?php endif; ?>
+								<span class="badge badge-mode"><?= htmlspecialcharsbx($it['run_mode_label'] ?? 'полная проработка') ?></span>
 								<span class="badge badge-used"><?= htmlspecialcharsbx($it['last_used_label']) ?></span>
 							</div>
 							<textarea name="body" rows="9"><?= htmlspecialcharsbx($it['body']) ?></textarea>
@@ -162,6 +176,14 @@ $catalog = Prompts::catalog();
 						<input type="hidden" name="titlo_action" value="add">
 						<input type="hidden" name="type" value="<?= htmlspecialcharsbx($type) ?>">
 						<input type="hidden" name="focus_type" value="<?= htmlspecialcharsbx($type) ?>">
+						<label class="titlo-prompt-mode">
+							Режим нового
+							<select name="run_mode" class="adm-input">
+								<option value="<?= htmlspecialcharsbx(Prompts::RUN_MODE_FULL) ?>">полная проработка</option>
+								<option value="<?= htmlspecialcharsbx(Prompts::RUN_MODE_REFINE) ?>">повторная доработка</option>
+								<option value="<?= htmlspecialcharsbx(Prompts::RUN_MODE_ANY) ?>">любой режим</option>
+							</select>
+						</label>
 						<input type="submit" class="adm-btn" value="+ Добавить вариант промпта">
 					</form>
 				</div>

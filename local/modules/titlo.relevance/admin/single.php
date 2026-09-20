@@ -199,7 +199,7 @@ $hasKey = Config::apiKey() !== '';
 		</h3>
 		<div class="titlo-tlp-limits" id="titlo-tlp-limits" style="display:none;margin:8px 0 10px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px">
 			<label style="margin-right:16px">Нет на сайте
-				<input type="number" id="titlo-tlp-missing-limit" class="adm-input" value="200" min="0" max="500" style="width:70px">
+				<input type="number" id="titlo-tlp-missing-limit" class="adm-input" value="300" min="0" max="500" style="width:70px">
 				<span class="titlo-status" id="titlo-tlp-missing-avail"></span>
 			</label>
 			<label style="margin-right:16px">С разницей

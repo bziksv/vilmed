@@ -237,6 +237,27 @@
 .titlo-work .badge-open { background: #e0f2fe; color: #075985; }
 .titlo-work .badge-saved { background: #fef3c7; color: #92400e; }
 .titlo-prompts .badge-def { background: #dbeafe; color: #1d4ed8; }
+.titlo-prompts .badge-mode { background: #f3e8ff; color: #6b21a8; }
+.titlo-prompts .titlo-prompt-mode {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	color: #64748b;
+	white-space: nowrap;
+}
+.titlo-prompts .titlo-prompt-mode select {
+	min-width: 170px;
+	height: 28px;
+	padding: 2px 6px;
+}
+.titlo-prompts .add-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	margin-top: 8px;
+}
 .titlo-guide .warn-badge {
 	padding: 2px 8px;
 	background: #ffedd5;
@@ -766,7 +787,6 @@
 	flex-wrap: wrap;
 	gap: 6px;
 }
-.titlo-prompts .add-row { margin-top: 8px; }
 
 /* ========== guide ========== */
 .titlo-guide .lead {

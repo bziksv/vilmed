@@ -685,14 +685,21 @@ try {
 
 		case 'list_prompts':
 			$type = trim((string) ($_POST['type'] ?? ''));
+			$runMode = trim((string) ($_POST['run_mode'] ?? ''));
+			$filterTypes = [
+				\Titlo\Relevance\Prompts::TYPE_DETAIL => true,
+				\Titlo\Relevance\Prompts::TYPE_CATEGORY => true,
+			];
 			if ($type === '') {
 				$payload = [];
 				foreach (array_keys(\Titlo\Relevance\Prompts::catalog()) as $t) {
-					$payload[$t] = \Titlo\Relevance\Prompts::selectPayload($t);
+					$mode = isset($filterTypes[$t]) ? $runMode : '';
+					$payload[$t] = \Titlo\Relevance\Prompts::selectPayload($t, $mode);
 				}
 				titlo_json(['ok' => true, 'by_type' => $payload]);
 			}
-			titlo_json(array_merge(['ok' => true], \Titlo\Relevance\Prompts::selectPayload($type)));
+			$mode = isset($filterTypes[$type]) ? $runMode : '';
+			titlo_json(array_merge(['ok' => true], \Titlo\Relevance\Prompts::selectPayload($type, $mode)));
 
 		case 'bulk_phrase_start':
 			if ((string) ($_POST['confirm'] ?? '') !== '1') {

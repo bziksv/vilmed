@@ -22,6 +22,7 @@ Loader::includeModule('titlo.relevance');
 UserFields::ensurePhraseField();
 BatchQueue::ensureSchema();
 Prompts::ensureTables();
+Config::migrateTlpMissingDefault300();
 
 $APPLICATION->SetTitle('Titlo: автоматическая проработка товаров');
 
@@ -150,9 +151,9 @@ if ($sort !== 'id_desc') {
 			</select>
 		</label>
 		<span class="titlo-auto-full-opts" id="titlo-auto-full-opts">
-		<label>Промпт полного описания
-			<span class="titlo-help" tabindex="0" aria-label="Промпт полного описания">?
-				<span class="titlo-help__tip">Генерирует длинный текст карточки (детальное описание). Текст промпта — в «Промпты» → «Детальное». К нему дописываются TLP и HTML страницы.</span>
+		<label><span id="titlo-auto-prompt-detail-label">Промпт полного описания</span>
+			<span class="titlo-help" tabindex="0" aria-label="Промпт описания">?
+				<span class="titlo-help__tip">Список зависит от режима: полная проработка / повторная доработка. Привязка режима — в «Промпты». К тексту дописываются TLP и HTML страницы.</span>
 			</span>:
 			<select id="titlo-auto-prompt-detail" class="adm-input titlo-prompt-select" data-type="detail" style="min-width:240px"></select>
 		</label>
@@ -351,30 +352,20 @@ if ($sort !== 'id_desc') {
 		return document.getElementById('titlo-auto-run-mode').value === 'analyze_only';
 	}
 
-	function selectRefinePrompt() {
+	function syncModeUi() {
 		var mode = document.getElementById('titlo-auto-run-mode').value;
-		if (mode !== 'refine') return;
-		var sel = document.getElementById('titlo-auto-prompt-detail');
-		if (!sel || !sel.options) return;
-		var want = <?= json_encode(Prompts::REFINE_DETAIL_NAME, JSON_UNESCAPED_UNICODE) ?>;
-		for (var i = 0; i < sel.options.length; i++) {
-			var t = sel.options[i].textContent || '';
-			if (t.indexOf(want) === 0 || t === want) {
-				sel.selectedIndex = i;
-				return;
-			}
+		var full = document.getElementById('titlo-auto-full-opts');
+		if (full) full.classList.toggle('is-muted', mode === 'analyze_only');
+		var lab = document.getElementById('titlo-auto-prompt-detail-label');
+		if (lab) {
+			lab.textContent = mode === 'refine' ? 'Промпт доработки' : 'Промпт полного описания';
 		}
 	}
 
-	function syncModeUi() {
-		var full = document.getElementById('titlo-auto-full-opts');
-		if (!full) return;
-		full.classList.toggle('is-muted', isAnalyzeOnly());
-		selectRefinePrompt();
-	}
-
 	function loadPrompts() {
-		return post('list_prompts', {}).then(function (res) {
+		var mode = document.getElementById('titlo-auto-run-mode').value;
+		var filterMode = mode === 'analyze_only' ? 'full' : mode;
+		return post('list_prompts', { run_mode: filterMode }).then(function (res) {
 			if (!res.ok || !res.by_type) return;
 			['detail', 'preview'].forEach(function (type) {
 				var payload = res.by_type[type] || {};
@@ -382,14 +373,16 @@ if ($sort !== 'id_desc') {
 				var active = payload.active_id || 0;
 				var sel = document.querySelector('.titlo-prompt-select[data-type="' + type + '"]');
 				if (!sel) return;
+				var prev = sel.value;
 				sel.innerHTML = '';
 				items.forEach(function (it) {
 					var opt = document.createElement('option');
 					opt.value = it.id;
 					opt.textContent = it.name + (it.is_default ? ' ★' : '');
-					if (it.id === active) opt.selected = true;
+					if (String(it.id) === String(prev) || (!prev && it.id === active)) opt.selected = true;
 					sel.appendChild(opt);
 				});
+				if (!sel.value && sel.options.length) sel.selectedIndex = 0;
 			});
 			syncModeUi();
 		});
@@ -906,7 +899,10 @@ if ($sort !== 'id_desc') {
 		document.getElementById('titlo-auto-preview-wrap').style.display = this.checked ? '' : 'none';
 	};
 
-	document.getElementById('titlo-auto-run-mode').onchange = syncModeUi;
+	document.getElementById('titlo-auto-run-mode').onchange = function () {
+		syncModeUi();
+		loadPrompts();
+	};
 
 	document.getElementById('titlo-auto-check-all').onchange = function () {
 		var on = this.checked;
