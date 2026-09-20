@@ -183,14 +183,14 @@ class CountryInName
 			if ($stem === '' || mb_strlen($stem) < 3) {
 				continue;
 			}
-			$parts[] = 'LOWER(' . $nameExpr . ') LIKE "%' . $DB->ForSql(mb_strtolower($stem)) . '%"';
+			$parts[] = 'LOWER(' . $nameExpr . ') LIKE "%' . Config::forLike(mb_strtolower($stem)) . '%"';
 		}
 		foreach (self::exactTokens() as $token) {
 			$token = mb_strtolower(trim($token));
 			if ($token === '') {
 				continue;
 			}
-			$parts[] = 'LOWER(' . $nameExpr . ') LIKE "%' . $DB->ForSql($token) . '%"';
+			$parts[] = 'LOWER(' . $nameExpr . ') LIKE "%' . Config::forLike($token) . '%"';
 		}
 
 		if ($parts === []) {

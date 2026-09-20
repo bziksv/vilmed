@@ -323,6 +323,7 @@ if ($sort !== 'id_desc') {
 	function safeHref(u) {
 		u = String(u || '').trim();
 		if (!u) return '#';
+		if (u.indexOf('//') === 0) return '#';
 		if (u.charAt(0) === '/') return escapeHtml(u);
 		if (/^https?:\/\//i.test(u)) return escapeHtml(u);
 		return '#';
@@ -362,10 +363,14 @@ if ($sort !== 'id_desc') {
 		}
 	}
 
+	var promptLoadGen = 0;
+
 	function loadPrompts() {
 		var mode = document.getElementById('titlo-auto-run-mode').value;
 		var filterMode = mode === 'analyze_only' ? 'full' : mode;
+		var gen = ++promptLoadGen;
 		return post('list_prompts', { run_mode: filterMode }).then(function (res) {
+			if (gen !== promptLoadGen) return;
 			if (!res.ok || !res.by_type) return;
 			['detail', 'preview'].forEach(function (type) {
 				var payload = res.by_type[type] || {};
@@ -374,12 +379,21 @@ if ($sort !== 'id_desc') {
 				var sel = document.querySelector('.titlo-prompt-select[data-type="' + type + '"]');
 				if (!sel) return;
 				var prev = sel.value;
+				var prevInList = false;
+				if (prev) {
+					items.forEach(function (it) {
+						if (String(it.id) === String(prev)) prevInList = true;
+					});
+				}
+				// При смене режима старый id из другого списка не подходит —
+				// берём active_id для текущего режима, а не «первый в списке».
+				var pick = prevInList ? prev : (active || 0);
 				sel.innerHTML = '';
 				items.forEach(function (it) {
 					var opt = document.createElement('option');
 					opt.value = it.id;
 					opt.textContent = it.name + (it.is_default ? ' ★' : '');
-					if (String(it.id) === String(prev) || (!prev && it.id === active)) opt.selected = true;
+					if (pick && String(it.id) === String(pick)) opt.selected = true;
 					sel.appendChild(opt);
 				});
 				if (!sel.value && sel.options.length) sel.selectedIndex = 0;
@@ -492,7 +506,9 @@ if ($sort !== 'id_desc') {
 		var hid = h.history_id || data.history_id || '';
 		var pts = h.points != null ? h.points : (h.score != null ? h.score : null);
 		var ideal = h.points_ideal != null ? h.points_ideal : null;
-		var ptsHtml = pts == null ? '—' : (ideal != null ? ('<b>' + pts + '</b> / ' + ideal) : String(pts));
+		var ptsHtml = pts == null ? '—' : (ideal != null
+			? ('<b>' + escapeHtml(String(pts)) + '</b> / ' + escapeHtml(String(ideal)))
+			: escapeHtml(String(pts)));
 		var tlp = data.tlp || {};
 		var missN = tlp.missing_total != null ? tlp.missing_total : (tlp.missing || []).length;
 		var diffN = tlp.diff_total != null ? tlp.diff_total : (tlp.diff || []).length;
@@ -512,9 +528,9 @@ if ($sort !== 'id_desc') {
 			'<div class="big">' + ptsHtml +
 			' <span style="font-size:13px;font-weight:500;color:#64748b">ваш / рекомендуемый</span></div>' +
 			'<div class="titlo-scores-meta">history_id=<b>' + escapeHtml(String(hid || '—')) + '</b>' +
-			' · покрытие: <b>' + (h.coverage != null ? h.coverage : '—') + '</b>' +
-			' · плотность: <b>' + (h.density != null ? h.density : '—') + '</b>' +
-			' · позиция: <b>' + (h.position != null ? h.position : '—') + '</b></div>' +
+			' · покрытие: <b>' + escapeHtml(h.coverage != null ? String(h.coverage) : '—') + '</b>' +
+			' · плотность: <b>' + escapeHtml(h.density != null ? String(h.density) : '—') + '</b>' +
+			' · позиция: <b>' + escapeHtml(h.position != null ? String(h.position) : '—') + '</b></div>' +
 			'</div>' +
 			'<div class="titlo-clouds-wrap titlo-auto-clouds-wrap">' +
 			'<input type="button" class="adm-btn titlo-clouds-btn titlo-auto-clouds-btn" value="Облака TF-IDF посадочной и конкурентов">' +
@@ -525,8 +541,8 @@ if ($sort !== 'id_desc') {
 			'</div>' +
 			'<h3 class="titlo-auto-expand__h3">Топ-лист фраз (TLP)</h3>' +
 			'<div class="titlo-tlp-limits" style="display:block;margin:8px 0 10px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px">' +
-			'<span class="titlo-status">Нет на сайте: из ' + missN + '</span> · ' +
-			'<span class="titlo-status">С разницей: из ' + diffN + '</span> · ' +
+			'<span class="titlo-status">Нет на сайте: из ' + escapeHtml(String(missN)) + '</span> · ' +
+			'<span class="titlo-status">С разницей: из ' + escapeHtml(String(diffN)) + '</span> · ' +
 			'<span class="titlo-status">Сортировка: TF-IDF ТОП ↓</span>' +
 			'</div>' +
 			'<div class="titlo-phrases">' +

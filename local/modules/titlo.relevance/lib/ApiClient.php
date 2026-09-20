@@ -93,22 +93,25 @@ class ApiClient
 	{
 		if (!isset($extra['prompt']) || trim((string) $extra['prompt']) === '') {
 			$promptId = isset($extra['prompt_id']) ? (int) $extra['prompt_id'] : 0;
-			unset($extra['prompt_id']);
-			$prompt = Prompts::get($type, $promptId > 0 ? $promptId : null);
+			$runMode = (string) ($extra['run_mode'] ?? '');
+			unset($extra['prompt_id'], $extra['run_mode']);
+			$prompt = Prompts::get($type, $promptId > 0 ? $promptId : null, $runMode);
 			if ($prompt !== '') {
 				$extra['prompt'] = $prompt;
 			}
 			if ($promptId > 0) {
 				Prompts::markUsed($promptId);
 			} else {
-				$aid = Prompts::getActiveId($type);
+				$aid = Prompts::getActiveId($type, $runMode);
 				if ($aid > 0) {
 					Prompts::markUsed($aid);
 				}
 			}
 		} elseif (isset($extra['prompt_id'])) {
 			Prompts::markUsed((int) $extra['prompt_id']);
-			unset($extra['prompt_id']);
+			unset($extra['prompt_id'], $extra['run_mode']);
+		} else {
+			unset($extra['run_mode']);
 		}
 		return $this->request('POST', '/ai/generate', array_merge([
 			'type' => $type,

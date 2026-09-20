@@ -207,15 +207,6 @@ try {
 			if (is_array($decoded)) {
 				$keywords = array_slice($decoded, 0, 200);
 			}
-			$extra = [];
-			$hid = (int) ($_POST['history_id'] ?? 0);
-			if ($hid > 0) {
-				$extra['history_id'] = $hid;
-			}
-			$promptId = (int) ($_POST['prompt_id'] ?? 0);
-			if ($promptId > 0) {
-				$extra['prompt_id'] = $promptId;
-			}
 			$type = trim((string) ($_POST['type'] ?? 'preview'));
 			$allowedGen = [
 				Prompts::TYPE_PREVIEW,
@@ -224,6 +215,23 @@ try {
 			];
 			if (!in_array($type, $allowedGen, true)) {
 				titlo_json(['ok' => false, 'error' => 'type must be preview, detail or category'], 422);
+			}
+			$runMode = BatchQueue::normalizeRunMode((string) ($_POST['run_mode'] ?? BatchQueue::MODE_FULL));
+			$promptId = (int) ($_POST['prompt_id'] ?? 0);
+			try {
+				$promptId = Prompts::resolveEnqueuePromptId($type, $promptId, $runMode);
+			} catch (\InvalidArgumentException $e) {
+				titlo_json(['ok' => false, 'error' => $e->getMessage()], 422);
+			}
+			$extra = [
+				'run_mode' => $runMode,
+			];
+			$hid = (int) ($_POST['history_id'] ?? 0);
+			if ($hid > 0) {
+				$extra['history_id'] = $hid;
+			}
+			if ($promptId > 0) {
+				$extra['prompt_id'] = $promptId;
 			}
 			$res = $client->startGenerate(
 				$type,
@@ -236,7 +244,7 @@ try {
 				'ok' => true,
 				'record_id' => $res['record_id'] ?? null,
 				'status' => $res['status'] ?? 'pending',
-				'prompt_id' => $promptId ?: \Titlo\Relevance\Prompts::getActiveId($type),
+				'prompt_id' => $promptId,
 				'prompt_name' => $used['name'] ?? null,
 			]);
 
@@ -308,50 +316,51 @@ try {
 
 		case 'work_record_score':
 			$hid = (int) ($_POST['history_id'] ?? 0);
-			$points = $_POST['points'] ?? null;
-			$pointsIdeal = $_POST['points_ideal'] ?? null;
-			$coverage = $_POST['coverage'] ?? null;
-			$density = $_POST['density'] ?? null;
-			$position = $_POST['position'] ?? null;
-			$engine = (string) ($_POST['engine'] ?? '');
-			$region = (string) ($_POST['region'] ?? '');
-			$top = $_POST['top'] ?? null;
-			$checkedAt = (string) ($_POST['checked_at'] ?? '');
-			if ($hid > 0) {
-				try {
-					$hist = $client->getHistory($hid);
-					foreach (['points', 'points_ideal', 'coverage', 'density', 'position', 'engine', 'region', 'top'] as $k) {
-						if (isset($hist[$k]) && $hist[$k] !== '' && $hist[$k] !== null) {
-							if ($k === 'points') {
-								$points = $hist[$k];
-							} elseif ($k === 'points_ideal') {
-								$pointsIdeal = $hist[$k];
-							} elseif ($k === 'coverage') {
-								$coverage = $hist[$k];
-							} elseif ($k === 'density') {
-								$density = $hist[$k];
-							} elseif ($k === 'position') {
-								$position = $hist[$k];
-							} elseif ($k === 'engine') {
-								$engine = (string) $hist[$k];
-							} elseif ($k === 'region') {
-								$region = (string) $hist[$k];
-							} elseif ($k === 'top') {
-								$top = $hist[$k];
-							}
-						}
+			$points = null;
+			$pointsIdeal = null;
+			$coverage = null;
+			$density = null;
+			$position = null;
+			$engine = '';
+			$region = '';
+			$top = null;
+			$checkedAt = '';
+			if ($hid <= 0) {
+				titlo_json(['ok' => false, 'error' => 'history_id required'], 422);
+			}
+			try {
+				$hist = $client->getHistory($hid);
+			} catch (\Throwable $e) {
+				titlo_json(['ok' => false, 'error' => 'не удалось загрузить проверку из кабинета'], 502);
+			}
+			foreach (['points', 'points_ideal', 'coverage', 'density', 'position', 'engine', 'region', 'top'] as $k) {
+				if (isset($hist[$k]) && $hist[$k] !== '' && $hist[$k] !== null) {
+					if ($k === 'points') {
+						$points = $hist[$k];
+					} elseif ($k === 'points_ideal') {
+						$pointsIdeal = $hist[$k];
+					} elseif ($k === 'coverage') {
+						$coverage = $hist[$k];
+					} elseif ($k === 'density') {
+						$density = $hist[$k];
+					} elseif ($k === 'position') {
+						$position = $hist[$k];
+					} elseif ($k === 'engine') {
+						$engine = (string) $hist[$k];
+					} elseif ($k === 'region') {
+						$region = (string) $hist[$k];
+					} elseif ($k === 'top') {
+						$top = $hist[$k];
 					}
-					if (isset($hist['score']) && ($points === null || $points === '')) {
-						$points = $hist['score'];
-					}
-					if (($checkedAt === '') && !empty($hist['last_check'])) {
-						$checkedAt = (string) $hist['last_check'];
-					} elseif (($checkedAt === '') && !empty($hist['created_at'])) {
-						$checkedAt = (string) $hist['created_at'];
-					}
-				} catch (\Throwable $e) {
-					// оставляем клиентские поля только если cabinet недоступен
 				}
+			}
+			if (isset($hist['score']) && ($points === null || $points === '')) {
+				$points = $hist['score'];
+			}
+			if (!empty($hist['last_check'])) {
+				$checkedAt = (string) $hist['last_check'];
+			} elseif (!empty($hist['created_at'])) {
+				$checkedAt = (string) $hist['created_at'];
 			}
 			$res = WorkHistory::recordScore([
 				'entity_type' => (string) ($_POST['entity_type'] ?? 'E'),

@@ -198,6 +198,7 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 	function safeHref(u) {
 		u = String(u || '').trim();
 		if (!u) return '#';
+		if (u.indexOf('//') === 0) return '#';
 		if (u.charAt(0) === '/') return escapeHtml(u);
 		if (/^https?:\/\//i.test(u)) return escapeHtml(u);
 		return '#';

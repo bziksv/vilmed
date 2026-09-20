@@ -179,7 +179,7 @@ class SectionDuplicates
 			if (ctype_digit($q)) {
 				$where[] = 'BS.ID = ' . (int) $q;
 			} else {
-				$like = $DB->ForSql($q);
+				$like = Config::forLike($q);
 				$where[] = '(BS.NAME LIKE "%' . $like . '%" OR BS.CODE LIKE "%' . $like . '%")';
 			}
 		}
@@ -334,7 +334,7 @@ class SectionDuplicates
 			if (ctype_digit($q)) {
 				$parts[] = 'BS.ID = ' . (int) $q;
 			} else {
-				$like = $DB->ForSql($q);
+				$like = Config::forLike($q);
 				$parts[] = '(BS.NAME LIKE "%' . $like . '%" OR BS.CODE LIKE "%' . $like . '%")';
 			}
 		}

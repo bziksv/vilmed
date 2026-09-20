@@ -41,7 +41,7 @@ class BatchQueue
 	}
 
 	/**
-	 * Атомарный claim queued → running. false = уже забрал другой воркер.
+	 * Атомарный claim queued → running с lease. false = уже забрал другой воркер.
 	 */
 	public static function claim(int $id): bool
 	{
@@ -52,23 +52,89 @@ class BatchQueue
 		}
 		global $DB;
 		$now = self::now();
+		$token = self::newWorkerToken();
+		$lease = self::leaseUntilTs();
 		// STEP не трогаем: у refine уже generate + HISTORY_ID
 		$DB->Query("
 			UPDATE titlo_relevance_queue SET
 				STATUS = '" . self::STATUS_RUNNING . "',
 				ERROR = NULL,
-				UPDATED_AT = '" . $now . "'
+				WORKER_TOKEN = '" . $DB->ForSql($token) . "',
+				LEASE_UNTIL = '" . $DB->ForSql($lease) . "',
+				UPDATED_AT = '" . $DB->ForSql($now) . "'
 			WHERE ID = " . $id . "
 			  AND STATUS = '" . self::STATUS_QUEUED . "'
 		");
+
+		return self::affectedRows() > 0;
+	}
+
+	/**
+	 * Эксклюзивный лок строки на время одного тика (agent ↔ UI poll).
+	 * MySQL GET_LOCK — per-connection, снимается в finally / при обрыве.
+	 */
+	public static function tryWorkerLock(int $id): bool
+	{
+		$id = (int) $id;
+		if ($id <= 0) {
+			return false;
+		}
+		global $DB;
+		$name = 'titlo_rel_q_' . $id;
+		$row = $DB->Query("SELECT GET_LOCK('" . $DB->ForSql($name) . "', 0) AS L")->Fetch();
+
+		return (int) ($row['L'] ?? 0) === 1;
+	}
+
+	public static function releaseWorkerLock(int $id): void
+	{
+		$id = (int) $id;
+		if ($id <= 0) {
+			return;
+		}
+		global $DB;
+		$name = 'titlo_rel_q_' . $id;
+		$DB->Query("SELECT RELEASE_LOCK('" . $DB->ForSql($name) . "')");
+	}
+
+	/**
+	 * @deprecated use tryWorkerLock — оставлен для совместимости вызовов
+	 */
+	public static function acquireRunningLease(int $id): bool
+	{
+		return self::tryWorkerLock($id);
+	}
+
+	protected static function newWorkerToken(): string
+	{
+		try {
+			return bin2hex(random_bytes(8));
+		} catch (\Throwable $e) {
+			return substr(md5(uniqid((string) mt_rand(), true)), 0, 16);
+		}
+	}
+
+	protected static function leaseUntilTs(): string
+	{
+		$base = strtotime(self::now());
+		if ($base === false) {
+			$base = time();
+		}
+
+		return date('Y-m-d H:i:s', $base + self::LEASE_SECONDS);
+	}
+
+	protected static function affectedRows(): int
+	{
+		global $DB;
 		if (method_exists($DB, 'AffectedRowsCount')) {
-			return (int) $DB->AffectedRowsCount() > 0;
+			return (int) $DB->AffectedRowsCount();
 		}
 		if (isset($DB->db_Conn) && is_object($DB->db_Conn) && property_exists($DB->db_Conn, 'affected_rows')) {
-			return (int) $DB->db_Conn->affected_rows > 0;
+			return (int) $DB->db_Conn->affected_rows;
 		}
-		// Без affected_rows не считаем claim успешным (fail closed)
-		return false;
+
+		return 0;
 	}
 
 	public const STEP_ANALYZE = 'analyze';
@@ -89,7 +155,8 @@ class BatchQueue
 	public const MODE_ANALYZE_ONLY = 'analyze_only';
 	public const MODE_REFINE = 'refine';
 
-	public const SCHEMA_VER = '1.3.0';
+	public const SCHEMA_VER = '1.4.0';
+	public const LEASE_SECONDS = 120;
 
 	public static function normalizeRunMode(string $runMode): string
 	{
@@ -150,6 +217,8 @@ class BatchQueue
 				WORK_HISTORY_ID int(11) DEFAULT NULL,
 				RUN_MODE varchar(16) NOT NULL DEFAULT 'full',
 				BATCH_KEY varchar(64) NOT NULL DEFAULT '',
+				WORKER_TOKEN varchar(32) NOT NULL DEFAULT '',
+				LEASE_UNTIL datetime DEFAULT NULL,
 				ERROR text,
 				CREATED_AT datetime DEFAULT NULL,
 				UPDATED_AT datetime DEFAULT NULL,
@@ -157,7 +226,8 @@ class BatchQueue
 				KEY ix_status (STATUS),
 				KEY ix_entity (ENTITY_TYPE, ENTITY_ID),
 				KEY ix_batch (BATCH_KEY),
-				KEY ix_step (STATUS, STEP, ID)
+				KEY ix_step (STATUS, STEP, ID),
+				KEY ix_lease (STATUS, LEASE_UNTIL)
 			) ENGINE=InnoDB DEFAULT CHARSET=utf8
 		");
 
@@ -178,6 +248,8 @@ class BatchQueue
 			'WORK_HISTORY_ID' => 'ALTER TABLE titlo_relevance_queue ADD COLUMN WORK_HISTORY_ID int(11) DEFAULT NULL AFTER TLP_DIFF_LIMIT',
 			'RUN_MODE' => "ALTER TABLE titlo_relevance_queue ADD COLUMN RUN_MODE varchar(16) NOT NULL DEFAULT 'full' AFTER WORK_HISTORY_ID",
 			'BATCH_KEY' => "ALTER TABLE titlo_relevance_queue ADD COLUMN BATCH_KEY varchar(64) NOT NULL DEFAULT '' AFTER RUN_MODE",
+			'WORKER_TOKEN' => "ALTER TABLE titlo_relevance_queue ADD COLUMN WORKER_TOKEN varchar(32) NOT NULL DEFAULT '' AFTER BATCH_KEY",
+			'LEASE_UNTIL' => 'ALTER TABLE titlo_relevance_queue ADD COLUMN LEASE_UNTIL datetime DEFAULT NULL AFTER WORKER_TOKEN',
 		];
 		foreach ($alters as $col => $sql) {
 			if (!isset($cols[$col])) {
@@ -292,35 +364,74 @@ class BatchQueue
 			$batchKey = date('YmdHis') . '_' . substr(md5(uniqid('', true)), 0, 8);
 		}
 		$genPreview = !empty($opts['gen_preview']) ? 'Y' : 'N';
+		$promptTypeDetail = $entityType === 'S' ? Prompts::TYPE_CATEGORY : Prompts::TYPE_DETAIL;
+		$promptDetailId = Prompts::resolveEnqueuePromptId(
+			$promptTypeDetail,
+			(int) ($opts['prompt_detail_id'] ?? 0),
+			$runMode
+		);
+		$promptPreviewId = 0;
+		if ($genPreview === 'Y' && $entityType === 'E') {
+			$promptPreviewId = Prompts::resolveEnqueuePromptId(
+				Prompts::TYPE_PREVIEW,
+				(int) ($opts['prompt_preview_id'] ?? 0),
+				$runMode
+			);
+		}
 		$histSql = $historyId > 0 ? (string) (int) $historyId : 'NULL';
 		$workSql = $workHistoryId > 0 ? (string) (int) $workHistoryId : 'NULL';
-		$DB->Query("
-			INSERT INTO titlo_relevance_queue
-			(ENTITY_TYPE, ENTITY_ID, URL, PHRASE, STATUS, STEP, HISTORY_ID, WORK_HISTORY_ID,
-			 PROMPT_DETAIL_ID, PROMPT_PREVIEW_ID, GEN_PREVIEW, EXISTING_POLICY,
-			 TLP_MISSING_LIMIT, TLP_DIFF_LIMIT, RUN_MODE, BATCH_KEY, CREATED_AT, UPDATED_AT)
-			VALUES (
-				'" . $DB->ForSql($entityType) . "',
-				" . (int) $entityId . ",
-				'" . $DB->ForSql($url) . "',
-				'" . $DB->ForSql($phrase) . "',
-				'" . self::STATUS_QUEUED . "',
-				'" . $DB->ForSql($step) . "',
-				" . $histSql . ",
-				" . $workSql . ",
-				" . (int) ($opts['prompt_detail_id'] ?? 0) . ",
-				" . (int) ($opts['prompt_preview_id'] ?? 0) . ",
-				'" . $genPreview . "',
-				'" . $DB->ForSql($policy) . "',
-				" . (int) $missLim . ",
-				" . (int) $diffLim . ",
-				'" . $DB->ForSql($runMode) . "',
-				'" . $DB->ForSql($batchKey) . "',
-				'" . $now . "',
-				'" . $now . "'
-			)
-		");
-		return (int) $DB->LastID();
+
+		$connection = \Bitrix\Main\Application::getConnection();
+		$connection->startTransaction();
+		try {
+			$lock = $DB->Query("
+				SELECT ID FROM titlo_relevance_queue
+				WHERE ENTITY_TYPE = '" . $DB->ForSql($entityType) . "'
+				  AND ENTITY_ID = " . (int) $entityId . "
+				  AND STATUS IN ('" . self::STATUS_QUEUED . "','" . self::STATUS_RUNNING . "')
+				LIMIT 1
+				FOR UPDATE
+			");
+			if ($lock && $lock->Fetch()) {
+				throw new \InvalidArgumentException('already queued or running');
+			}
+			$DB->Query("
+				INSERT INTO titlo_relevance_queue
+				(ENTITY_TYPE, ENTITY_ID, URL, PHRASE, STATUS, STEP, HISTORY_ID, WORK_HISTORY_ID,
+				 PROMPT_DETAIL_ID, PROMPT_PREVIEW_ID, GEN_PREVIEW, EXISTING_POLICY,
+				 TLP_MISSING_LIMIT, TLP_DIFF_LIMIT, RUN_MODE, BATCH_KEY, CREATED_AT, UPDATED_AT)
+				VALUES (
+					'" . $DB->ForSql($entityType) . "',
+					" . (int) $entityId . ",
+					'" . $DB->ForSql($url) . "',
+					'" . $DB->ForSql($phrase) . "',
+					'" . self::STATUS_QUEUED . "',
+					'" . $DB->ForSql($step) . "',
+					" . $histSql . ",
+					" . $workSql . ",
+					" . (int) $promptDetailId . ",
+					" . (int) $promptPreviewId . ",
+					'" . $genPreview . "',
+					'" . $DB->ForSql($policy) . "',
+					" . (int) $missLim . ",
+					" . (int) $diffLim . ",
+					'" . $DB->ForSql($runMode) . "',
+					'" . $DB->ForSql($batchKey) . "',
+					'" . $DB->ForSql($now) . "',
+					'" . $DB->ForSql($now) . "'
+				)
+			");
+			$newId = (int) $DB->LastID();
+			$connection->commitTransaction();
+
+			return $newId;
+		} catch (\Throwable $e) {
+			try {
+				$connection->rollbackTransaction();
+			} catch (\Throwable $ignore) {
+			}
+			throw $e;
+		}
 	}
 
 	/**
@@ -458,12 +569,32 @@ class BatchQueue
 			? WorkHistory::mapLatestScores(array_unique($entityIdsS), 'S')
 			: [];
 
+		$activeE = self::activeByEntityIds(array_unique($entityIdsE), 'E');
+		$activeS = self::activeByEntityIds(array_unique($entityIdsS), 'S');
+		$claimedEntityE = [];
+		$claimedEntityS = [];
+
 		$okIds = [];
+		$okEntityIdsE = [];
+		$okEntityIdsS = [];
 		$errors = [];
 		foreach ($candidates as $row) {
 			$qid = (int) $row['ID'];
 			$etype = strtoupper((string) ($row['ENTITY_TYPE'] ?? 'E')) === 'S' ? 'S' : 'E';
 			$eid = (int) $row['ENTITY_ID'];
+			$claimed = $etype === 'S' ? $claimedEntityS : $claimedEntityE;
+			if (isset($claimed[$eid])) {
+				$errors[$qid] = 'уже есть активная задача в очереди';
+				continue;
+			}
+			$activeMap = $etype === 'S' ? $activeS : $activeE;
+			if (isset($activeMap[$eid])) {
+				$activeId = (int) ($activeMap[$eid]['id'] ?? $activeMap[$eid]['ID'] ?? 0);
+				if ($activeId > 0 && $activeId !== $qid) {
+					$errors[$qid] = 'уже есть активная задача в очереди';
+					continue;
+				}
+			}
 			$historyId = 0;
 			$workId = 0;
 			$step = self::STEP_ANALYZE;
@@ -495,18 +626,45 @@ class BatchQueue
 				'DETAIL_TEXT = NULL',
 				'PREVIEW_TEXT = NULL',
 				'ERROR = NULL',
-				"UPDATED_AT = '" . $now . "'",
+				"WORKER_TOKEN = ''",
+				'LEASE_UNTIL = NULL',
+				"UPDATED_AT = '" . $DB->ForSql($now) . "'",
 				"RUN_MODE = '" . $DB->ForSql($runMode) . "'",
 				"EXISTING_POLICY = '" . $DB->ForSql($policy) . "'",
 			];
 			if (array_key_exists('prompt_detail_id', $opts)) {
-				$sets[] = 'PROMPT_DETAIL_ID = ' . (int) $opts['prompt_detail_id'];
-			}
-			if (array_key_exists('prompt_preview_id', $opts)) {
-				$sets[] = 'PROMPT_PREVIEW_ID = ' . (int) $opts['prompt_preview_id'];
+				$ptype = $etype === 'S' ? Prompts::TYPE_CATEGORY : Prompts::TYPE_DETAIL;
+				try {
+					$pd = Prompts::resolveEnqueuePromptId(
+						$ptype,
+						(int) $opts['prompt_detail_id'],
+						$runMode
+					);
+					$sets[] = 'PROMPT_DETAIL_ID = ' . (int) $pd;
+				} catch (\InvalidArgumentException $e) {
+					$errors[$qid] = $e->getMessage();
+					continue;
+				}
 			}
 			if (array_key_exists('gen_preview', $opts)) {
 				$sets[] = "GEN_PREVIEW = '" . (!empty($opts['gen_preview']) ? 'Y' : 'N') . "'";
+			}
+			if (array_key_exists('prompt_preview_id', $opts)) {
+				if (!empty($opts['gen_preview']) && $etype === 'E') {
+					try {
+						$pp = Prompts::resolveEnqueuePromptId(
+							Prompts::TYPE_PREVIEW,
+							(int) $opts['prompt_preview_id'],
+							$runMode
+						);
+						$sets[] = 'PROMPT_PREVIEW_ID = ' . (int) $pp;
+					} catch (\InvalidArgumentException $e) {
+						$errors[$qid] = $e->getMessage();
+						continue;
+					}
+				} else {
+					$sets[] = 'PROMPT_PREVIEW_ID = ' . (int) $opts['prompt_preview_id'];
+				}
 			}
 			if (array_key_exists('tlp_missing_limit', $opts)) {
 				$miss = max(0, min(500, (int) $opts['tlp_missing_limit']));
@@ -516,8 +674,25 @@ class BatchQueue
 				$diff = max(0, min(200, (int) $opts['tlp_diff_limit']));
 				$sets[] = 'TLP_DIFF_LIMIT = ' . $diff;
 			}
-			$DB->Query('UPDATE titlo_relevance_queue SET ' . implode(', ', $sets) . ' WHERE ID = ' . $qid);
+			$DB->Query(
+				'UPDATE titlo_relevance_queue SET ' . implode(', ', $sets)
+				. ' WHERE ID = ' . $qid
+				. ' AND STATUS IN (' . $allowed . ')'
+			);
+			if (self::affectedRows() < 1) {
+				$errors[$qid] = 'статус уже изменился (нельзя перепоставить)';
+				continue;
+			}
 			$okIds[] = $qid;
+			if ($etype === 'S') {
+				$okEntityIdsS[] = $eid;
+				$claimedEntityS[$eid] = $qid;
+				$activeS[$eid] = ['id' => $qid];
+			} else {
+				$okEntityIdsE[] = $eid;
+				$claimedEntityE[$eid] = $qid;
+				$activeE[$eid] = ['id' => $qid];
+			}
 		}
 
 		if ($okIds === []) {
@@ -531,12 +706,12 @@ class BatchQueue
 		}
 
 		if ($runMode !== self::MODE_ANALYZE_ONLY) {
-			foreach (array_unique($entityIdsE) as $eid) {
+			foreach (array_unique($okEntityIdsE) as $eid) {
 				if ($eid > 0) {
 					CatalogRepository::clearElementAutoAt($eid);
 				}
 			}
-			foreach (array_unique($entityIdsS) as $eid) {
+			foreach (array_unique($okEntityIdsS) as $eid) {
 				if ($eid > 0) {
 					CatalogRepository::clearSectionAutoAt($eid);
 				}
@@ -566,8 +741,19 @@ class BatchQueue
 		if ($includeSkipped) {
 			$statuses .= ",'" . self::STATUS_SKIPPED . "'";
 		}
+		$typeFilter = '';
+		$wantType = strtoupper(trim((string) ($opts['entity_type'] ?? '')));
+		if ($wantType === 'S' || $wantType === 'E') {
+			$typeFilter = " AND ENTITY_TYPE = '" . $DB->ForSql($wantType) . "'";
+		}
+		$limit = max(1, min(500, (int) ($opts['limit'] ?? 200)));
 		$ids = [];
-		$res = $DB->Query("SELECT ID FROM titlo_relevance_queue WHERE STATUS IN ({$statuses}) ORDER BY ID ASC");
+		$res = $DB->Query("
+			SELECT ID FROM titlo_relevance_queue
+			WHERE STATUS IN ({$statuses})" . $typeFilter . '
+			ORDER BY ID ASC
+			LIMIT ' . (int) $limit . '
+		');
 		while ($row = $res->Fetch()) {
 			$ids[] = (int) $row['ID'];
 		}
@@ -672,14 +858,44 @@ class BatchQueue
 		return $row ?: null;
 	}
 
-	public static function mark(int $id, string $status, array $extra = []): void
+	/**
+	 * @return array|null raw DB row
+	 */
+	public static function findById(int $id): ?array
+	{
+		self::ensureSchema();
+		$id = (int) $id;
+		if ($id <= 0) {
+			return null;
+		}
+		global $DB;
+		$row = $DB->Query('SELECT * FROM titlo_relevance_queue WHERE ID = ' . $id . ' LIMIT 1')->Fetch();
+
+		return $row ?: null;
+	}
+
+	/**
+	 * @param array{expect_status?:string,expect_step?:string} $extra
+	 * @return bool false если строка уже в другом статусе/шаге (CAS miss)
+	 */
+	public static function mark(int $id, string $status, array $extra = []): bool
 	{
 		self::ensureSchema();
 		global $DB;
+		$now = self::now();
 		$sets = [
 			"STATUS = '" . $DB->ForSql($status) . "'",
-			"UPDATED_AT = '" . self::now() . "'",
+			"UPDATED_AT = '" . $DB->ForSql($now) . "'",
 		];
+		if ($status === self::STATUS_RUNNING) {
+			$sets[] = "LEASE_UNTIL = '" . $DB->ForSql(self::leaseUntilTs()) . "'";
+		} elseif ($status === self::STATUS_DONE
+			|| $status === self::STATUS_FAILED
+			|| $status === self::STATUS_SKIPPED
+			|| $status === self::STATUS_QUEUED) {
+			$sets[] = "WORKER_TOKEN = ''";
+			$sets[] = 'LEASE_UNTIL = NULL';
+		}
 		$map = [
 			'STEP' => 'STEP',
 			'HISTORY_ID' => 'HISTORY_ID',
@@ -692,6 +908,9 @@ class BatchQueue
 			'WORK_HISTORY_ID' => 'WORK_HISTORY_ID',
 			'ERROR' => 'ERROR',
 		];
+		$expectStatus = isset($extra['expect_status']) ? (string) $extra['expect_status'] : '';
+		$expectStep = isset($extra['expect_step']) ? (string) $extra['expect_step'] : '';
+		unset($extra['expect_status'], $extra['expect_step']);
 		foreach ($map as $key => $col) {
 			if (!array_key_exists($key, $extra)) {
 				continue;
@@ -705,7 +924,19 @@ class BatchQueue
 				$sets[] = $col . " = '" . $DB->ForSql((string) $val) . "'";
 			}
 		}
-		$DB->Query('UPDATE titlo_relevance_queue SET ' . implode(', ', $sets) . ' WHERE ID = ' . (int) $id);
+		$where = 'ID = ' . (int) $id;
+		if ($expectStatus !== '') {
+			$where .= " AND STATUS = '" . $DB->ForSql($expectStatus) . "'";
+		}
+		if ($expectStep !== '') {
+			$where .= " AND STEP = '" . $DB->ForSql($expectStep) . "'";
+		}
+		$DB->Query('UPDATE titlo_relevance_queue SET ' . implode(', ', $sets) . ' WHERE ' . $where);
+		if ($expectStatus !== '' || $expectStep !== '') {
+			return self::affectedRows() > 0;
+		}
+
+		return true;
 	}
 
 	/**

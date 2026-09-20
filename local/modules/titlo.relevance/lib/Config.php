@@ -329,11 +329,15 @@ class Config
 
 	/**
 	 * Безопасный публичный URL для href в админке (только http/https или относительный path).
+	 * Protocol-relative //host — запрещён.
 	 */
 	public static function safeHrefUrl(string $url): string
 	{
 		$url = trim($url);
 		if ($url === '') {
+			return '';
+		}
+		if (strpos($url, '//') === 0) {
 			return '';
 		}
 		if (isset($url[0]) && $url[0] === '/') {
@@ -707,5 +711,20 @@ class Config
 	public static function analysisTopOptions(): array
 	{
 		return [10, 20, 30, 50];
+	}
+
+	/**
+	 * Escape LIKE wildcards then ForSql. Use inside LIKE '%…%'.
+	 */
+	public static function forLike(string $q): string
+	{
+		global $DB;
+		$escaped = str_replace(
+			['\\', '%', '_'],
+			['\\\\', '\\%', '\\_'],
+			$q
+		);
+
+		return $DB->ForSql($escaped);
 	}
 }

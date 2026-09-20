@@ -141,7 +141,8 @@ $renderPromptCard = static function (
 			<?php endif; ?>
 			<?php if ($typeTotal > 1): ?>
 				<input type="submit" class="adm-btn" value="Удалить"
-					onclick="this.form.titlo_action.value='delete'; return confirm('Удалить «<?= htmlspecialcharsbx($it['name']) ?>»?');">
+					data-confirm-name="<?= htmlspecialcharsbx($it['name'], ENT_QUOTES) ?>"
+					onclick="this.form.titlo_action.value='delete'; return confirm('Удалить «' + (this.getAttribute('data-confirm-name') || '') + '»?');">
 			<?php endif; ?>
 		</div>
 	</form>

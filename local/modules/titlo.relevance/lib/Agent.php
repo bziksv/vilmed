@@ -64,65 +64,96 @@ class Agent
 	{
 		$id = (int) $row['ID'];
 		$status = (string) ($row['STATUS'] ?? '');
-		$step = (string) ($row['STEP'] ?? BatchQueue::STEP_ANALYZE);
-		if ($status === BatchQueue::STATUS_QUEUED) {
-			if (!BatchQueue::claim($id)) {
-				return;
-			}
-			$runMode = BatchQueue::normalizeRunMode((string) ($row['RUN_MODE'] ?? BatchQueue::MODE_FULL));
-			if ($runMode === BatchQueue::MODE_REFINE) {
-				$historyId = (int) ($row['HISTORY_ID'] ?? 0);
-				if ($historyId <= 0) {
-					throw new \RuntimeException('нет прошлого анализа (history_id) для повторной доработки');
-				}
-				$step = BatchQueue::STEP_GENERATE;
-				self::seedRefineBeforeScore($row, $historyId);
-			} else {
-				$step = BatchQueue::STEP_ANALYZE;
-			}
-			$row['STATUS'] = BatchQueue::STATUS_RUNNING;
-			$row['STEP'] = $step;
-			$row['UPDATED_AT'] = BatchQueue::now();
-			BatchQueue::mark($id, BatchQueue::STATUS_RUNNING, [
-				'STEP' => $step,
-				'ERROR' => null,
-			]);
+
+		if ($status !== BatchQueue::STATUS_QUEUED && $status !== BatchQueue::STATUS_RUNNING) {
+			return;
+		}
+		if (!BatchQueue::tryWorkerLock($id)) {
+			return;
 		}
 
-		$client = new ApiClient();
+		try {
+			// Актуальная строка после lock — иначе тик по устаревшему STEP/STATUS
+			$fresh = BatchQueue::findById($id);
+			if (!$fresh) {
+				return;
+			}
+			$row = $fresh;
+			$status = (string) ($row['STATUS'] ?? '');
+			$step = (string) ($row['STEP'] ?? BatchQueue::STEP_ANALYZE);
+			if ($status !== BatchQueue::STATUS_QUEUED && $status !== BatchQueue::STATUS_RUNNING) {
+				return;
+			}
 
-		switch ($step) {
-			case BatchQueue::STEP_ANALYZE:
-				self::stepAnalyze($client, $row);
-				break;
-			case BatchQueue::STEP_WAIT_ANALYSIS:
-				self::stepWaitAnalysis($client, $row, false);
-				break;
-			case BatchQueue::STEP_GENERATE:
-				self::stepGenerate($client, $row, false);
-				break;
-			case BatchQueue::STEP_WAIT_GENERATE:
-				self::stepWaitGenerate($client, $row, false);
-				break;
-			case BatchQueue::STEP_GENERATE_PREVIEW:
-				self::stepGenerate($client, $row, true);
-				break;
-			case BatchQueue::STEP_WAIT_GENERATE_PREVIEW:
-				self::stepWaitGenerate($client, $row, true);
-				break;
-			case BatchQueue::STEP_SAVE:
-				self::stepSave($row);
-				break;
-			case BatchQueue::STEP_RECHECK:
-				self::stepRecheck($client, $row);
-				break;
-			case BatchQueue::STEP_WAIT_RECHECK:
-				self::stepWaitAnalysis($client, $row, true);
-				break;
-			default:
-				BatchQueue::mark($id, BatchQueue::STATUS_FAILED, [
-					'ERROR' => 'Unknown step: ' . $step,
-				]);
+			if ($status === BatchQueue::STATUS_QUEUED) {
+				if (!BatchQueue::claim($id)) {
+					return;
+				}
+				$fresh = BatchQueue::findById($id);
+				if ($fresh) {
+					$row = $fresh;
+				}
+				$runMode = BatchQueue::normalizeRunMode((string) ($row['RUN_MODE'] ?? BatchQueue::MODE_FULL));
+				if ($runMode === BatchQueue::MODE_REFINE) {
+					$historyId = (int) ($row['HISTORY_ID'] ?? 0);
+					if ($historyId <= 0) {
+						throw new \RuntimeException('нет прошлого анализа (history_id) для повторной доработки');
+					}
+					$step = BatchQueue::STEP_GENERATE;
+					self::seedRefineBeforeScore($row, $historyId);
+				} else {
+					$step = BatchQueue::STEP_ANALYZE;
+				}
+				$row['STATUS'] = BatchQueue::STATUS_RUNNING;
+				$row['STEP'] = $step;
+				$row['UPDATED_AT'] = BatchQueue::now();
+				if (!BatchQueue::mark($id, BatchQueue::STATUS_RUNNING, [
+					'STEP' => $step,
+					'ERROR' => null,
+					'expect_status' => BatchQueue::STATUS_RUNNING,
+				])) {
+					return;
+				}
+			}
+
+			$client = new ApiClient();
+
+			switch ($step) {
+				case BatchQueue::STEP_ANALYZE:
+					self::stepAnalyze($client, $row);
+					break;
+				case BatchQueue::STEP_WAIT_ANALYSIS:
+					self::stepWaitAnalysis($client, $row, false);
+					break;
+				case BatchQueue::STEP_GENERATE:
+					self::stepGenerate($client, $row, false);
+					break;
+				case BatchQueue::STEP_WAIT_GENERATE:
+					self::stepWaitGenerate($client, $row, false);
+					break;
+				case BatchQueue::STEP_GENERATE_PREVIEW:
+					self::stepGenerate($client, $row, true);
+					break;
+				case BatchQueue::STEP_WAIT_GENERATE_PREVIEW:
+					self::stepWaitGenerate($client, $row, true);
+					break;
+				case BatchQueue::STEP_SAVE:
+					self::stepSave($row);
+					break;
+				case BatchQueue::STEP_RECHECK:
+					self::stepRecheck($client, $row);
+					break;
+				case BatchQueue::STEP_WAIT_RECHECK:
+					self::stepWaitAnalysis($client, $row, true);
+					break;
+				default:
+					BatchQueue::mark($id, BatchQueue::STATUS_FAILED, [
+						'ERROR' => 'Unknown step: ' . $step,
+						'expect_status' => BatchQueue::STATUS_RUNNING,
+					]);
+			}
+		} finally {
+			BatchQueue::releaseWorkerLock($id);
 		}
 	}
 
@@ -134,6 +165,8 @@ class Agent
 	{
 		$entityType = strtoupper((string) ($row['ENTITY_TYPE'] ?? 'E')) === 'S' ? 'S' : 'E';
 		$entityId = (int) ($row['ENTITY_ID'] ?? 0);
+		// Не переписываем чужой open/saved цикл (например после analyze_only)
+		WorkHistory::abandonOpenCycles($entityType, $entityId);
 		$scores = WorkHistory::mapLatestScores([$entityId], $entityType);
 		$score = $scores[$entityId] ?? [];
 		$entity = $entityType === 'S'
@@ -153,13 +186,17 @@ class Agent
 			'prompt_detail_id' => (int) ($row['PROMPT_DETAIL_ID'] ?? 0),
 			'prompt_preview_id' => (int) ($row['PROMPT_PREVIEW_ID'] ?? 0),
 		]);
-		$workId = isset($wh['row']['id']) ? (int) $wh['row']['id'] : 0;
-		if ($workId > 0) {
-			BatchQueue::mark((int) $row['ID'], BatchQueue::STATUS_RUNNING, [
-				'WORK_HISTORY_ID' => $workId,
-			]);
-			$row['WORK_HISTORY_ID'] = $workId;
+		if (empty($wh['ok'])) {
+			throw new \RuntimeException('не удалось зафиксировать балл «до» для доработки: ' . (string) ($wh['error'] ?? ''));
 		}
+		$workId = isset($wh['row']['id']) ? (int) $wh['row']['id'] : 0;
+		if ($workId <= 0) {
+			throw new \RuntimeException('пустой work_history_id после seed refine');
+		}
+		BatchQueue::mark((int) $row['ID'], BatchQueue::STATUS_RUNNING, [
+			'WORK_HISTORY_ID' => $workId,
+		]);
+		$row['WORK_HISTORY_ID'] = $workId;
 	}
 
 	protected static function crawlUrl(array $row): string
@@ -300,6 +337,9 @@ class Agent
 
 		$runMode = strtolower((string) ($row['RUN_MODE'] ?? BatchQueue::MODE_FULL));
 		if ($runMode === BatchQueue::MODE_ANALYZE_ONLY) {
+			if ($workId > 0) {
+				WorkHistory::closeAnalyzeOnlyCycle($workId);
+			}
 			BatchQueue::mark($id, BatchQueue::STATUS_DONE, [
 				'STEP' => BatchQueue::STEP_DONE,
 				'HISTORY_ID' => $historyId,
@@ -390,7 +430,18 @@ class Agent
 		$promptId = $preview
 			? (int) ($row['PROMPT_PREVIEW_ID'] ?? 0)
 			: (int) ($row['PROMPT_DETAIL_ID'] ?? 0);
-		$extra = ['history_id' => $historyId];
+		$runMode = BatchQueue::normalizeRunMode((string) ($row['RUN_MODE'] ?? BatchQueue::MODE_FULL));
+		if ($promptId <= 0 && $runMode !== BatchQueue::MODE_ANALYZE_ONLY) {
+			try {
+				$promptId = Prompts::resolveEnqueuePromptId($type, 0, $runMode);
+			} catch (\InvalidArgumentException $e) {
+				throw new \RuntimeException($e->getMessage(), 0, $e);
+			}
+		}
+		$extra = [
+			'history_id' => $historyId,
+			'run_mode' => $runMode,
+		];
 		if ($promptId > 0) {
 			$extra['prompt_id'] = $promptId;
 		}
@@ -510,8 +561,10 @@ class Agent
 			'name' => (string) ($entity['name'] ?? ''),
 			'url' => (string) ($row['URL'] ?? ''),
 			'phrase' => (string) ($row['PHRASE'] ?? ''),
-			'preview_chars' => $preview !== null ? mb_strlen($preview) : 0,
-			'detail_chars' => mb_strlen($detail),
+			'preview_chars' => $entityType === 'S'
+				? mb_strlen($detail)
+				: ($preview !== null ? mb_strlen($preview) : 0),
+			'detail_chars' => $entityType === 'S' ? 0 : mb_strlen($detail),
 			'run_mode' => BatchQueue::normalizeRunMode((string) ($row['RUN_MODE'] ?? BatchQueue::MODE_FULL)),
 			'prompt_detail_id' => (int) ($row['PROMPT_DETAIL_ID'] ?? 0),
 			'prompt_preview_id' => (int) ($row['PROMPT_PREVIEW_ID'] ?? 0),

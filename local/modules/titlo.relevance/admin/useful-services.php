@@ -62,7 +62,7 @@ AdminUi::renderCss();
 <?php if ($openUrl !== ''): ?>
 <script>
 (function () {
-	var url = <?= json_encode($openUrl, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+	var url = <?= json_encode($openUrl, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
 	if (!url) return;
 	var w = window.open(url, '_blank');
 	if (w) {

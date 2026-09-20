@@ -293,16 +293,16 @@ $hasKey = Config::apiKey() !== '';
 	var tlpMissingTotal = 0;
 	var tlpDiffTotal = 0;
 	var regionsByEngine = {
-		yandex: <?= json_encode(Config::analysisYandexRegionsList(), JSON_UNESCAPED_UNICODE) ?>,
-		google: <?= json_encode(Config::analysisGoogleRegionsList(), JSON_UNESCAPED_UNICODE) ?>
+		yandex: <?= json_encode(Config::analysisYandexRegionsList(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_UNESCAPED_UNICODE) ?>,
+		google: <?= json_encode(Config::analysisGoogleRegionsList(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_UNESCAPED_UNICODE) ?>
 	};
 	var popularByEngine = {
-		yandex: <?= json_encode(array_keys(Config::analysisRegions())) ?>,
-		google: <?= json_encode(array_keys(Config::analysisGoogleRegions())) ?>
+		yandex: <?= json_encode(array_keys(Config::analysisRegions()), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>,
+		google: <?= json_encode(array_keys(Config::analysisGoogleRegions()), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>
 	};
 	var defaultRegionByEngine = {
-		yandex: <?= json_encode(Config::analysisRegionDefault('yandex')) ?>,
-		google: <?= json_encode(Config::analysisRegionDefault('google')) ?>
+		yandex: <?= json_encode(Config::analysisRegionDefault('yandex'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>,
+		google: <?= json_encode(Config::analysisRegionDefault('google'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>
 	};
 	var savedRegionByEngine = {yandex: '', google: ''};
 	var prodOrigin = <?= json_encode(rtrim(Config::get('site_url', ''), '/'), JSON_UNESCAPED_UNICODE) ?>;
@@ -409,7 +409,7 @@ $hasKey = Config::apiKey() !== '';
 			box.innerHTML = '<div class="empty">Ничего не найдено — введите город, например «Казань»</div>';
 		} else {
 			box.innerHTML = items.map(function (it) {
-				return '<div data-id="' + it.id + '">' + it.text.replace(/</g, '') + '</div>';
+				return '<div data-id="' + escapeHtml(String(it.id)) + '">' + escapeHtml(String(it.text || '')) + '</div>';
 			}).join('');
 		}
 		wrap.classList.add('is-open');
@@ -914,10 +914,10 @@ $hasKey = Config::apiKey() !== '';
 
 	function fmtPointsPair(h) {
 		if (!h || h.points == null) return '—';
-		var yours = h.points;
+		var yours = escapeHtml(String(h.points));
 		var ideal = h.points_ideal;
-		if (ideal == null || ideal === '') return String(yours);
-		return '<b>' + yours + '</b> / ' + ideal;
+		if (ideal == null || ideal === '') return yours;
+		return '<b>' + yours + '</b> / ' + escapeHtml(String(ideal));
 	}
 
 	function engineLabel(engine) {
@@ -1017,15 +1017,15 @@ $hasKey = Config::apiKey() !== '';
 		el.innerHTML =
 			'<div class="big">' + ptsHtml + ' <span style="font-size:14px;font-weight:500;color:#64748b">' + label + '</span> ' + fmtDelta(delta) + '</div>' +
 			'<div class="titlo-scores-meta">' +
-			'history_id=<b>' + (h.history_id || '—') + '</b>' +
+			'history_id=<b>' + escapeHtml(String(h.history_id || '—')) + '</b>' +
 			' · <b>' + escapeHtml(params.engine) + '</b>' +
 			' · <b>' + escapeHtml(params.region) + '</b>' +
 			' · ТОП-<b>' + escapeHtml(params.top) + '</b>' +
-			' · покрытие: <b>' + (h.coverage != null ? h.coverage : '—') + '</b>' +
-			' · плотность: <b>' + (h.density != null ? h.density : '—') + '</b>' +
-			' · позиция: <b>' + (h.position != null ? h.position : '—') + '</b>' +
+			' · покрытие: <b>' + escapeHtml(h.coverage != null ? String(h.coverage) : '—') + '</b>' +
+			' · плотность: <b>' + escapeHtml(h.density != null ? String(h.density) : '—') + '</b>' +
+			' · позиция: <b>' + escapeHtml(h.position != null ? String(h.position) : '—') + '</b>' +
 			textLine +
-			(h.last_check || h.created_at ? ' · ' + fmtDate(h.last_check || h.created_at) : '') +
+			(h.last_check || h.created_at ? ' · ' + escapeHtml(fmtDate(h.last_check || h.created_at)) : '') +
 			'</div>';
 	}
 
@@ -1045,7 +1045,7 @@ $hasKey = Config::apiKey() !== '';
 			try { if (it.url) host = new URL(it.url).host; } catch (e) {}
 			return '<tr class="' + (cur ? 'is-current' : '') + '">' +
 				'<td>' + escapeHtml(fmtDate(it.last_check || it.created_at)) + '</td>' +
-				'<td>' + it.history_id + '</td>' +
+				'<td>' + escapeHtml(String(it.history_id != null ? it.history_id : '')) + '</td>' +
 				'<td title="' + escapeHtml(it.url || '') + '">' + escapeHtml(host) + '</td>' +
 				'<td>' + escapeHtml(p.engine) + '</td>' +
 				'<td>' + escapeHtml(p.region) + '</td>' +
@@ -1053,9 +1053,9 @@ $hasKey = Config::apiKey() !== '';
 				'<td>' + fmtPointsPair(it) + '</td>' +
 				'<td>' + fmtDelta(it.delta_points) + '</td>' +
 				'<td>' + escapeHtml(fmtTextWords(it)) + fmtDeltaText(it.delta_text_words) + '</td>' +
-				'<td>' + (it.coverage != null ? it.coverage : '—') + '</td>' +
-				'<td>' + (it.position != null ? it.position : '—') + '</td>' +
-				'<td><button type="button" class="linkish" data-hid="' + it.history_id + '" data-delta="' + (it.delta_points != null ? it.delta_points : '') + '" data-delta-text="' + (it.delta_text_words != null ? it.delta_text_words : '') + '">открыть</button></td>' +
+				'<td>' + escapeHtml(it.coverage != null ? String(it.coverage) : '—') + '</td>' +
+				'<td>' + escapeHtml(it.position != null ? String(it.position) : '—') + '</td>' +
+				'<td><button type="button" class="linkish" data-hid="' + escapeHtml(String(it.history_id || '')) + '" data-delta="' + escapeHtml(it.delta_points != null ? String(it.delta_points) : '') + '" data-delta-text="' + escapeHtml(it.delta_text_words != null ? String(it.delta_text_words) : '') + '">открыть</button></td>' +
 				'</tr>';
 		}).join('');
 		Array.prototype.forEach.call(body.querySelectorAll('button[data-hid]'), function (btn) {
@@ -1399,7 +1399,8 @@ $hasKey = Config::apiKey() !== '';
 				url: document.getElementById('titlo-url').value,
 				keywords: JSON.stringify(keywords),
 				history_id: historyId || document.getElementById('titlo-history-id').value || '',
-				prompt_id: promptId
+				prompt_id: promptId,
+				run_mode: (document.getElementById('titlo-run-mode') || {}).value || 'full'
 			}).then(function poll(res) {
 				if (!res.ok) {
 					setStatus('titlo-gen-status', res.error || 'Ошибка', true);

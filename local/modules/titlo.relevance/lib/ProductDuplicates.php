@@ -190,7 +190,7 @@ class ProductDuplicates
 			if (ctype_digit($q)) {
 				$where[] = 'BE.ID = ' . (int) $q;
 			} else {
-				$like = $DB->ForSql($q);
+				$like = Config::forLike($q);
 				$where[] = '(BE.NAME LIKE "%' . $like . '%" OR BE.CODE LIKE "%' . $like . '%")';
 			}
 		}
@@ -333,7 +333,7 @@ class ProductDuplicates
 			if ($tok === '' || mb_strlen($tok) < 3) {
 				continue;
 			}
-			$likeParts[] = 'BE.NAME LIKE "%' . $DB->ForSql($tok) . '%"';
+			$likeParts[] = 'BE.NAME LIKE "%' . Config::forLike($tok) . '%"';
 		}
 		if ($likeParts === []) {
 			return $out;
@@ -400,7 +400,7 @@ class ProductDuplicates
 			if (ctype_digit($q)) {
 				$parts[] = 'BE.ID = ' . (int) $q;
 			} else {
-				$like = $DB->ForSql($q);
+				$like = Config::forLike($q);
 				$parts[] = '(BE.NAME LIKE "%' . $like . '%" OR BE.CODE LIKE "%' . $like . '%" OR UTS.' . $phraseCol . ' LIKE "%' . $like . '%")';
 			}
 		}

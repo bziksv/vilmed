@@ -1227,13 +1227,13 @@ TXT;
 	}
 
 	/**
-	 * Текст промпта: по id или активный для типа.
+	 * Текст промпта: по id или активный для типа (опционально с учётом режима).
 	 */
-	public static function get(string $type, ?int $id = null): string
+	public static function get(string $type, ?int $id = null, string $runMode = ''): string
 	{
 		self::ensureTables();
 		if ($id === null || $id <= 0) {
-			$id = self::getActiveId($type);
+			$id = self::getActiveId($type, $runMode);
 		}
 		$row = $id > 0 ? self::find($id) : null;
 		if ($row && $row['type'] === $type) {
@@ -1241,6 +1241,51 @@ TXT;
 		}
 		$cat = self::catalog();
 		return isset($cat[$type]) ? $cat[$type]['default'] : '';
+	}
+
+	/**
+	 * Резолв prompt id для постановки в очередь.
+	 * analyze_only → 0; иначе явный id должен совпадать с type+mode, иначе active для режима.
+	 *
+	 * @throws \InvalidArgumentException
+	 */
+	public static function resolveEnqueuePromptId(string $type, int $requestedId, string $runMode): int
+	{
+		self::ensureTables();
+		$runMode = BatchQueue::normalizeRunMode($runMode);
+		if ($runMode === BatchQueue::MODE_ANALYZE_ONLY) {
+			return 0;
+		}
+
+		$modeKey = $runMode === BatchQueue::MODE_REFINE
+			? self::RUN_MODE_REFINE
+			: self::RUN_MODE_FULL;
+
+		// preview/section_phrase — без привязки к full/refine
+		$modeAware = ($type === self::TYPE_DETAIL || $type === self::TYPE_CATEGORY);
+
+		if ($requestedId > 0) {
+			$row = self::find($requestedId);
+			if (!$row || ($row['type'] ?? '') !== $type) {
+				throw new \InvalidArgumentException('промпт не найден или неверный тип');
+			}
+			if ($modeAware && !self::promptFitsRunMode($row, $modeKey)) {
+				throw new \InvalidArgumentException('промпт не подходит к режиму очереди');
+			}
+
+			return $requestedId;
+		}
+
+		if (!$modeAware) {
+			return self::getActiveId($type);
+		}
+
+		$id = self::getActiveId($type, $modeKey);
+		if ($id <= 0) {
+			throw new \InvalidArgumentException('нет активного промпта для режима');
+		}
+
+		return $id;
 	}
 
 	/**

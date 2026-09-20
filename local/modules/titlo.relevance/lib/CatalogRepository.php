@@ -171,7 +171,7 @@ class CatalogRepository
 			if (ctype_digit($q)) {
 				$where[] = 'BE.ID = ' . (int) $q;
 			} else {
-				$like = $DB->ForSql($q);
+				$like = Config::forLike($q);
 				$where[] = '(BE.NAME LIKE "%' . $like . '%" OR BE.CODE LIKE "%' . $like . '%" OR UTS.' . $phraseCol . ' LIKE "%' . $like . '%")';
 			}
 		}
@@ -303,7 +303,7 @@ class CatalogRepository
 			if (ctype_digit($q)) {
 				$where[] = 'BE.ID = ' . (int) $q;
 			} else {
-				$like = $DB->ForSql($q);
+				$like = Config::forLike($q);
 				$where[] = '(BE.NAME LIKE "%' . $like . '%" OR BE.CODE LIKE "%' . $like . '%" OR UTS.' . $phraseCol . ' LIKE "%' . $like . '%")';
 			}
 		}
@@ -389,7 +389,7 @@ class CatalogRepository
 			if (ctype_digit($q)) {
 				$where[] = 'BS.ID = ' . (int) $q;
 			} else {
-				$like = $DB->ForSql($q);
+				$like = Config::forLike($q);
 				$where[] = '(BS.NAME LIKE "%' . $like . '%" OR BS.CODE LIKE "%' . $like . '%" OR UTS.' . $phraseCol . ' LIKE "%' . $like . '%")';
 			}
 		}
@@ -518,7 +518,7 @@ class CatalogRepository
 			if (ctype_digit($q)) {
 				$where[] = 'BS.ID = ' . (int) $q;
 			} else {
-				$like = $DB->ForSql($q);
+				$like = Config::forLike($q);
 				$where[] = '(BS.NAME LIKE "%' . $like . '%" OR BS.CODE LIKE "%' . $like . '%" OR UTS.' . $phraseCol . ' LIKE "%' . $like . '%")';
 			}
 		}
@@ -1134,7 +1134,7 @@ class CatalogRepository
 			if (ctype_digit($q)) {
 				$where[] = 'BE.ID = ' . (int) $q;
 			} else {
-				$like = $DB->ForSql($q);
+				$like = Config::forLike($q);
 				$where[] = '(BE.NAME LIKE "%' . $like . '%" OR BE.CODE LIKE "%' . $like . '%" OR UTS.' . $phraseCol . ' LIKE "%' . $like . '%")';
 			}
 		}
@@ -1320,7 +1320,7 @@ class CatalogRepository
 			if (ctype_digit($q)) {
 				$where[] = 'BS.ID = ' . (int) $q;
 			} else {
-				$like = $DB->ForSql($q);
+				$like = Config::forLike($q);
 				$where[] = '(BS.NAME LIKE "%' . $like . '%" OR BS.CODE LIKE "%' . $like . '%" OR UTS.' . $phraseCol . ' LIKE "%' . $like . '%")';
 			}
 		}
@@ -1574,19 +1574,159 @@ class CatalogRepository
 	}
 
 	/**
-	 * Минимальный HTML-sanitize перед записью в каталог (без script/iframe/handlers).
+	 * Allowlist HTML перед записью в каталог (DETAIL_TEXT / DESCRIPTION).
+	 * Теги/атрибуты под .vmd-desc; href только http(s)/mailto/#.
 	 */
 	public static function sanitizeCatalogHtml(string $html): string
 	{
 		$html = (string) $html;
-		if ($html === '') {
+		if (trim($html) === '') {
 			return '';
 		}
-		$html = preg_replace('#<\s*(script|iframe|object|embed|link|meta|base)\b[^>]*>.*?<\s*/\s*\1\s*>#is', '', $html) ?? $html;
-		$html = preg_replace('#<\s*(script|iframe|object|embed|link|meta|base)\b[^>]*/?\s*>#is', '', $html) ?? $html;
-		$html = preg_replace('#\son[a-z]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)#i', '', $html) ?? $html;
-		$html = preg_replace('#(href|src)\s*=\s*([\'"])\s*javascript:[^\'"]*\2#i', '$1=$2#$2', $html) ?? $html;
-		return $html;
+
+		$allowedTags = [
+			'article' => true, 'section' => true, 'header' => true, 'footer' => true,
+			'div' => true, 'span' => true, 'p' => true, 'br' => true, 'hr' => true,
+			'h1' => true, 'h2' => true, 'h3' => true, 'h4' => true, 'h5' => true, 'h6' => true,
+			'ul' => true, 'ol' => true, 'li' => true, 'dl' => true, 'dt' => true, 'dd' => true,
+			'a' => true, 'strong' => true, 'b' => true, 'em' => true, 'i' => true, 'u' => true,
+			's' => true, 'small' => true, 'sub' => true, 'sup' => true, 'mark' => true,
+			'blockquote' => true, 'pre' => true, 'code' => true,
+			'table' => true, 'thead' => true, 'tbody' => true, 'tfoot' => true,
+			'tr' => true, 'th' => true, 'td' => true, 'caption' => true,
+			'figure' => true, 'figcaption' => true, 'img' => true,
+		];
+		$allowedAttrs = [
+			'class' => true, 'title' => true, 'lang' => true,
+			'href' => true, 'target' => true, 'rel' => true,
+			'src' => true, 'alt' => true, 'width' => true, 'height' => true,
+			'colspan' => true, 'rowspan' => true, 'scope' => true,
+		];
+
+		$wrapped = '<?xml encoding="UTF-8"><div id="titlo-sanitize-root">' . $html . '</div>';
+		$prev = libxml_use_internal_errors(true);
+		$dom = new \DOMDocument('1.0', 'UTF-8');
+		$loaded = @$dom->loadHTML($wrapped, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+		libxml_clear_errors();
+		libxml_use_internal_errors($prev);
+		if (!$loaded) {
+			return strip_tags($html, '<' . implode('><', array_keys($allowedTags)) . '>');
+		}
+
+		$root = $dom->getElementById('titlo-sanitize-root');
+		if (!$root) {
+			return '';
+		}
+
+		self::sanitizeDomNode($root, $allowedTags, $allowedAttrs);
+
+		$out = '';
+		foreach ($root->childNodes as $child) {
+			$out .= $dom->saveHTML($child);
+		}
+
+		return $out;
+	}
+
+	/**
+	 * @param array<string,bool> $allowedTags
+	 * @param array<string,bool> $allowedAttrs
+	 */
+	protected static function sanitizeDomNode(\DOMNode $node, array $allowedTags, array $allowedAttrs): void
+	{
+		if (!($node instanceof \DOMElement) && !($node instanceof \DOMDocument)) {
+			return;
+		}
+
+		$toRemove = [];
+		foreach (iterator_to_array($node->childNodes) as $child) {
+			if ($child instanceof \DOMText || $child instanceof \DOMCdataSection) {
+				continue;
+			}
+			if ($child instanceof \DOMComment) {
+				$toRemove[] = $child;
+				continue;
+			}
+			if (!($child instanceof \DOMElement)) {
+				$toRemove[] = $child;
+				continue;
+			}
+
+			$tag = strtolower($child->tagName);
+			if (!isset($allowedTags[$tag])) {
+				// unwrap: keep children, drop forbidden wrapper
+				while ($child->firstChild) {
+					$node->insertBefore($child->firstChild, $child);
+				}
+				$toRemove[] = $child;
+				continue;
+			}
+
+			$attrs = [];
+			if ($child->hasAttributes()) {
+				foreach (iterator_to_array($child->attributes) as $attr) {
+					$attrs[] = $attr;
+				}
+			}
+			foreach ($attrs as $attr) {
+				$name = strtolower($attr->name);
+				$val = (string) $attr->value;
+				if (strpos($name, 'on') === 0 || !isset($allowedAttrs[$name])) {
+					$child->removeAttribute($attr->name);
+					continue;
+				}
+				if ($name === 'href' || $name === 'src') {
+					$safe = self::sanitizeUrlAttr($val, $name === 'src');
+					if ($safe === null) {
+						$child->removeAttribute($attr->name);
+					} else {
+						$child->setAttribute($attr->name, $safe);
+					}
+					continue;
+				}
+				if ($name === 'target') {
+					if ($val !== '_blank' && $val !== '_self') {
+						$child->removeAttribute($attr->name);
+					} else {
+						$child->setAttribute('rel', 'noopener noreferrer');
+					}
+				}
+			}
+
+			self::sanitizeDomNode($child, $allowedTags, $allowedAttrs);
+		}
+
+		foreach ($toRemove as $dead) {
+			if ($dead->parentNode) {
+				$dead->parentNode->removeChild($dead);
+			}
+		}
+	}
+
+	protected static function sanitizeUrlAttr(string $url, bool $imgSrc): ?string
+	{
+		$url = trim(html_entity_decode($url, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+		if ($url === '' || $url[0] === '#') {
+			return $url === '' ? null : $url;
+		}
+		// protocol-relative //evil.com — запрет
+		if (strpos($url, '//') === 0) {
+			return null;
+		}
+		if (preg_match('#^(mailto|tel):#i', $url)) {
+			return $url;
+		}
+		if ($imgSrc && preg_match('#^data:image/(png|jpe?g|gif|webp);base64,#i', $url)) {
+			return $url;
+		}
+		if (preg_match('#^https?://#i', $url) || preg_match('#^/[^/]#', $url) || $url === '/') {
+			if (preg_match('#^\s*javascript\s*:#i', $url) || preg_match('#^\s*data\s*:#i', $url)) {
+				return null;
+			}
+			return $url;
+		}
+
+		return null;
 	}
 
 	/**

@@ -75,14 +75,14 @@ class WorkHistory
 	 */
 	protected static function backfillPromptsFromQueueOnce(): void
 	{
-		if (\Bitrix\Main\Config\Option::get('titlo.relevance', 'work_history_prompt_backfill', '') === '1') {
+		if (\Bitrix\Main\Config\Option::get('titlo.relevance', 'work_history_prompt_backfill_v2', '') === '1') {
 			return;
 		}
 		try {
 			self::backfillPromptsFromQueue();
-			\Bitrix\Main\Config\Option::set('titlo.relevance', 'work_history_prompt_backfill', '1');
+			\Bitrix\Main\Config\Option::set('titlo.relevance', 'work_history_prompt_backfill_v2', '1');
 		} catch (\Throwable $e) {
-			// очередь/промпты могут ещё не существовать
+			// очередь/промпты могут ещё не существовать — флаг не ставим
 		}
 	}
 
@@ -94,7 +94,7 @@ class WorkHistory
 		global $DB;
 		$updated = 0;
 		$seen = [];
-		// Только числовые связи: сравнение ENTITY_TYPE ломается на разных collation таблиц.
+		// ENTITY_ID + UPPER(ENTITY_TYPE): без collation-сравнения CHAR vs VARCHAR
 		$sql = "
 			SELECT wh.ID AS WH_ID, q.ID AS Q_ID, q.PROMPT_DETAIL_ID, q.PROMPT_PREVIEW_ID, q.RUN_MODE
 			FROM titlo_work_history wh
@@ -104,6 +104,8 @@ class WorkHistory
 					OR (
 						q.HISTORY_ID IS NOT NULL
 						AND q.HISTORY_ID > 0
+						AND q.ENTITY_ID = wh.ENTITY_ID
+						AND UPPER(q.ENTITY_TYPE) = UPPER(wh.ENTITY_TYPE)
 						AND (
 							q.HISTORY_ID = wh.BEFORE_HISTORY_ID
 							OR q.HISTORY_ID = wh.AFTER_HISTORY_ID
@@ -114,9 +116,9 @@ class WorkHistory
 				AND q.PROMPT_DETAIL_ID > 0
 			ORDER BY q.ID DESC
 		";
-		$res = $DB->Query($sql, true);
+		$res = $DB->Query($sql);
 		if (!$res) {
-			return 0;
+			throw new \RuntimeException('work_history prompt backfill query failed');
 		}
 		while ($row = $res->Fetch()) {
 			$whId = (int) ($row['WH_ID'] ?? 0);
@@ -571,7 +573,7 @@ class WorkHistory
 		}
 
 		if ($q !== '') {
-			$like = "'%" . $DB->ForSql($q) . "%'";
+			$like = "'%" . Config::forLike($q) . "%'";
 			$parts = [
 				'NAME LIKE ' . $like,
 				'PHRASE LIKE ' . $like,
@@ -624,7 +626,7 @@ class WorkHistory
 		$q = trim($q);
 		$extra = '';
 		if ($q !== '') {
-			$like = "'%" . $DB->ForSql($q) . "%'";
+			$like = "'%" . Config::forLike($q) . "%'";
 			if ($type === 'S') {
 				$extra = ' AND (BS.NAME LIKE ' . $like . ' OR BS.CODE LIKE ' . $like;
 				if (ctype_digit($q)) {
@@ -813,6 +815,51 @@ class WorkHistory
 	}
 
 	/**
+	 * Закрыть цикл «только анализ», чтобы он не висел в open и не перехватывался refine.
+	 */
+	public static function closeAnalyzeOnlyCycle(int $id): void
+	{
+		$id = (int) $id;
+		if ($id <= 0) {
+			return;
+		}
+		$row = self::find($id);
+		if (!$row) {
+			return;
+		}
+		$status = (string) ($row['STATUS'] ?? '');
+		if ($status === self::STATUS_DONE) {
+			return;
+		}
+		self::updateRow($id, [
+			'STATUS' => self::STATUS_DONE,
+			'UPDATED_AT' => date('Y-m-d H:i:s'),
+		]);
+	}
+
+	/**
+	 * Пометить open/saved циклы сущности как done (без after), чтобы новый before создал новый цикл.
+	 */
+	public static function abandonOpenCycles(string $entityType, int $entityId): void
+	{
+		$entityType = strtoupper($entityType) === 'S' ? 'S' : 'E';
+		$entityId = (int) $entityId;
+		if ($entityId <= 0) {
+			return;
+		}
+		global $DB;
+		$now = date('Y-m-d H:i:s');
+		$DB->Query("
+			UPDATE titlo_work_history SET
+				STATUS = '" . self::STATUS_DONE . "',
+				UPDATED_AT = '" . $DB->ForSql($now) . "'
+			WHERE ENTITY_TYPE = '" . $DB->ForSql($entityType) . "'
+			  AND ENTITY_ID = " . $entityId . "
+			  AND STATUS IN ('" . self::STATUS_OPEN . "','" . self::STATUS_SAVED . "')
+		");
+	}
+
+	/**
 	 * @param array<string,mixed> $fields
 	 */
 	protected static function insertRow(array $fields): int
@@ -821,7 +868,8 @@ class WorkHistory
 		$cols = [];
 		$vals = [];
 		foreach ($fields as $k => $v) {
-			$cols[] = $k;
+			$col = self::assertColumnName((string) $k);
+			$cols[] = $col;
 			$vals[] = self::sqlValue($v);
 		}
 		$DB->Query('INSERT INTO titlo_work_history (' . implode(',', $cols) . ') VALUES (' . implode(',', $vals) . ')');
@@ -836,12 +884,33 @@ class WorkHistory
 		global $DB;
 		$sets = [];
 		foreach ($fields as $k => $v) {
-			$sets[] = $k . ' = ' . self::sqlValue($v);
+			$col = self::assertColumnName((string) $k);
+			$sets[] = $col . ' = ' . self::sqlValue($v);
 		}
 		if ($sets === []) {
 			return;
 		}
 		$DB->Query('UPDATE titlo_work_history SET ' . implode(', ', $sets) . ' WHERE ID = ' . (int) $id);
+	}
+
+	protected static function assertColumnName(string $k): string
+	{
+		if (!preg_match('/^[A-Z][A-Z0-9_]*$/', $k)) {
+			throw new \InvalidArgumentException('invalid work_history column: ' . $k);
+		}
+		static $allowed = null;
+		if ($allowed === null) {
+			$allowed = self::existingColumns();
+			// на свежей схеме до ensureTables — fallback regex-only уже пройден
+			if ($allowed === []) {
+				return $k;
+			}
+		}
+		if (!isset($allowed[$k])) {
+			throw new \InvalidArgumentException('unknown work_history column: ' . $k);
+		}
+
+		return $k;
 	}
 
 	/**
