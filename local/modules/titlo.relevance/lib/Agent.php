@@ -150,6 +150,8 @@ class Agent
 			'points_ideal' => $score['points_ideal'] ?? null,
 			'role' => 'before',
 			'run_mode' => BatchQueue::MODE_REFINE,
+			'prompt_detail_id' => (int) ($row['PROMPT_DETAIL_ID'] ?? 0),
+			'prompt_preview_id' => (int) ($row['PROMPT_PREVIEW_ID'] ?? 0),
 		]);
 		$workId = isset($wh['row']['id']) ? (int) $wh['row']['id'] : 0;
 		if ($workId > 0) {
@@ -260,6 +262,8 @@ class Agent
 			'top' => $status['top'] ?? Config::analysisTopDefault(),
 			'role' => $isRecheck ? 'after' : 'before',
 			'run_mode' => BatchQueue::normalizeRunMode((string) ($row['RUN_MODE'] ?? BatchQueue::MODE_FULL)),
+			'prompt_detail_id' => (int) ($row['PROMPT_DETAIL_ID'] ?? 0),
+			'prompt_preview_id' => (int) ($row['PROMPT_PREVIEW_ID'] ?? 0),
 		];
 		// подтянуть метрики из history если в analysis их нет
 		try {
@@ -508,6 +512,9 @@ class Agent
 			'phrase' => (string) ($row['PHRASE'] ?? ''),
 			'preview_chars' => $preview !== null ? mb_strlen($preview) : 0,
 			'detail_chars' => mb_strlen($detail),
+			'run_mode' => BatchQueue::normalizeRunMode((string) ($row['RUN_MODE'] ?? BatchQueue::MODE_FULL)),
+			'prompt_detail_id' => (int) ($row['PROMPT_DETAIL_ID'] ?? 0),
+			'prompt_preview_id' => (int) ($row['PROMPT_PREVIEW_ID'] ?? 0),
 		]);
 		$workId = isset($work['row']['id']) ? (int) $work['row']['id'] : (int) ($row['WORK_HISTORY_ID'] ?? 0);
 

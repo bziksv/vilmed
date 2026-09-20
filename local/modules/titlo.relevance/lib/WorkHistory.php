@@ -11,7 +11,7 @@ class WorkHistory
 	public const STATUS_SAVED = 'saved';
 	public const STATUS_DONE = 'done';
 
-	public const SCHEMA_VER = '1.1.0';
+	public const SCHEMA_VER = '1.2.0';
 
 	public static function ensureTables(): void
 	{
@@ -26,6 +26,10 @@ class WorkHistory
 				PHRASE varchar(255) NOT NULL DEFAULT '',
 				STATUS varchar(16) NOT NULL DEFAULT 'open',
 				RUN_MODE varchar(16) NOT NULL DEFAULT 'full',
+				PROMPT_DETAIL_ID int(11) NOT NULL DEFAULT 0,
+				PROMPT_DETAIL_NAME varchar(255) NOT NULL DEFAULT '',
+				PROMPT_PREVIEW_ID int(11) NOT NULL DEFAULT 0,
+				PROMPT_PREVIEW_NAME varchar(255) NOT NULL DEFAULT '',
 				BEFORE_HISTORY_ID int(11) DEFAULT NULL,
 				BEFORE_POINTS double DEFAULT NULL,
 				BEFORE_POINTS_IDEAL double DEFAULT NULL,
@@ -62,9 +66,39 @@ class WorkHistory
 			) ENGINE=InnoDB DEFAULT CHARSET=utf8
 		");
 		self::ensureRunModeColumn();
+		self::ensurePromptColumns();
 	}
 
 	protected static function ensureRunModeColumn(): void
+	{
+		global $DB;
+		$cols = self::existingColumns();
+		if (!isset($cols['RUN_MODE'])) {
+			$DB->Query("ALTER TABLE titlo_work_history ADD COLUMN RUN_MODE varchar(16) NOT NULL DEFAULT 'full' AFTER STATUS");
+		}
+	}
+
+	protected static function ensurePromptColumns(): void
+	{
+		global $DB;
+		$cols = self::existingColumns();
+		$alters = [
+			'PROMPT_DETAIL_ID' => "ALTER TABLE titlo_work_history ADD COLUMN PROMPT_DETAIL_ID int(11) NOT NULL DEFAULT 0 AFTER RUN_MODE",
+			'PROMPT_DETAIL_NAME' => "ALTER TABLE titlo_work_history ADD COLUMN PROMPT_DETAIL_NAME varchar(255) NOT NULL DEFAULT '' AFTER PROMPT_DETAIL_ID",
+			'PROMPT_PREVIEW_ID' => "ALTER TABLE titlo_work_history ADD COLUMN PROMPT_PREVIEW_ID int(11) NOT NULL DEFAULT 0 AFTER PROMPT_DETAIL_NAME",
+			'PROMPT_PREVIEW_NAME' => "ALTER TABLE titlo_work_history ADD COLUMN PROMPT_PREVIEW_NAME varchar(255) NOT NULL DEFAULT '' AFTER PROMPT_PREVIEW_ID",
+		];
+		foreach ($alters as $col => $sql) {
+			if (!isset($cols[$col])) {
+				$DB->Query($sql);
+			}
+		}
+	}
+
+	/**
+	 * @return array<string,bool>
+	 */
+	protected static function existingColumns(): array
 	{
 		global $DB;
 		$cols = [];
@@ -75,9 +109,8 @@ class WorkHistory
 				$cols[$field] = true;
 			}
 		}
-		if (!isset($cols['RUN_MODE'])) {
-			$DB->Query("ALTER TABLE titlo_work_history ADD COLUMN RUN_MODE varchar(16) NOT NULL DEFAULT 'full' AFTER STATUS");
-		}
+
+		return $cols;
 	}
 
 	/**
@@ -112,6 +145,7 @@ class WorkHistory
 			return ['ok' => false, 'error' => 'history_id required'];
 		}
 		$runMode = BatchQueue::normalizeRunMode((string) ($payload['run_mode'] ?? BatchQueue::MODE_FULL));
+		$promptFields = self::promptFieldsFromPayload($payload);
 
 		$open = self::latestOpenCycle($entityType, $entityId);
 		$now = date('Y-m-d H:i:s');
@@ -149,7 +183,7 @@ class WorkHistory
 
 		if ($role === 'before') {
 			if ($open && in_array((string) $open['STATUS'], [self::STATUS_OPEN, self::STATUS_SAVED], true)) {
-				self::updateRow((int) $open['ID'], [
+				self::updateRow((int) $open['ID'], array_merge([
 					'NAME' => $name !== '' ? $name : (string) $open['NAME'],
 					'URL' => $url !== '' ? $url : (string) $open['URL'],
 					'PHRASE' => $phrase !== '' ? $phrase : (string) $open['PHRASE'],
@@ -165,10 +199,10 @@ class WorkHistory
 					'BEFORE_TOP' => $score['top'],
 					'BEFORE_AT' => $score['checked_at'] ?: $now,
 					'UPDATED_AT' => $now,
-				]);
+				], $promptFields));
 				$row = self::find((int) $open['ID']);
 			} else {
-				$id = self::insertRow([
+				$id = self::insertRow(array_merge([
 					'ENTITY_TYPE' => $entityType,
 					'ENTITY_ID' => $entityId,
 					'NAME' => $name,
@@ -189,7 +223,7 @@ class WorkHistory
 					'USER_ID' => $userId,
 					'CREATED_AT' => $now,
 					'UPDATED_AT' => $now,
-				]);
+				], $promptFields));
 				$row = self::find($id);
 			}
 			return ['ok' => true, 'row' => self::serialize($row), 'role' => 'before'];
@@ -226,7 +260,11 @@ class WorkHistory
 	/**
 	 * После сохранения текстов в Bitrix.
 	 *
-	 * @param array{entity_type?:string,entity_id:int,name?:string,url?:string,phrase?:string,preview_chars?:int,detail_chars?:int} $payload
+	 * @param array{
+	 *   entity_type?:string,entity_id:int,name?:string,url?:string,phrase?:string,
+	 *   preview_chars?:int,detail_chars?:int,
+	 *   prompt_detail_id?:int,prompt_preview_id?:int,run_mode?:string
+	 * } $payload
 	 */
 	public static function markSaved(array $payload): array
 	{
@@ -244,11 +282,12 @@ class WorkHistory
 		$name = trim((string) ($payload['name'] ?? ''));
 		$url = trim((string) ($payload['url'] ?? ''));
 		$phrase = trim((string) ($payload['phrase'] ?? ''));
+		$promptFields = self::promptFieldsFromPayload($payload);
 
 		if (!$open) {
 			global $USER;
 			$userId = (is_object($USER) && method_exists($USER, 'GetID')) ? (int) $USER->GetID() : 0;
-			$id = self::insertRow([
+			$id = self::insertRow(array_merge([
 				'ENTITY_TYPE' => $entityType,
 				'ENTITY_ID' => $entityId,
 				'NAME' => $name,
@@ -261,17 +300,17 @@ class WorkHistory
 				'USER_ID' => $userId,
 				'CREATED_AT' => $now,
 				'UPDATED_AT' => $now,
-			]);
+			], $promptFields));
 			return ['ok' => true, 'row' => self::serialize(self::find($id))];
 		}
 
-		$fields = [
+		$fields = array_merge([
 			'STATUS' => self::STATUS_SAVED,
 			'SAVED_AT' => $now,
 			'UPDATED_AT' => $now,
 			'PREVIEW_CHARS_AFTER' => $previewAfter,
 			'DETAIL_CHARS_AFTER' => $detailAfter,
-		];
+		], $promptFields);
 		if ($name !== '') {
 			$fields['NAME'] = $name;
 		}
@@ -281,11 +320,50 @@ class WorkHistory
 		if ($phrase !== '') {
 			$fields['PHRASE'] = $phrase;
 		}
-		if ($open['PREVIEW_CHARS_BEFORE'] === null && $open['DETAIL_CHARS_BEFORE'] === null) {
-			// если «до» ещё не писали длины — оставим after как факт сохранения
+		if (isset($payload['run_mode']) && trim((string) $payload['run_mode']) !== '') {
+			$fields['RUN_MODE'] = BatchQueue::normalizeRunMode((string) $payload['run_mode']);
 		}
 		self::updateRow((int) $open['ID'], $fields);
 		return ['ok' => true, 'row' => self::serialize(self::find((int) $open['ID']))];
+	}
+
+	/**
+	 * @param array $payload
+	 * @return array{PROMPT_DETAIL_ID?:int,PROMPT_DETAIL_NAME?:string,PROMPT_PREVIEW_ID?:int,PROMPT_PREVIEW_NAME?:string}
+	 */
+	protected static function promptFieldsFromPayload(array $payload): array
+	{
+		$out = [];
+		$detailId = (int) ($payload['prompt_detail_id'] ?? 0);
+		$previewId = (int) ($payload['prompt_preview_id'] ?? 0);
+		if ($detailId > 0) {
+			$out['PROMPT_DETAIL_ID'] = $detailId;
+			$name = trim((string) ($payload['prompt_detail_name'] ?? ''));
+			if ($name === '') {
+				$name = self::promptNameById($detailId);
+			}
+			$out['PROMPT_DETAIL_NAME'] = $name;
+		}
+		if ($previewId > 0) {
+			$out['PROMPT_PREVIEW_ID'] = $previewId;
+			$name = trim((string) ($payload['prompt_preview_name'] ?? ''));
+			if ($name === '') {
+				$name = self::promptNameById($previewId);
+			}
+			$out['PROMPT_PREVIEW_NAME'] = $name;
+		}
+
+		return $out;
+	}
+
+	protected static function promptNameById(int $id): string
+	{
+		if ($id <= 0) {
+			return '';
+		}
+		$row = Prompts::find($id);
+
+		return $row ? trim((string) ($row['name'] ?? '')) : '';
 	}
 
 	/**
@@ -710,6 +788,10 @@ class WorkHistory
 			'status' => (string) $row['STATUS'],
 			'run_mode' => $runMode,
 			'run_mode_label' => BatchQueue::runModeLabel($runMode),
+			'prompt_detail_id' => (int) ($row['PROMPT_DETAIL_ID'] ?? 0),
+			'prompt_detail_name' => (string) ($row['PROMPT_DETAIL_NAME'] ?? ''),
+			'prompt_preview_id' => (int) ($row['PROMPT_PREVIEW_ID'] ?? 0),
+			'prompt_preview_name' => (string) ($row['PROMPT_PREVIEW_NAME'] ?? ''),
 			'before' => [
 				'history_id' => $row['BEFORE_HISTORY_ID'] !== null ? (int) $row['BEFORE_HISTORY_ID'] : null,
 				'points' => $beforePoints,

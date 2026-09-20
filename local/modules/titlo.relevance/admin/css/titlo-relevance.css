@@ -683,6 +683,15 @@
 .titlo-work .badge-mode-full { background: #e0f2fe; color: #075985; }
 .titlo-work .badge-mode-refine { background: #f3e8ff; color: #6b21a8; }
 .titlo-work .badge-mode-analyze { background: #f1f5f9; color: #475569; }
+.titlo-work .prompt-name {
+	max-width: 220px;
+	font-size: 12px;
+	line-height: 1.35;
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+}
 
 /* ========== prompts ========== */
 .titlo-prompts .hint-box {
