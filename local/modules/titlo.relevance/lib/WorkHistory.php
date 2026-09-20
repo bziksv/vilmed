@@ -11,7 +11,7 @@ class WorkHistory
 	public const STATUS_SAVED = 'saved';
 	public const STATUS_DONE = 'done';
 
-	public const SCHEMA_VER = '1.2.0';
+	public const SCHEMA_VER = '1.2.1';
 
 	public static function ensureTables(): void
 	{
@@ -67,6 +67,81 @@ class WorkHistory
 		");
 		self::ensureRunModeColumn();
 		self::ensurePromptColumns();
+		self::backfillPromptsFromQueueOnce();
+	}
+
+	/**
+	 * Старые циклы создавались до колонок промпта — подтянуть из очереди по WORK_HISTORY_ID / history_id.
+	 */
+	protected static function backfillPromptsFromQueueOnce(): void
+	{
+		if (\Bitrix\Main\Config\Option::get('titlo.relevance', 'work_history_prompt_backfill', '') === '1') {
+			return;
+		}
+		try {
+			self::backfillPromptsFromQueue();
+			\Bitrix\Main\Config\Option::set('titlo.relevance', 'work_history_prompt_backfill', '1');
+		} catch (\Throwable $e) {
+			// очередь/промпты могут ещё не существовать
+		}
+	}
+
+	/**
+	 * @return int сколько строк обновлено
+	 */
+	public static function backfillPromptsFromQueue(): int
+	{
+		global $DB;
+		$updated = 0;
+		$seen = [];
+		// Только числовые связи: сравнение ENTITY_TYPE ломается на разных collation таблиц.
+		$sql = "
+			SELECT wh.ID AS WH_ID, q.ID AS Q_ID, q.PROMPT_DETAIL_ID, q.PROMPT_PREVIEW_ID, q.RUN_MODE
+			FROM titlo_work_history wh
+			INNER JOIN titlo_relevance_queue q
+				ON (
+					q.WORK_HISTORY_ID = wh.ID
+					OR (
+						q.HISTORY_ID IS NOT NULL
+						AND q.HISTORY_ID > 0
+						AND (
+							q.HISTORY_ID = wh.BEFORE_HISTORY_ID
+							OR q.HISTORY_ID = wh.AFTER_HISTORY_ID
+						)
+					)
+				)
+			WHERE wh.PROMPT_DETAIL_ID = 0
+				AND q.PROMPT_DETAIL_ID > 0
+			ORDER BY q.ID DESC
+		";
+		$res = $DB->Query($sql, true);
+		if (!$res) {
+			return 0;
+		}
+		while ($row = $res->Fetch()) {
+			$whId = (int) ($row['WH_ID'] ?? 0);
+			if ($whId <= 0 || isset($seen[$whId])) {
+				continue;
+			}
+			$seen[$whId] = true;
+			$detailId = (int) ($row['PROMPT_DETAIL_ID'] ?? 0);
+			$previewId = (int) ($row['PROMPT_PREVIEW_ID'] ?? 0);
+			$fields = self::promptFieldsFromPayload([
+				'prompt_detail_id' => $detailId,
+				'prompt_preview_id' => $previewId,
+			]);
+			$runMode = trim((string) ($row['RUN_MODE'] ?? ''));
+			if ($runMode !== '') {
+				$fields['RUN_MODE'] = BatchQueue::normalizeRunMode($runMode);
+			}
+			if ($fields === []) {
+				continue;
+			}
+			self::updateRow($whId, $fields);
+			$updated++;
+		}
+
+		return $updated;
 	}
 
 	protected static function ensureRunModeColumn(): void
@@ -230,10 +305,11 @@ class WorkHistory
 		}
 
 		// after
-		self::updateRow((int) $open['ID'], [
+		self::updateRow((int) $open['ID'], array_merge([
 			'NAME' => $name !== '' ? $name : (string) $open['NAME'],
 			'URL' => $url !== '' ? $url : (string) $open['URL'],
 			'PHRASE' => $phrase !== '' ? $phrase : (string) $open['PHRASE'],
+			'RUN_MODE' => $runMode,
 			'AFTER_HISTORY_ID' => $score['history_id'],
 			'AFTER_POINTS' => $score['points'],
 			'AFTER_POINTS_IDEAL' => $score['points_ideal'],
@@ -246,7 +322,7 @@ class WorkHistory
 			'AFTER_AT' => $score['checked_at'] ?: $now,
 			'STATUS' => self::STATUS_DONE,
 			'UPDATED_AT' => $now,
-		]);
+		], $promptFields));
 		$row = self::find((int) $open['ID']);
 		AuditLog::write('work_history_done', [
 			'id' => (int) $open['ID'],

@@ -51,7 +51,7 @@ if (\Bitrix\Main\Config\Option::get('titlo.relevance', 'prompts_schema', '') !==
 	\Bitrix\Main\Config\Option::set('titlo.relevance', 'prompts_schema', $promptSchema);
 }
 
-$workSchema = '1.2.0';
+$workSchema = '1.2.1';
 if (\Bitrix\Main\Config\Option::get('titlo.relevance', 'work_history_schema', '') !== $workSchema) {
 	\Titlo\Relevance\WorkHistory::ensureTables();
 	\Bitrix\Main\Config\Option::set('titlo.relevance', 'work_history_schema', $workSchema);

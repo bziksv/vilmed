@@ -952,11 +952,17 @@ $hasKey = Config::apiKey() !== '';
 		return ' <span class="delta-down">' + n + '</span>';
 	}
 
+	function selectedPromptId(type) {
+		var sel = document.querySelector('.titlo-prompt-select[data-type="' + type + '"]');
+		return sel ? (parseInt(sel.value, 10) || 0) : 0;
+	}
+
 	function recordWorkScore(h, role) {
 		var id = parseInt(document.getElementById('titlo-entity-id').value, 10) || 0;
 		if (!id || !h || !h.history_id) return Promise.resolve();
 		var label = (document.getElementById('titlo-entity-label') || {}).textContent || '';
 		var nameFromLabel = label.replace(/^#\d+\s*[—\-]\s*/, '').trim();
+		var isSection = entityType() === 'S';
 		return post('work_record_score', {
 			entity_type: entityType(),
 			entity_id: id,
@@ -973,7 +979,10 @@ $hasKey = Config::apiKey() !== '';
 			region: h.region || '',
 			top: h.top || '',
 			checked_at: h.last_check || h.created_at || '',
-			role: role || 'auto'
+			role: role || 'auto',
+			run_mode: (document.getElementById('titlo-run-mode') || {}).value || 'full',
+			prompt_detail_id: selectedPromptId(isSection ? 'category' : 'detail'),
+			prompt_preview_id: isSection ? 0 : selectedPromptId('preview')
 		}).then(function (res) {
 			if (res && res.ok && res.role) {
 				var hint = res.role === 'after'
@@ -1516,7 +1525,10 @@ $hasKey = Config::apiKey() !== '';
 			description: category,
 			phrase: document.getElementById('titlo-phrase').value,
 			name: ((document.getElementById('titlo-entity-label') || {}).textContent || '').replace(/^#\d+\s*[—\-]\s*/, '').trim(),
-			url: document.getElementById('titlo-url').value
+			url: document.getElementById('titlo-url').value,
+			run_mode: (document.getElementById('titlo-run-mode') || {}).value || 'full',
+			prompt_detail_id: selectedPromptId(type === 'S' ? 'category' : 'detail'),
+			prompt_preview_id: type === 'S' ? 0 : selectedPromptId('preview')
 		}).then(function (res) {
 			if (res.ok) setStatus('titlo-save-status', 'Сохранено (тексты + фраза). Дальше — повторный анализ для «после».');
 			else setStatus('titlo-save-status', res.error || 'Ошибка сохранения', true);

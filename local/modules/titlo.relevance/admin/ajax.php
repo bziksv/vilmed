@@ -294,6 +294,9 @@ try {
 					'phrase' => $phrase !== null ? $phrase : '',
 					'preview_chars' => $type === 'S' ? mb_strlen($description) : mb_strlen($preview),
 					'detail_chars' => $type === 'S' ? 0 : mb_strlen($detail),
+					'run_mode' => (string) ($_POST['run_mode'] ?? BatchQueue::MODE_FULL),
+					'prompt_detail_id' => (int) ($_POST['prompt_detail_id'] ?? 0),
+					'prompt_preview_id' => (int) ($_POST['prompt_preview_id'] ?? 0),
 				]);
 				$workRow = $work['row'] ?? null;
 			}
@@ -368,6 +371,8 @@ try {
 				'checked_at' => $checkedAt,
 				'role' => (string) ($_POST['role'] ?? 'auto'),
 				'run_mode' => (string) ($_POST['run_mode'] ?? BatchQueue::MODE_FULL),
+				'prompt_detail_id' => (int) ($_POST['prompt_detail_id'] ?? 0),
+				'prompt_preview_id' => (int) ($_POST['prompt_preview_id'] ?? 0),
 			]);
 			titlo_json($res, !empty($res['ok']) ? 200 : 422);
 
