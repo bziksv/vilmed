@@ -26,6 +26,7 @@ $ajaxUrl = '/bitrix/admin/titlo_relevance_ajax.php?lang=' . LANGUAGE_ID;
 $preset = (string) ($_GET['preset'] ?? 'all');
 $entityType = (string) ($_GET['entity_type'] ?? '');
 $q = (string) ($_GET['q'] ?? '');
+$cabinetShowHistoryBase = rtrim(Config::cabinetPublicOrigin(), '/') . '/show-history/';
 ?>
 
 <?php AdminUi::renderCss(); ?>
@@ -76,12 +77,13 @@ $q = (string) ($_GET['q'] ?? '');
 			<th>До (баллы)</th>
 			<th>После</th>
 			<th>Δ</th>
+			<th>Текст (симв.)</th>
 			<th>Параметры ПС</th>
 			<th></th>
 		</tr>
 		</thead>
 		<tbody id="titlo-work-body">
-		<tr><td colspan="9">Загрузка…</td></tr>
+		<tr><td colspan="12">Загрузка…</td></tr>
 		</tbody>
 	</table>
 	<div class="pager" id="titlo-pager"></div>
@@ -92,6 +94,7 @@ $q = (string) ($_GET['q'] ?? '');
 	var ajaxUrl = <?= json_encode($ajaxUrl) ?>;
 	var sessid = <?= json_encode(bitrix_sessid()) ?>;
 	var preset = <?= json_encode($preset) ?>;
+	var cabinetShowHistoryBase = <?= json_encode($cabinetShowHistoryBase) ?>;
 	var page = 1;
 
 	function post(action, data) {
@@ -157,6 +160,12 @@ $q = (string) ($_GET['q'] ?? '');
 		var m = map[st] || ['badge-never', st || '—'];
 		return '<span class="badge ' + m[0] + '">' + m[1] + '</span>';
 	}
+	function historyLink(hid) {
+		hid = parseInt(hid, 10) || 0;
+		if (!hid) return '';
+		var href = cabinetShowHistoryBase + hid;
+		return '<a href="' + escapeHtml(href) + '" target="_blank" rel="noopener">#' + hid + '</a>';
+	}
 	function scoreCell(side) {
 		if (!side || side.points == null) return '—';
 		var html = '<div class="score"><b>' + escapeHtml(fmtNum(side.points)) + '</b>';
@@ -165,16 +174,51 @@ $q = (string) ($_GET['q'] ?? '');
 		html += '<div class="meta">поз. ' + escapeHtml(fmtNum(side.position)) +
 			' · покр. ' + escapeHtml(fmtNum(side.coverage)) +
 			' · пл. ' + escapeHtml(fmtNum(side.density)) + '</div>';
-		if (side.history_id) html += '<div class="meta">#' + side.history_id + '</div>';
+		if (side.history_id) html += '<div class="meta">' + historyLink(side.history_id) + '</div>';
 		return html;
 	}
 	function paramsCell(row) {
 		var side = (row.after && row.after.history_id) ? row.after : row.before;
 		if (!side) return '—';
 		var eng = side.engine === 'google' ? 'Google' : (side.engine ? 'Яндекс' : '—');
+		var region = (side.region_label || '').trim();
+		if (!region) region = side.region ? String(side.region) : '—';
 		return '<div class="params">' + escapeHtml(eng) +
-			'<br>рег. ' + escapeHtml(fmtNum(side.region)) +
+			'<br>' + escapeHtml(region) +
 			'<br>ТОП-' + escapeHtml(fmtNum(side.top)) + '</div>';
+	}
+	function fmtSize(n) {
+		if (n == null || n === '') return '—';
+		var num = parseInt(n, 10);
+		if (isNaN(num)) return '—';
+		var s = String(Math.abs(num));
+		s = s.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+		return (num < 0 ? '-' : '') + s;
+	}
+	function textSizeCell(it) {
+		if (!it || it.status === 'never' || !it.id) return '—';
+		var before = it.text_chars_before;
+		var after = it.text_chars_after;
+		if (before == null && after == null) return '—';
+		var html = '<div class="text-size">';
+		if (before != null && after != null) {
+			html += '<span class="meta">' + escapeHtml(fmtSize(before)) + '</span>'
+				+ ' → <b>' + escapeHtml(fmtSize(after)) + '</b>';
+		} else if (after != null) {
+			html += '<b>' + escapeHtml(fmtSize(after)) + '</b>';
+		} else {
+			html += escapeHtml(fmtSize(before));
+		}
+		html += '</div>';
+		if (it.delta_text_chars != null && it.delta_text_chars !== '') {
+			var d = parseInt(it.delta_text_chars, 10);
+			if (!isNaN(d)) {
+				var cls = d > 0 ? 'delta-up' : (d < 0 ? 'delta-down' : 'delta-zero');
+				var sign = d > 0 ? '+' : '';
+				html += '<div><span class="' + cls + '">' + sign + escapeHtml(fmtSize(d)) + '</span></div>';
+			}
+		}
+		return html;
 	}
 	function deltaHtml(d) {
 		if (d == null || d === '') return '—';
@@ -201,13 +245,13 @@ $q = (string) ($_GET['q'] ?? '');
 		}).then(function (res) {
 			var body = document.getElementById('titlo-work-body');
 			if (!res.ok) {
-				body.innerHTML = '<tr><td colspan="11">' + escapeHtml(res.error || 'Ошибка') + '</td></tr>';
+				body.innerHTML = '<tr><td colspan="12">' + escapeHtml(res.error || 'Ошибка') + '</td></tr>';
 				document.getElementById('titlo-list-status').textContent = '';
 				return;
 			}
 			var items = res.items || [];
 			if (!items.length) {
-				body.innerHTML = '<tr><td colspan="11">Ничего не найдено</td></tr>';
+				body.innerHTML = '<tr><td colspan="12">Ничего не найдено</td></tr>';
 			} else {
 				body.innerHTML = items.map(function (it) {
 					var typeLabel = it.entity_type === 'S' ? 'Кат.' : 'Тов.';
@@ -226,6 +270,7 @@ $q = (string) ($_GET['q'] ?? '');
 						'<td>' + scoreCell(it.before) + '</td>' +
 						'<td>' + scoreCell(it.after) + '</td>' +
 						'<td>' + deltaHtml(it.delta_points) + '</td>' +
+						'<td>' + textSizeCell(it) + '</td>' +
 						'<td>' + paramsCell(it) + '</td>' +
 						'<td><a class="adm-btn" href="' + escapeHtml(it.single_url || '#') + '">Проработка</a></td>' +
 						'</tr>';
@@ -249,7 +294,7 @@ $q = (string) ($_GET['q'] ?? '');
 			}
 		}).catch(function (e) {
 			document.getElementById('titlo-work-body').innerHTML =
-				'<tr><td colspan="11">' + escapeHtml(e.message || 'Сеть') + '</td></tr>';
+				'<tr><td colspan="12">' + escapeHtml(e.message || 'Сеть') + '</td></tr>';
 			document.getElementById('titlo-list-status').textContent = '';
 		});
 	}

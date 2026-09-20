@@ -63,6 +63,16 @@ class Config
 		return $origin;
 	}
 
+	/** Карточка проверки релевантности в ЛК: /show-history/{id} */
+	public static function cabinetShowHistoryUrl(int $historyId): string
+	{
+		if ($historyId <= 0) {
+			return '';
+		}
+
+		return self::cabinetPublicOrigin() . '/show-history/' . $historyId;
+	}
+
 	/**
 	 * Полезные сервисы ЛК: code => absolute URL раздела (не морда /).
 	 *

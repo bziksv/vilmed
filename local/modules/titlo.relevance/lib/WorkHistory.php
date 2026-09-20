@@ -221,6 +221,7 @@ class WorkHistory
 		}
 		$runMode = BatchQueue::normalizeRunMode((string) ($payload['run_mode'] ?? BatchQueue::MODE_FULL));
 		$promptFields = self::promptFieldsFromPayload($payload);
+		$sizeFields = self::sizeFieldsForRole($payload, $entityType, $entityId, $role);
 
 		$open = self::latestOpenCycle($entityType, $entityId);
 		$now = date('Y-m-d H:i:s');
@@ -239,6 +240,8 @@ class WorkHistory
 			} else {
 				$role = 'before';
 			}
+			// роль могла смениться — пересчитать размер под итоговую роль
+			$sizeFields = self::sizeFieldsForRole($payload, $entityType, $entityId, $role);
 		}
 
 		if ($role === 'after') {
@@ -247,6 +250,7 @@ class WorkHistory
 			} elseif ((int) ($open['BEFORE_HISTORY_ID'] ?? 0) === $historyId) {
 				$role = 'before';
 			}
+			$sizeFields = self::sizeFieldsForRole($payload, $entityType, $entityId, $role);
 		}
 
 		$score = self::normalizeScore($payload);
@@ -274,7 +278,7 @@ class WorkHistory
 					'BEFORE_TOP' => $score['top'],
 					'BEFORE_AT' => $score['checked_at'] ?: $now,
 					'UPDATED_AT' => $now,
-				], $promptFields));
+				], $promptFields, $sizeFields));
 				$row = self::find((int) $open['ID']);
 			} else {
 				$id = self::insertRow(array_merge([
@@ -298,7 +302,7 @@ class WorkHistory
 					'USER_ID' => $userId,
 					'CREATED_AT' => $now,
 					'UPDATED_AT' => $now,
-				], $promptFields));
+				], $promptFields, $sizeFields));
 				$row = self::find($id);
 			}
 			return ['ok' => true, 'row' => self::serialize($row), 'role' => 'before'];
@@ -322,7 +326,7 @@ class WorkHistory
 			'AFTER_AT' => $score['checked_at'] ?: $now,
 			'STATUS' => self::STATUS_DONE,
 			'UPDATED_AT' => $now,
-		], $promptFields));
+		], $promptFields, $sizeFields));
 		$row = self::find((int) $open['ID']);
 		AuditLog::write('work_history_done', [
 			'id' => (int) $open['ID'],
@@ -430,6 +434,63 @@ class WorkHistory
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Снимок длины текстов «до» / «после» (символы HTML в каталоге).
+	 *
+	 * @return array<string,int>
+	 */
+	protected static function sizeFieldsForRole(array $payload, string $entityType, int $entityId, string $role): array
+	{
+		$preview = array_key_exists('preview_chars', $payload) ? (int) $payload['preview_chars'] : null;
+		$detail = array_key_exists('detail_chars', $payload) ? (int) $payload['detail_chars'] : null;
+		if ($preview === null || $detail === null) {
+			$fromCatalog = self::catalogTextChars($entityType, $entityId);
+			if ($preview === null) {
+				$preview = $fromCatalog['preview'];
+			}
+			if ($detail === null) {
+				$detail = $fromCatalog['detail'];
+			}
+		}
+		if ($role === 'after') {
+			return [
+				'PREVIEW_CHARS_AFTER' => max(0, (int) $preview),
+				'DETAIL_CHARS_AFTER' => max(0, (int) $detail),
+			];
+		}
+
+		return [
+			'PREVIEW_CHARS_BEFORE' => max(0, (int) $preview),
+			'DETAIL_CHARS_BEFORE' => max(0, (int) $detail),
+		];
+	}
+
+	/**
+	 * @return array{preview:int,detail:int}
+	 */
+	protected static function catalogTextChars(string $entityType, int $entityId): array
+	{
+		if ($entityId <= 0) {
+			return ['preview' => 0, 'detail' => 0];
+		}
+		try {
+			if ($entityType === 'S') {
+				$entity = CatalogRepository::findSection($entityId);
+				$len = mb_strlen((string) ($entity['description'] ?? ''));
+
+				return ['preview' => $len, 'detail' => 0];
+			}
+			$entity = CatalogRepository::findElement($entityId);
+
+			return [
+				'preview' => mb_strlen((string) ($entity['preview_text'] ?? '')),
+				'detail' => mb_strlen((string) ($entity['detail_text'] ?? '')),
+			];
+		} catch (\Throwable $e) {
+			return ['preview' => 0, 'detail' => 0];
+		}
 	}
 
 	protected static function promptNameById(int $id): string
@@ -841,6 +902,22 @@ class WorkHistory
 	}
 
 	/**
+	 * Город для UI без хвоста «[213]».
+	 */
+	protected static function regionLabelForUi(string $regionId, string $engine): string
+	{
+		$regionId = trim($regionId);
+		if ($regionId === '') {
+			return '';
+		}
+		$label = Config::analysisRegionLabel($regionId, $engine !== '' ? $engine : null);
+		$label = preg_replace('/\s*\[[^\]]+\]\s*$/', '', $label);
+		$label = trim((string) $label);
+
+		return $label !== '' ? $label : $regionId;
+	}
+
+	/**
 	 * @param array|null $row
 	 */
 	public static function serialize($row): ?array
@@ -854,6 +931,16 @@ class WorkHistory
 		$entityType = (string) $row['ENTITY_TYPE'];
 		$entityId = (int) $row['ENTITY_ID'];
 		$runMode = BatchQueue::normalizeRunMode((string) ($row['RUN_MODE'] ?? BatchQueue::MODE_FULL));
+		$previewBefore = $row['PREVIEW_CHARS_BEFORE'] !== null && $row['PREVIEW_CHARS_BEFORE'] !== '' ? (int) $row['PREVIEW_CHARS_BEFORE'] : null;
+		$detailBefore = $row['DETAIL_CHARS_BEFORE'] !== null && $row['DETAIL_CHARS_BEFORE'] !== '' ? (int) $row['DETAIL_CHARS_BEFORE'] : null;
+		$previewAfter = $row['PREVIEW_CHARS_AFTER'] !== null && $row['PREVIEW_CHARS_AFTER'] !== '' ? (int) $row['PREVIEW_CHARS_AFTER'] : null;
+		$detailAfter = $row['DETAIL_CHARS_AFTER'] !== null && $row['DETAIL_CHARS_AFTER'] !== '' ? (int) $row['DETAIL_CHARS_AFTER'] : null;
+		// товар — DETAIL, категория — DESCRIPTION (лежит в preview_chars)
+		$textCharsBefore = $entityType === 'S' ? $previewBefore : $detailBefore;
+		$textCharsAfter = $entityType === 'S' ? $previewAfter : $detailAfter;
+		$deltaTextChars = ($textCharsBefore !== null && $textCharsAfter !== null)
+			? ((int) $textCharsAfter - (int) $textCharsBefore)
+			: null;
 		return [
 			'id' => (int) $row['ID'],
 			'entity_type' => $entityType,
@@ -877,6 +964,7 @@ class WorkHistory
 				'position' => $row['BEFORE_POSITION'] !== null && $row['BEFORE_POSITION'] !== '' ? (int) $row['BEFORE_POSITION'] : null,
 				'engine' => (string) ($row['BEFORE_ENGINE'] ?? ''),
 				'region' => (string) ($row['BEFORE_REGION'] ?? ''),
+				'region_label' => self::regionLabelForUi((string) ($row['BEFORE_REGION'] ?? ''), (string) ($row['BEFORE_ENGINE'] ?? '')),
 				'top' => $row['BEFORE_TOP'] !== null && $row['BEFORE_TOP'] !== '' ? (int) $row['BEFORE_TOP'] : null,
 				'at' => (string) ($row['BEFORE_AT'] ?? ''),
 			],
@@ -889,6 +977,7 @@ class WorkHistory
 				'position' => $row['AFTER_POSITION'] !== null && $row['AFTER_POSITION'] !== '' ? (int) $row['AFTER_POSITION'] : null,
 				'engine' => (string) ($row['AFTER_ENGINE'] ?? ''),
 				'region' => (string) ($row['AFTER_REGION'] ?? ''),
+				'region_label' => self::regionLabelForUi((string) ($row['AFTER_REGION'] ?? ''), (string) ($row['AFTER_ENGINE'] ?? '')),
 				'top' => $row['AFTER_TOP'] !== null && $row['AFTER_TOP'] !== '' ? (int) $row['AFTER_TOP'] : null,
 				'at' => (string) ($row['AFTER_AT'] ?? ''),
 			],
@@ -897,6 +986,9 @@ class WorkHistory
 			'detail_chars_before' => $row['DETAIL_CHARS_BEFORE'] !== null ? (int) $row['DETAIL_CHARS_BEFORE'] : null,
 			'preview_chars_after' => $row['PREVIEW_CHARS_AFTER'] !== null ? (int) $row['PREVIEW_CHARS_AFTER'] : null,
 			'detail_chars_after' => $row['DETAIL_CHARS_AFTER'] !== null ? (int) $row['DETAIL_CHARS_AFTER'] : null,
+			'text_chars_before' => $textCharsBefore,
+			'text_chars_after' => $textCharsAfter,
+			'delta_text_chars' => $deltaTextChars,
 			'saved_at' => (string) ($row['SAVED_AT'] ?? ''),
 			'created_at' => (string) ($row['CREATED_AT'] ?? ''),
 			'updated_at' => (string) ($row['UPDATED_AT'] ?? ''),
