@@ -69,6 +69,7 @@ $q = (string) ($_GET['q'] ?? '');
 		<tr>
 			<th>Обновлено</th>
 			<th>Тип / ID</th>
+			<th>Режим</th>
 			<th>Название / фраза</th>
 			<th>Статус</th>
 			<th>До (баллы)</th>
@@ -124,6 +125,15 @@ $q = (string) ($_GET['q'] ?? '');
 		if (!s) return '—';
 		return String(s).replace('T', ' ').slice(0, 16);
 	}
+	function modeBadge(it) {
+		if (!it || it.status === 'never' || !it.id) return '—';
+		var mode = (it && it.run_mode) ? String(it.run_mode) : 'full';
+		var label = (it && it.run_mode_label) ? String(it.run_mode_label) : mode;
+		var cls = 'badge-mode-full';
+		if (mode === 'refine') cls = 'badge-mode-refine';
+		else if (mode === 'analyze_only') cls = 'badge-mode-analyze';
+		return '<span class="badge ' + cls + '">' + escapeHtml(label) + '</span>';
+	}
 	function statusBadge(st) {
 		var map = {
 			open: ['badge-open', 'анализ «до»'],
@@ -178,13 +188,13 @@ $q = (string) ($_GET['q'] ?? '');
 		}).then(function (res) {
 			var body = document.getElementById('titlo-work-body');
 			if (!res.ok) {
-				body.innerHTML = '<tr><td colspan="9">' + escapeHtml(res.error || 'Ошибка') + '</td></tr>';
+				body.innerHTML = '<tr><td colspan="10">' + escapeHtml(res.error || 'Ошибка') + '</td></tr>';
 				document.getElementById('titlo-list-status').textContent = '';
 				return;
 			}
 			var items = res.items || [];
 			if (!items.length) {
-				body.innerHTML = '<tr><td colspan="9">Ничего не найдено</td></tr>';
+				body.innerHTML = '<tr><td colspan="10">Ничего не найдено</td></tr>';
 			} else {
 				body.innerHTML = items.map(function (it) {
 					var typeLabel = it.entity_type === 'S' ? 'Кат.' : 'Тов.';
@@ -195,6 +205,7 @@ $q = (string) ($_GET['q'] ?? '');
 						'<td>' + escapeHtml(fmtDate(it.updated_at || it.created_at)) + '</td>' +
 						'<td>' + typeLabel + ' #' + it.entity_id +
 							(it.id ? ('<div class="meta">цикл #' + it.id + '</div>') : '') + '</td>' +
+						'<td>' + modeBadge(it) + '</td>' +
 						'<td><div class="name-full">' + name + '</div>' +
 							'<div class="meta">' + (phrase ? ('фраза: ' + phrase) : 'фраза не задана') + linkSite + '</div></td>' +
 						'<td>' + statusBadge(it.status) + '</td>' +
@@ -224,7 +235,7 @@ $q = (string) ($_GET['q'] ?? '');
 			}
 		}).catch(function (e) {
 			document.getElementById('titlo-work-body').innerHTML =
-				'<tr><td colspan="9">' + escapeHtml(e.message || 'Сеть') + '</td></tr>';
+				'<tr><td colspan="10">' + escapeHtml(e.message || 'Сеть') + '</td></tr>';
 			document.getElementById('titlo-list-status').textContent = '';
 		});
 	}

@@ -680,6 +680,9 @@
 	border-color: #0f172a;
 }
 .titlo-work .score { white-space: nowrap; }
+.titlo-work .badge-mode-full { background: #e0f2fe; color: #075985; }
+.titlo-work .badge-mode-refine { background: #f3e8ff; color: #6b21a8; }
+.titlo-work .badge-mode-analyze { background: #f1f5f9; color: #475569; }
 
 /* ========== prompts ========== */
 .titlo-prompts .hint-box {

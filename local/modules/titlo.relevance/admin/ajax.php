@@ -367,6 +367,7 @@ try {
 				'top' => $top,
 				'checked_at' => $checkedAt,
 				'role' => (string) ($_POST['role'] ?? 'auto'),
+				'run_mode' => (string) ($_POST['run_mode'] ?? BatchQueue::MODE_FULL),
 			]);
 			titlo_json($res, !empty($res['ok']) ? 200 : 422);
 

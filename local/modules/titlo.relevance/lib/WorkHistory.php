@@ -11,7 +11,7 @@ class WorkHistory
 	public const STATUS_SAVED = 'saved';
 	public const STATUS_DONE = 'done';
 
-	public const SCHEMA_VER = '1.0.0';
+	public const SCHEMA_VER = '1.1.0';
 
 	public static function ensureTables(): void
 	{
@@ -25,6 +25,7 @@ class WorkHistory
 				URL varchar(1024) NOT NULL DEFAULT '',
 				PHRASE varchar(255) NOT NULL DEFAULT '',
 				STATUS varchar(16) NOT NULL DEFAULT 'open',
+				RUN_MODE varchar(16) NOT NULL DEFAULT 'full',
 				BEFORE_HISTORY_ID int(11) DEFAULT NULL,
 				BEFORE_POINTS double DEFAULT NULL,
 				BEFORE_POINTS_IDEAL double DEFAULT NULL,
@@ -60,6 +61,23 @@ class WorkHistory
 				KEY ix_phrase (PHRASE(64))
 			) ENGINE=InnoDB DEFAULT CHARSET=utf8
 		");
+		self::ensureRunModeColumn();
+	}
+
+	protected static function ensureRunModeColumn(): void
+	{
+		global $DB;
+		$cols = [];
+		$res = $DB->Query('SHOW COLUMNS FROM titlo_work_history');
+		while ($row = $res->Fetch()) {
+			$field = (string) ($row['Field'] ?? $row['FIELD'] ?? '');
+			if ($field !== '') {
+				$cols[$field] = true;
+			}
+		}
+		if (!isset($cols['RUN_MODE'])) {
+			$DB->Query("ALTER TABLE titlo_work_history ADD COLUMN RUN_MODE varchar(16) NOT NULL DEFAULT 'full' AFTER STATUS");
+		}
 	}
 
 	/**
@@ -69,7 +87,7 @@ class WorkHistory
 	 *   entity_type?:string,entity_id:int,name?:string,url?:string,phrase?:string,
 	 *   history_id?:int,points?:mixed,points_ideal?:mixed,coverage?:mixed,density?:mixed,
 	 *   position?:mixed,engine?:string,region?:string,top?:mixed,checked_at?:string,
-	 *   role?:string
+	 *   role?:string,run_mode?:string
 	 * } $payload
 	 * @return array{ok:bool,row?:array,error?:string}
 	 */
@@ -93,6 +111,7 @@ class WorkHistory
 		if ($historyId <= 0) {
 			return ['ok' => false, 'error' => 'history_id required'];
 		}
+		$runMode = BatchQueue::normalizeRunMode((string) ($payload['run_mode'] ?? BatchQueue::MODE_FULL));
 
 		$open = self::latestOpenCycle($entityType, $entityId);
 		$now = date('Y-m-d H:i:s');
@@ -134,6 +153,7 @@ class WorkHistory
 					'NAME' => $name !== '' ? $name : (string) $open['NAME'],
 					'URL' => $url !== '' ? $url : (string) $open['URL'],
 					'PHRASE' => $phrase !== '' ? $phrase : (string) $open['PHRASE'],
+					'RUN_MODE' => $runMode,
 					'BEFORE_HISTORY_ID' => $score['history_id'],
 					'BEFORE_POINTS' => $score['points'],
 					'BEFORE_POINTS_IDEAL' => $score['points_ideal'],
@@ -155,6 +175,7 @@ class WorkHistory
 					'URL' => $url,
 					'PHRASE' => $phrase,
 					'STATUS' => self::STATUS_OPEN,
+					'RUN_MODE' => $runMode,
 					'BEFORE_HISTORY_ID' => $score['history_id'],
 					'BEFORE_POINTS' => $score['points'],
 					'BEFORE_POINTS_IDEAL' => $score['points_ideal'],
@@ -678,6 +699,7 @@ class WorkHistory
 		$delta = ($beforePoints !== null && $afterPoints !== null) ? round($afterPoints - $beforePoints, 2) : null;
 		$entityType = (string) $row['ENTITY_TYPE'];
 		$entityId = (int) $row['ENTITY_ID'];
+		$runMode = BatchQueue::normalizeRunMode((string) ($row['RUN_MODE'] ?? BatchQueue::MODE_FULL));
 		return [
 			'id' => (int) $row['ID'],
 			'entity_type' => $entityType,
@@ -686,6 +708,8 @@ class WorkHistory
 			'url' => (string) $row['URL'],
 			'phrase' => (string) $row['PHRASE'],
 			'status' => (string) $row['STATUS'],
+			'run_mode' => $runMode,
+			'run_mode_label' => BatchQueue::runModeLabel($runMode),
 			'before' => [
 				'history_id' => $row['BEFORE_HISTORY_ID'] !== null ? (int) $row['BEFORE_HISTORY_ID'] : null,
 				'points' => $beforePoints,

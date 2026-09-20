@@ -149,6 +149,7 @@ class Agent
 			'points' => $score['points'] ?? null,
 			'points_ideal' => $score['points_ideal'] ?? null,
 			'role' => 'before',
+			'run_mode' => BatchQueue::MODE_REFINE,
 		]);
 		$workId = isset($wh['row']['id']) ? (int) $wh['row']['id'] : 0;
 		if ($workId > 0) {
@@ -258,6 +259,7 @@ class Agent
 			'region' => (string) ($status['region'] ?? Config::analysisRegionDefault()),
 			'top' => $status['top'] ?? Config::analysisTopDefault(),
 			'role' => $isRecheck ? 'after' : 'before',
+			'run_mode' => BatchQueue::normalizeRunMode((string) ($row['RUN_MODE'] ?? BatchQueue::MODE_FULL)),
 		];
 		// подтянуть метрики из history если в analysis их нет
 		try {
