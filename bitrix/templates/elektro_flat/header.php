@@ -147,6 +147,7 @@ Loc::loadMessages(__FILE__);
 		|| (function_exists('isCatalogDir') && isCatalogDir())
 	) {
 		Asset::getInstance()->addCss($vilmedAssetVer($vilmedTplPath."/css/vmd-description.css"));
+		Asset::getInstance()->addJs($vilmedAssetVer($vilmedTplPath."/js/vmd-svg-viewbox.js"));
 	}
 	// Категории: h1 + лид видны сразу, остальное .vmd-desc — за «Подробнее».
 	if (function_exists('isCatalogDir') && isCatalogDir()) {

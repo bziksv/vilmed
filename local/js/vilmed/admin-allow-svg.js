@@ -21,7 +21,33 @@
 		}
 	}
 
+	/**
+	 * Парсер fileman читает атрибуты через getAttribute(name.toLowerCase()).
+	 * У SVG viewBox регистрозависимый: getAttribute('viewbox') === null,
+	 * и в HTML уезжает viewbox="null" — иконка 24×24 рисуется без масштаба и обрезается.
+	 */
+	function patchSvgViewBoxRead() {
+		var Parser = window.BXHtmlEditor && BXHtmlEditor.BXEditorParser;
+		if (!Parser || !Parser.prototype || Parser.prototype.__vilmedViewBox || typeof Parser.prototype.GetAttributeEx !== 'function') {
+			return false;
+		}
+		Parser.prototype.__vilmedViewBox = true;
+		var orig = Parser.prototype.GetAttributeEx;
+		Parser.prototype.GetAttributeEx = function (node, attributeName) {
+			if (node && String(attributeName || '').toLowerCase() === 'viewbox') {
+				var vb = node.getAttribute('viewBox') || node.getAttribute('viewbox') || '';
+				if (!vb || vb === 'null' || !/\d/.test(vb)) {
+					return '0 0 24 24';
+				}
+				return vb;
+			}
+			return orig.call(this, node, attributeName);
+		};
+		return true;
+	}
+
 	function patchEditor(editor) {
+		patchSvgViewBoxRead();
 		if (!editor || editor.__vilmedSvgOk) {
 			return;
 		}
@@ -57,6 +83,7 @@
 		var tries = 0;
 		(function waitProto() {
 			tries++;
+			patchSvgViewBoxRead();
 			var Editor = (window.BXHtmlEditor && BXHtmlEditor.BXEditor)
 				|| (window.BXEditor)
 				|| null;
