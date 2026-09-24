@@ -106,11 +106,26 @@ $hasKey = Config::apiKey() !== '';
 			<tr>
 				<td class="adm-detail-content-cell-l">Ключевая фраза
 					<span class="titlo-help" tabindex="0" aria-label="Ключевая фраза">?
-						<span class="titlo-help__tip">Короткий запрос (обычно до 50 символов), по которому собирается выдача и считается релевантность. Берётся из UF_TITLO_PHRASE («Проверка названий»), иначе — из названия. Именно её, а не полный NAME, лучше править перед анализом.</span>
+						<span class="titlo-help__tip">
+							Короткий запрос (до 50 символов) для анализа релевантности.
+							Берётся из UF_TITLO_PHRASE («Проверка названий»), иначе — из названия.<br>
+							<b>Сгенерировать</b> — короткий вариант через Titlo (для товара и категории свои промпты).
+							Результат пишется в поле и, если позиция выбрана, сразу в Bitrix.
+						</span>
 					</span>
 				</td>
 				<td class="adm-detail-content-cell-r">
-					<input type="text" id="titlo-phrase" class="adm-input" style="width:100%" maxlength="50" value="<?= $prefill ? htmlspecialcharsbx(\Titlo\Relevance\CatalogRepository::preferredPhrase($prefill)) : '' ?>">
+					<div class="titlo-phrase-row">
+						<input type="text" id="titlo-phrase" class="adm-input titlo-phrase-row__input" maxlength="50"
+							value="<?= $prefill ? htmlspecialcharsbx(\Titlo\Relevance\CatalogRepository::preferredPhrase($prefill)) : '' ?>"
+							placeholder="до 50 символов">
+						<select id="titlo-phrase-prompt" class="adm-input titlo-phrase-row__prompt" title="Промпт короткой фразы"
+							style="min-width:200px"></select>
+						<input type="button" id="titlo-phrase-gen" class="adm-btn" value="Сгенерировать"
+							<?= $hasKey ? '' : 'disabled' ?>
+							title="Сгенерировать короткую фразу по полному названию (товар или категория)">
+					</div>
+					<span id="titlo-phrase-status" class="titlo-status" style="display:block;margin-top:4px"></span>
 				</td>
 			</tr>
 			<tr>
@@ -384,6 +399,7 @@ $hasKey = Config::apiKey() !== '';
 	};
 	var savedRegionByEngine = {yandex: '', google: ''};
 	var prodOrigin = <?= json_encode(rtrim(Config::get('site_url', ''), '/'), JSON_UNESCAPED_UNICODE) ?>;
+	var hasKey = <?= $hasKey ? 'true' : 'false' ?>;
 
 	function prodUrlFromLanding(url) {
 		url = String(url || '').trim();
@@ -548,6 +564,7 @@ $hasKey = Config::apiKey() !== '';
 
 	function setStatus(id, text, isError) {
 		var el = document.getElementById(id);
+		if (!el) return;
 		el.textContent = text || '';
 		el.className = 'titlo-status' + (isError ? ' titlo-error' : (text ? ' titlo-ok' : ''));
 	}
@@ -1349,6 +1366,13 @@ $hasKey = Config::apiKey() !== '';
 			setStatus('titlo-analysis-status', radio.value === 'S'
 				? 'Режим: категории — введите ID/название категории'
 				: 'Режим: товары — введите ID/название товара');
+			setStatus('titlo-phrase-status', '');
+			if (promptsByTypeCache) {
+				loadPhrasePromptSelect(promptsByTypeCache);
+			} else {
+				loadPromptSelects();
+			}
+			syncGenRowsByEntity();
 		});
 	});
 
@@ -1537,15 +1561,139 @@ $hasKey = Config::apiKey() !== '';
 		};
 	}
 
+	function syncGenRowsByEntity() {
+		var isSection = entityType() === 'S';
+		Array.prototype.forEach.call(document.querySelectorAll('.titlo-gen-row'), function (row) {
+			var t = row.getAttribute('data-type');
+			var show = isSection ? (t === 'category') : (t === 'preview' || t === 'detail');
+			row.style.display = show ? '' : 'none';
+		});
+		var previewBox = document.getElementById('titlo-text-preview');
+		var detailBox = document.getElementById('titlo-text-detail');
+		var catBox = document.getElementById('titlo-text-category');
+		var previewLab = previewBox ? previewBox.previousElementSibling : null;
+		var detailLab = detailBox ? detailBox.previousElementSibling : null;
+		var catLab = catBox ? catBox.previousElementSibling : null;
+		if (previewBox) previewBox.style.display = isSection ? 'none' : '';
+		if (detailBox) detailBox.style.display = isSection ? 'none' : '';
+		if (catBox) catBox.style.display = isSection ? '' : 'none';
+		if (previewLab && previewLab.tagName === 'LABEL') previewLab.style.display = isSection ? 'none' : '';
+		if (detailLab && detailLab.tagName === 'LABEL') detailLab.style.display = isSection ? 'none' : '';
+		if (catLab && catLab.tagName === 'LABEL') catLab.style.display = isSection ? '' : 'none';
+	}
+
+	function loadPhrasePromptSelect(byType) {
+		var sel = document.getElementById('titlo-phrase-prompt');
+		if (!sel || !byType) return;
+		var key = entityType() === 'S' ? 'section_phrase' : 'phrase';
+		fillPromptSelect(sel, byType[key] || {items: [], active_id: 0});
+	}
+
+	var promptsByTypeCache = null;
+
 	function loadPromptSelects() {
 		return post('list_prompts', {}).then(function (res) {
 			if (!res.ok || !res.by_type) return;
+			promptsByTypeCache = res.by_type;
 			Array.prototype.forEach.call(document.querySelectorAll('.titlo-prompt-select'), function (sel) {
 				var t = sel.getAttribute('data-type');
 				fillPromptSelect(sel, res.by_type[t]);
 			});
+			loadPhrasePromptSelect(res.by_type);
+			syncGenRowsByEntity();
 		});
 	}
+
+	function entityNameForPhrase() {
+		var label = (document.getElementById('titlo-entity-label') || {}).textContent || '';
+		var fromLabel = label.replace(/^(Товар|Категория)\s*#\d+\s*[—\-]\s*/i, '').trim();
+		if (fromLabel && fromLabel !== '—') return fromLabel;
+		var q = (document.getElementById('titlo-search-q') || {}).value || '';
+		return q.trim();
+	}
+
+	document.getElementById('titlo-phrase-gen').onclick = function () {
+		if (!hasKey) return;
+		var id = parseInt(document.getElementById('titlo-entity-id').value, 10) || 0;
+		var name = entityNameForPhrase();
+		var status = document.getElementById('titlo-phrase-status');
+		var input = document.getElementById('titlo-phrase');
+		var btn = document.getElementById('titlo-phrase-gen');
+		if (!name && id <= 0) {
+			setStatus('titlo-phrase-status', 'Сначала выберите товар или категорию (или укажите название в поиске)', true);
+			return;
+		}
+		if (!name) {
+			setStatus('titlo-phrase-status', 'Нет названия для генерации', true);
+			return;
+		}
+		btn.disabled = true;
+		setStatus('titlo-phrase-status', 'Генерация короткой фразы…');
+		var attempts = 0;
+		var maxAttempts = 45;
+		var promptId = (document.getElementById('titlo-phrase-prompt') || {}).value || 0;
+		post('generate_phrase', {
+			entity_id: id,
+			entity_type: entityType(),
+			name: name,
+			prompt_id: promptId
+		}).then(function poll(res) {
+			if (!res.ok) {
+				btn.disabled = !hasKey;
+				setStatus('titlo-phrase-status', res.error || 'Ошибка генерации', true);
+				return;
+			}
+			if (res.status === 'completed') {
+				var phrase = (res.result || '').trim();
+				if (!phrase) {
+					btn.disabled = !hasKey;
+					setStatus('titlo-phrase-status', 'Пустой ответ генерации', true);
+					return;
+				}
+				if (phrase.length > 50) phrase = phrase.substring(0, 50);
+				input.value = phrase;
+				if (id > 0) {
+					setStatus('titlo-phrase-status', 'Сохраняем в Bitrix…');
+					return post('save_phrase', {
+						entity_id: id,
+						entity_type: entityType(),
+						phrase: phrase
+					}).then(function (saveRes) {
+						btn.disabled = !hasKey;
+						if (saveRes.ok) {
+							if (typeof saveRes.phrase === 'string' && saveRes.phrase) {
+								input.value = saveRes.phrase;
+							}
+							setStatus('titlo-phrase-status', 'Фраза сгенерирована и сохранена');
+						} else {
+							setStatus('titlo-phrase-status', 'Сгенерировано, но не сохранено: ' + (saveRes.error || 'ошибка'), true);
+						}
+					});
+				}
+				btn.disabled = !hasKey;
+				setStatus('titlo-phrase-status', 'Фраза подставлена в поле (позиция не выбрана — в Bitrix не писали)');
+				return;
+			}
+			if (res.status === 'failed') {
+				btn.disabled = !hasKey;
+				setStatus('titlo-phrase-status', res.error || 'Сбой генерации', true);
+				return;
+			}
+			attempts++;
+			if (attempts >= maxAttempts) {
+				btn.disabled = !hasKey;
+				setStatus('titlo-phrase-status', 'Таймаут ожидания генерации', true);
+				return;
+			}
+			setStatus('titlo-phrase-status', 'Ожидание… (' + attempts + '/' + maxAttempts + ')');
+			return new Promise(function (r) { setTimeout(r, 2000); })
+				.then(function () { return post('poll_generate', {record_id: res.record_id}); })
+				.then(poll);
+		}).catch(function (err) {
+			btn.disabled = !hasKey;
+			setStatus('titlo-phrase-status', (err && err.message) || 'Сеть/JS ошибка', true);
+		});
+	};
 
 	loadPromptSelects();
 

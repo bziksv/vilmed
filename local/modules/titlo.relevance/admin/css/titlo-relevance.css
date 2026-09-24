@@ -364,6 +364,20 @@
 	vertical-align: middle;
 }
 .titlo-box .titlo-help { margin-left: 6px; }
+.titlo-phrase-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+}
+.titlo-phrase-row__input {
+	flex: 1 1 220px;
+	min-width: 180px;
+	width: auto !important;
+}
+.titlo-phrase-row__prompt {
+	flex: 0 1 240px;
+}
 .titlo-help__tip {
 	display: none;
 	position: absolute;
