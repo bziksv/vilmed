@@ -40,6 +40,7 @@ $hasKey = Config::apiKey() !== '';
 $filter = (string) ($_GET['filter'] ?? 'todo');
 $q = (string) ($_GET['q'] ?? '');
 $page = max(1, (int) ($_GET['page'] ?? 1));
+$phraseMaxLen = (int) UserFields::PHRASE_MAX_LEN;
 ?>
 
 <?php AdminUi::renderCss(); ?>
@@ -61,9 +62,14 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 		<div class="titlo-howto__body">
 			<ul>
 				<li>
-					Короткая фраза (до 50 символов) пишется в
+					Ключевая фраза пишется в
 					<code><?= htmlspecialcharsbx(UserFields::PHRASE_FIELD) ?></code>
+					(стандартные промпты ≈50 символов; свой промпт — до <?= $phraseMaxLen ?>)
 					и подставляется в «Проработку» вместо длинного NAME.
+				</li>
+				<li>
+					<strong>Свой промпт</strong> — в «Промптах» задайте расширенные требования,
+					выберите его здесь и сгенерируйте заново: ответ не режется жёстко на 50.
 				</li>
 				<li>
 					<strong>Сгенерировать</strong> — сразу пишет фразу в UF.
@@ -171,7 +177,7 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 		<tr>
 			<th style="width:70px">ID</th>
 			<th>Полное название</th>
-			<th style="width:300px">Короткая фраза (≤50)</th>
+			<th style="width:300px">Ключевая фраза (до <?= $phraseMaxLen ?>)</th>
 			<th style="width:130px">Не прорабатывать</th>
 			<th style="width:280px">Действия</th>
 		</tr>
@@ -195,6 +201,7 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 	var bulkTimer = null;
 	var bulkBusy = false;
 	var bulkMax = <?= (int) \Titlo\Relevance\PhraseBulk::MAX_LIMIT ?>;
+	var phraseMaxLen = <?= (int) $phraseMaxLen ?>;
 	var listTotal = 0;
 	var entityWord = <?= json_encode($isSection ? 'категорий' : 'товаров') ?>;
 
@@ -314,8 +321,8 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 					return '<tr data-id="' + item.id + '" data-name-orig="' + escapeHtml(item.name_orig || '') + '"' + skipped + '>' +
 						'<td><a href="' + iblockEditBase + item.id + '&lang=<?= LANGUAGE_ID ?>" target="_blank">' + item.id + '</a></td>' +
 						'<td>' + nameBlock + '</td>' +
-						'<td><input type="text" class="adm-input phrase-input" maxlength="50" value="' + escapeHtml(item.titlo_phrase || '') + '"' + (item.skip ? ' disabled' : '') + '>' +
-						'<div class="name-len phrase-len' + ok + '">' + (item.titlo_phrase ? item.phrase_len : 0) + '/50</div>' +
+						'<td><input type="text" class="adm-input phrase-input" maxlength="' + phraseMaxLen + '" value="' + escapeHtml(item.titlo_phrase || '') + '"' + (item.skip ? ' disabled' : '') + '>' +
+						'<div class="name-len phrase-len' + ok + '">' + (item.titlo_phrase ? item.phrase_len : 0) + '/' + phraseMaxLen + '</div>' +
 						'<div class="phrase-at">' + (item.phrase_at ? ('проработано ' + escapeHtml(item.phrase_at)) : '') + '</div></td>' +
 						'<td><label><input type="checkbox" class="titlo-skip"' + (item.skip ? ' checked' : '') + '> не надо</label></td>' +
 						'<td class="row-actions">' +
@@ -350,7 +357,7 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 				inp.addEventListener('input', function () {
 					var len = inp.value.length;
 					var el = inp.parentNode.querySelector('.phrase-len');
-					if (el) el.textContent = len + '/50';
+					if (el) el.textContent = len + '/' + phraseMaxLen;
 					var tr = inp.closest('tr');
 					if (!tr) return;
 					var applyBtn = tr.querySelector('.titlo-apply-name');
@@ -402,7 +409,7 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 					input.value = res.phrase;
 					var el = tr.querySelector('.phrase-len');
 					if (el) {
-						el.textContent = (res.phrase ? res.phrase.length : 0) + '/50';
+						el.textContent = (res.phrase ? res.phrase.length : 0) + '/' + phraseMaxLen;
 						el.className = 'name-len phrase-len' + (res.phrase ? ' ok' : '');
 					}
 					var resetBtn = tr.querySelector('.titlo-reset');
@@ -613,7 +620,7 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 					input.value = res.phrase;
 					var el = tr.querySelector('.phrase-len');
 					if (el) {
-						el.textContent = (res.phrase ? res.phrase.length : 0) + '/50';
+						el.textContent = (res.phrase ? res.phrase.length : 0) + '/' + phraseMaxLen;
 						el.className = 'name-len phrase-len' + (res.phrase ? ' ok' : '');
 					}
 				}
@@ -658,7 +665,7 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 				if (input) input.value = '';
 				var el = tr.querySelector('.phrase-len');
 				if (el) {
-					el.textContent = '0/50';
+					el.textContent = '0/' + phraseMaxLen;
 					el.className = 'name-len phrase-len';
 				}
 				var atEl = tr.querySelector('.phrase-at');
@@ -703,7 +710,7 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 			if (res.status === 'completed') {
 				input.value = res.result || '';
 				var el = tr.querySelector('.phrase-len');
-				if (el) el.textContent = input.value.length + '/50';
+				if (el) el.textContent = input.value.length + '/' + phraseMaxLen;
 				if (!input.value) {
 					status.textContent = 'Пустой ответ генерации';
 					status.style.color = '#c00';

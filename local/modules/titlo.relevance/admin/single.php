@@ -107,23 +107,24 @@ $hasKey = Config::apiKey() !== '';
 				<td class="adm-detail-content-cell-l">Ключевая фраза
 					<span class="titlo-help" tabindex="0" aria-label="Ключевая фраза">?
 						<span class="titlo-help__tip">
-							Короткий запрос (до 50 символов) для анализа релевантности.
-							Берётся из UF_TITLO_PHRASE («Проверка названий»), иначе — из названия.<br>
-							<b>Сгенерировать</b> — короткий вариант через Titlo (для товара и категории свои промпты).
+							Запрос для анализа релевантности (UF_TITLO_PHRASE).
+							Стандартные промпты ≈50 символов; свой промпт — до <?= (int) \Titlo\Relevance\UserFields::PHRASE_MAX_LEN ?>,
+							можно перегенерировать по новому промпту без жёсткого «ровно 50».<br>
+							<b>Сгенерировать</b> — через Titlo (товар и категория — свои промпты).
 							Результат пишется в поле и, если позиция выбрана, сразу в Bitrix.
 						</span>
 					</span>
 				</td>
 				<td class="adm-detail-content-cell-r">
 					<div class="titlo-phrase-row">
-						<input type="text" id="titlo-phrase" class="adm-input titlo-phrase-row__input" maxlength="50"
-							value="<?= $prefill ? htmlspecialcharsbx(\Titlo\Relevance\CatalogRepository::preferredPhrase($prefill)) : '' ?>"
-							placeholder="до 50 символов">
-						<select id="titlo-phrase-prompt" class="adm-input titlo-phrase-row__prompt" title="Промпт короткой фразы"
+						<input type="text" id="titlo-phrase" class="adm-input titlo-phrase-row__input" maxlength="<?= (int) \Titlo\Relevance\UserFields::PHRASE_MAX_LEN ?>"
+							value="<?= $prefill ? htmlspecialcharsbx(trim((string) ($prefill['titlo_phrase'] ?? '')) !== '' ? (string) $prefill['titlo_phrase'] : \Titlo\Relevance\CatalogRepository::preferredPhrase($prefill)) : '' ?>"
+							placeholder="ключевая фраза">
+						<select id="titlo-phrase-prompt" class="adm-input titlo-phrase-row__prompt" title="Промпт ключевой фразы"
 							style="min-width:200px"></select>
 						<input type="button" id="titlo-phrase-gen" class="adm-btn" value="Сгенерировать"
 							<?= $hasKey ? '' : 'disabled' ?>
-							title="Сгенерировать короткую фразу по полному названию (товар или категория)">
+							title="Сгенерировать фразу по полному названию (товар или категория)">
 					</div>
 					<span id="titlo-phrase-status" class="titlo-status" style="display:block;margin-top:4px"></span>
 				</td>
@@ -1661,7 +1662,7 @@ $hasKey = Config::apiKey() !== '';
 					setStatus('titlo-phrase-status', 'Пустой ответ генерации', true);
 					return;
 				}
-				if (phrase.length > 50) phrase = phrase.substring(0, 50);
+				if (phrase.length > <?= (int) \Titlo\Relevance\UserFields::PHRASE_MAX_LEN ?>) phrase = phrase.substring(0, <?= (int) \Titlo\Relevance\UserFields::PHRASE_MAX_LEN ?>);
 				input.value = phrase;
 				if (id > 0) {
 					setStatus('titlo-phrase-status', 'Сохраняем в Bitrix…');

@@ -830,8 +830,9 @@ class CatalogRepository
 			return false;
 		}
 		$phrase = trim($phrase);
-		if (mb_strlen($phrase) > 50) {
-			$phrase = rtrim(mb_substr($phrase, 0, 50));
+		$max = UserFields::PHRASE_MAX_LEN;
+		if (mb_strlen($phrase) > $max) {
+			$phrase = rtrim(mb_substr($phrase, 0, $max));
 		}
 
 		$fields = [
@@ -956,8 +957,9 @@ class CatalogRepository
 		if ($entityType === 'S') {
 			$phrase = self::normalizeSectionPhrase($phrase);
 		} else {
-			if (mb_strlen($phrase) > 50) {
-				$phrase = rtrim(mb_substr($phrase, 0, 50));
+			$max = UserFields::PHRASE_MAX_LEN;
+			if (mb_strlen($phrase) > $max) {
+				$phrase = rtrim(mb_substr($phrase, 0, $max));
 			}
 		}
 		if ($phrase === '') {
@@ -1248,7 +1250,7 @@ class CatalogRepository
 
 	/**
 	 * Категории: тип/уточнение/бренд важнее «купить».
-	 * «купить» добавляем в конец только если влезает в 50 без обрезания базы.
+	 * «купить» добавляем в конец только если влезает в лимит без обрезания базы.
 	 * Пустая фраза = сброс в непроработанные.
 	 */
 	public static function normalizeSectionPhrase(string $phrase): string
@@ -1258,6 +1260,7 @@ class CatalogRepository
 			return '';
 		}
 
+		$max = UserFields::PHRASE_MAX_LEN;
 		$hadKupit = (bool) preg_match('/\bкупить\b/ui', $phrase);
 		$base = trim(preg_replace('/\bкупить\b/ui', '', $phrase));
 		$base = trim(preg_replace('/\s+/u', ' ', $base));
@@ -1266,12 +1269,12 @@ class CatalogRepository
 			return $hadKupit ? 'купить' : '';
 		}
 
-		$base = self::cutPhraseAtWord($base, 50);
+		$base = self::cutPhraseAtWord($base, $max);
 		$suffix = ' купить';
-		if (mb_strlen($base) + mb_strlen($suffix) <= 50) {
+		if (mb_strlen($base) + mb_strlen($suffix) <= $max) {
 			return $base . $suffix;
 		}
-		// Не влезает «купить» — оставляем смысл целиком (до 50), без насильственной обрезки ради суффикса.
+		// Не влезает «купить» — оставляем смысл целиком, без насильственной обрезки ради суффикса.
 		return $base;
 	}
 

@@ -13,6 +13,8 @@ class UserFields
 	public const NAME_ORIG_FIELD = 'UF_TITLO_NAME_ORIG';
 	/** Дата автопроработки карточки (анализ → генерация → сохранение). */
 	public const AUTO_AT_FIELD = 'UF_TITLO_AUTO_AT';
+	/** Макс. длина фразы (совпадает с лимитом NAME в Bitrix). Стандартные промпты ≈50, свой — до этого потолка. */
+	public const PHRASE_MAX_LEN = 255;
 
 	/**
 	 * Ensure UF fields for Titlo name-check on catalog elements.
@@ -69,6 +71,7 @@ class UserFields
 		])->Fetch();
 
 		if ($exists) {
+			self::bumpPhraseMaxLength((int) ($exists['ID'] ?? 0), (array) ($exists['SETTINGS'] ?? []));
 			return true;
 		}
 
@@ -86,10 +89,10 @@ class UserFields
 			'EDIT_IN_LIST' => 'Y',
 			'IS_SEARCHABLE' => 'N',
 			'SETTINGS' => [
-				'SIZE' => 50,
+				'SIZE' => 80,
 				'ROWS' => 1,
 				'MIN_LENGTH' => 0,
-				'MAX_LENGTH' => 50,
+				'MAX_LENGTH' => self::PHRASE_MAX_LEN,
 				'DEFAULT_VALUE' => '',
 			],
 			'EDIT_FORM_LABEL' => ['ru' => 'Titlo: фраза для релевантности', 'en' => 'Titlo relevance phrase'],
@@ -97,12 +100,40 @@ class UserFields
 			'LIST_FILTER_LABEL' => ['ru' => 'Titlo-фраза', 'en' => 'Titlo phrase'],
 			'ERROR_MESSAGE' => ['ru' => '', 'en' => ''],
 			'HELP_MESSAGE' => [
-				'ru' => 'Укороченное название (до 50 символов) для анализатора релевантности Titlo',
-				'en' => 'Short phrase (max 50) for Titlo relevance analyzer',
+				'ru' => 'Ключевая фраза для анализа Titlo (стандарт ≈50 символов; свой промпт — до ' . self::PHRASE_MAX_LEN . ')',
+				'en' => 'Titlo relevance phrase (default prompts ≈50; custom up to ' . self::PHRASE_MAX_LEN . ')',
 			],
 		]);
 
 		return (bool) $id;
+	}
+
+	/**
+	 * Поднять MAX_LENGTH UF_TITLO_PHRASE до PHRASE_MAX_LEN (разово при ensure).
+	 *
+	 * @param array<string, mixed> $settings
+	 */
+	protected static function bumpPhraseMaxLength(int $fieldId, array $settings): void
+	{
+		if ($fieldId <= 0) {
+			return;
+		}
+		$cur = (int) ($settings['MAX_LENGTH'] ?? 0);
+		if ($cur >= self::PHRASE_MAX_LEN) {
+			return;
+		}
+		$settings['MAX_LENGTH'] = self::PHRASE_MAX_LEN;
+		if ((int) ($settings['SIZE'] ?? 0) < 80) {
+			$settings['SIZE'] = 80;
+		}
+		$oUserType = new \CUserTypeEntity();
+		$oUserType->Update($fieldId, [
+			'SETTINGS' => $settings,
+			'HELP_MESSAGE' => [
+				'ru' => 'Ключевая фраза для анализа Titlo (стандарт ≈50 символов; свой промпт — до ' . self::PHRASE_MAX_LEN . ')',
+				'en' => 'Titlo relevance phrase (default prompts ≈50; custom up to ' . self::PHRASE_MAX_LEN . ')',
+			],
+		]);
 	}
 
 	protected static function ensureNameOrigField(string $entityId): bool
