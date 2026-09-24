@@ -416,6 +416,28 @@
 	min-width: 220px;
 }
 .titlo-names .bulk-bar label { font-size: 13px; }
+.titlo-names .titlo-bulk-plan {
+	flex: 1 1 280px;
+	font-size: 13px;
+	line-height: 1.4;
+	color: #0f172a;
+	background: #fff;
+	border: 1px solid #bfdbfe;
+	border-radius: 6px;
+	padding: 8px 10px;
+}
+.titlo-names .titlo-bulk-plan__cap { color: #9a3412; font-weight: 600; }
+.titlo-names .titlo-bulk-plan__all { color: #166534; }
+.titlo-names .titlo-bulk-stop:not(:disabled) {
+	border-color: #fca5a5;
+	background: #fef2f2 linear-gradient(to bottom, #fff, #fee2e2);
+	color: #991b1b;
+	font-weight: 600;
+}
+.titlo-names .titlo-bulk-stop:not(:disabled):hover {
+	background: #fee2e2;
+	border-color: #f87171;
+}
 
 .titlo-auto-products .titlo-auto-queue {
 	max-width: none;

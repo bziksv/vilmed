@@ -5,6 +5,45 @@ namespace Titlo\Relevance;
 class CatalogRepository
 {
 	/**
+	 * Поиск в «Проверке названий»: ID / название / код / полный URL.
+	 * Пустая строка — без доп. условия.
+	 */
+	public static function sqlPhraseSearchCondition(
+		string $q,
+		string $tableAlias,
+		string $entityType,
+		string $phraseCol
+	): string {
+		global $DB;
+		$q = trim($q);
+		if ($q === '') {
+			return '';
+		}
+		$alias = preg_replace('#[^A-Za-z0-9_]#', '', $tableAlias) ?: 'BE';
+		$entityType = strtoupper($entityType) === 'S' ? 'S' : 'E';
+
+		$urlIds = UrlBuilder::resolveCatalogIdsFromUrl($q, $entityType);
+		if ($urlIds !== null) {
+			if ($urlIds === []) {
+				return '1 = 0';
+			}
+			$ids = array_values(array_unique(array_filter(array_map('intval', $urlIds))));
+			if ($ids === []) {
+				return '1 = 0';
+			}
+			return $alias . '.ID IN (' . implode(',', $ids) . ')';
+		}
+
+		if (ctype_digit($q)) {
+			return $alias . '.ID = ' . (int) $q;
+		}
+
+		$like = Config::forLike($q);
+		return '(' . $alias . '.NAME LIKE "%' . $like . '%" OR '
+			. $alias . '.CODE LIKE "%' . $like . '%" OR UTS.' . $phraseCol . ' LIKE "%' . $like . '%")';
+	}
+
+	/**
 	 * @return array|null
 	 */
 	public static function findElement(int $id)
@@ -168,11 +207,9 @@ class CatalogRepository
 		$where[] = '(BE.WF_PARENT_ELEMENT_ID IS NULL OR BE.WF_PARENT_ELEMENT_ID = 0)';
 
 		if ($q !== '') {
-			if (ctype_digit($q)) {
-				$where[] = 'BE.ID = ' . (int) $q;
-			} else {
-				$like = Config::forLike($q);
-				$where[] = '(BE.NAME LIKE "%' . $like . '%" OR BE.CODE LIKE "%' . $like . '%" OR UTS.' . $phraseCol . ' LIKE "%' . $like . '%")';
+			$cond = self::sqlPhraseSearchCondition($q, 'BE', 'E', $phraseCol);
+			if ($cond !== '') {
+				$where[] = $cond;
 			}
 		}
 
@@ -273,20 +310,16 @@ class CatalogRepository
 	}
 
 	/**
-	 * ID+NAME+URL для массовой генерации фраз (без пагинации UI).
-	 *
-	 * @param array{filter?:string,q?:string,limit?:int,active?:string} $params
-	 * @return array<int, array{id:int,name:string,url:string}>
+	 * @param array{filter?:string,q?:string,active?:string} $params
+	 * @return array{0:string,1:string} [whereSql, uts]
 	 */
-	public static function listElementsForPhraseBulk(array $params): array
+	protected static function phraseBulkElementWhere(array $params): array
 	{
 		global $DB;
-
 		$iblockId = Config::iblockId();
 		$q = trim((string) ($params['q'] ?? ''));
 		$filterMode = (string) ($params['filter'] ?? 'todo');
 		$active = (string) ($params['active'] ?? 'Y');
-		$limit = max(1, min(PhraseBulk::MAX_LIMIT, (int) ($params['limit'] ?? 500)));
 
 		$uts = 'b_uts_iblock_' . (int) $iblockId . '_element';
 		$phraseCol = UserFields::PHRASE_FIELD;
@@ -300,11 +333,9 @@ class CatalogRepository
 		$where[] = '(BE.WF_PARENT_ELEMENT_ID IS NULL OR BE.WF_PARENT_ELEMENT_ID = 0)';
 
 		if ($q !== '') {
-			if (ctype_digit($q)) {
-				$where[] = 'BE.ID = ' . (int) $q;
-			} else {
-				$like = Config::forLike($q);
-				$where[] = '(BE.NAME LIKE "%' . $like . '%" OR BE.CODE LIKE "%' . $like . '%" OR UTS.' . $phraseCol . ' LIKE "%' . $like . '%")';
+			$cond = self::sqlPhraseSearchCondition($q, 'BE', 'E', $phraseCol);
+			if ($cond !== '') {
+				$where[] = $cond;
 			}
 		}
 
@@ -320,7 +351,6 @@ class CatalogRepository
 		if ($filterMode === 'empty' || $filterMode === 'todo' || $filterMode === 'country_todo') {
 			$where[] = '(UTS.' . $phraseCol . ' IS NULL OR UTS.' . $phraseCol . ' = "")';
 		} elseif ($filterMode === 'filled') {
-			// для bulk filled бессмысленно — нечего генерировать
 			$where[] = '1 = 0';
 		}
 
@@ -328,7 +358,35 @@ class CatalogRepository
 			$where[] = CountryInName::sqlNameHasCountry('BE.NAME', $DB);
 		}
 
-		$whereSql = implode(' AND ', $where);
+		return [implode(' AND ', $where), $uts];
+	}
+
+	public static function countElementsForPhraseBulk(array $params): int
+	{
+		global $DB;
+		[$whereSql, $uts] = self::phraseBulkElementWhere($params);
+		$row = $DB->Query("
+			SELECT COUNT(*) AS CNT
+			FROM b_iblock_element BE
+			LEFT JOIN {$uts} UTS ON UTS.VALUE_ID = BE.ID
+			WHERE {$whereSql}
+		")->Fetch();
+		return (int) ($row['CNT'] ?? 0);
+	}
+
+	/**
+	 * ID+NAME+URL для массовой генерации фраз (без пагинации UI).
+	 *
+	 * @param array{filter?:string,q?:string,limit?:int,active?:string} $params
+	 * @return array<int, array{id:int,name:string,url:string}>
+	 */
+	public static function listElementsForPhraseBulk(array $params): array
+	{
+		global $DB;
+
+		$limit = max(1, min(PhraseBulk::MAX_LIMIT, (int) ($params['limit'] ?? 500)));
+		[$whereSql, $uts] = self::phraseBulkElementWhere($params);
+
 		$sql = "
 			SELECT BE.ID, BE.NAME, BE.CODE
 			FROM b_iblock_element BE
@@ -386,11 +444,9 @@ class CatalogRepository
 		}
 
 		if ($q !== '') {
-			if (ctype_digit($q)) {
-				$where[] = 'BS.ID = ' . (int) $q;
-			} else {
-				$like = Config::forLike($q);
-				$where[] = '(BS.NAME LIKE "%' . $like . '%" OR BS.CODE LIKE "%' . $like . '%" OR UTS.' . $phraseCol . ' LIKE "%' . $like . '%")';
+			$cond = self::sqlPhraseSearchCondition($q, 'BS', 'S', $phraseCol);
+			if ($cond !== '') {
+				$where[] = $cond;
 			}
 		}
 
@@ -490,20 +546,16 @@ class CatalogRepository
 	}
 
 	/**
-	 * ID+NAME+URL категорий для массовой генерации фраз.
-	 *
-	 * @param array{filter?:string,q?:string,limit?:int,active?:string} $params
-	 * @return array<int, array{id:int,name:string,url:string}>
+	 * @param array{filter?:string,q?:string,active?:string} $params
+	 * @return array{0:string,1:string}
 	 */
-	public static function listSectionsForPhraseBulk(array $params): array
+	protected static function phraseBulkSectionWhere(array $params): array
 	{
 		global $DB;
-
 		$iblockId = Config::iblockId();
 		$q = trim((string) ($params['q'] ?? ''));
 		$filterMode = (string) ($params['filter'] ?? 'todo');
 		$active = (string) ($params['active'] ?? 'Y');
-		$limit = max(1, min(PhraseBulk::MAX_LIMIT, (int) ($params['limit'] ?? 500)));
 
 		$uts = 'b_uts_iblock_' . (int) $iblockId . '_section';
 		$phraseCol = UserFields::PHRASE_FIELD;
@@ -515,11 +567,9 @@ class CatalogRepository
 		}
 
 		if ($q !== '') {
-			if (ctype_digit($q)) {
-				$where[] = 'BS.ID = ' . (int) $q;
-			} else {
-				$like = Config::forLike($q);
-				$where[] = '(BS.NAME LIKE "%' . $like . '%" OR BS.CODE LIKE "%' . $like . '%" OR UTS.' . $phraseCol . ' LIKE "%' . $like . '%")';
+			$cond = self::sqlPhraseSearchCondition($q, 'BS', 'S', $phraseCol);
+			if ($cond !== '') {
+				$where[] = $cond;
 			}
 		}
 
@@ -542,7 +592,35 @@ class CatalogRepository
 			$where[] = CountryInName::sqlNameHasCountry('BS.NAME', $DB);
 		}
 
-		$whereSql = implode(' AND ', $where);
+		return [implode(' AND ', $where), $uts];
+	}
+
+	public static function countSectionsForPhraseBulk(array $params): int
+	{
+		global $DB;
+		[$whereSql, $uts] = self::phraseBulkSectionWhere($params);
+		$row = $DB->Query("
+			SELECT COUNT(*) AS CNT
+			FROM b_iblock_section BS
+			LEFT JOIN {$uts} UTS ON UTS.VALUE_ID = BS.ID
+			WHERE {$whereSql}
+		")->Fetch();
+		return (int) ($row['CNT'] ?? 0);
+	}
+
+	/**
+	 * ID+NAME+URL категорий для массовой генерации фраз.
+	 *
+	 * @param array{filter?:string,q?:string,limit?:int,active?:string} $params
+	 * @return array<int, array{id:int,name:string,url:string}>
+	 */
+	public static function listSectionsForPhraseBulk(array $params): array
+	{
+		global $DB;
+
+		$limit = max(1, min(PhraseBulk::MAX_LIMIT, (int) ($params['limit'] ?? 500)));
+		[$whereSql, $uts] = self::phraseBulkSectionWhere($params);
+
 		$sql = "
 			SELECT BS.ID, BS.NAME, BS.CODE
 			FROM b_iblock_section BS

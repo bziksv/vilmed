@@ -75,10 +75,17 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 					<strong>«Нужно проработать»</strong> — длинные без фразы.
 				</li>
 				<li>
-					<strong>Сгенерировать по фильтру</strong> — очередь по текущему фильтру
-					(лимит до <?= (int) \Titlo\Relevance\PhraseBulk::MAX_LIMIT ?>,
-					к API волнами по <?= (int) \Titlo\Relevance\PhraseBulk::API_CHUNK ?>).
+					<strong>Сгенерировать по фильтру</strong> — в очередь ставится не больше
+					<strong>лимита за запуск</strong> (по умолчанию <?= (int) \Titlo\Relevance\PhraseBulk::DEFAULT_LIMIT ?>,
+					максимум <?= (int) \Titlo\Relevance\PhraseBulk::MAX_LIMIT ?>), даже если в фильтре тысяч позиций.
+					Сколько именно уйдёт в работу — видно рядом с лимитом и на кнопке.
+					К API — волнами по <?= (int) \Titlo\Relevance\PhraseBulk::API_CHUNK ?>.
+					<strong>Остановить генерацию</strong> — сразу прерывает текущую пачку.
 					Пока вкладка открыта — быстрее; агент Bitrix тоже крутит.
+				</li>
+				<li>
+					Поиск: ID, название, символьный код или <strong>полный URL</strong> карточки/раздела
+					(например <code>https://vilmed.ru/product/…/</code>).
 				</li>
 				<li>
 					Галочка <strong>«не надо»</strong>
@@ -111,7 +118,8 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 				<option value="all" <?= $filter === 'all' ? 'selected' : '' ?>>Все</option>
 			</select>
 		</label>
-		<input type="text" id="titlo-q" class="adm-input" placeholder="ID / название / код" value="<?= htmlspecialcharsbx($q) ?>" style="width:260px">
+		<input type="text" id="titlo-q" class="adm-input" placeholder="ID / название / код / URL" value="<?= htmlspecialcharsbx($q) ?>" style="width:360px"
+			title="Можно вставить полный URL страницы товара или категории">
 		<input type="button" id="titlo-reload" class="adm-btn" value="Показать">
 		<span id="titlo-list-status" class="status"></span>
 	</div>
@@ -137,12 +145,21 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 			<select id="titlo-prompt-batch" class="adm-input" style="min-width:240px"></select>
 		</label>
 		<span id="titlo-prompt-batch-meta" class="bulk-status" style="min-width:160px"></span>
-		<label>Лимит за запуск:
-		<input type="number" id="titlo-bulk-limit" class="adm-input" value="200" min="1" max="<?= (int) \Titlo\Relevance\PhraseBulk::MAX_LIMIT ?>" style="width:90px"
-			title="Сколько <?= $isSection ? 'категорий' : 'товаров' ?> поставить в очередь. К API — по <?= (int) \Titlo\Relevance\PhraseBulk::API_CHUNK ?> за запрос.">
+		<label>Лимит за запуск
+			<span class="titlo-help" tabindex="0" aria-label="Лимит за запуск">?
+				<span class="titlo-help__tip">
+					Сколько <?= $isSection ? 'категорий' : 'товаров' ?> взять в <b>одну</b> пачку из текущего фильтра.
+					Если в фильтре 19&nbsp;000, а лимит 200 — обработаются только <b>200</b>, остальные не трогаем.
+					Максимум за запуск: <?= (int) \Titlo\Relevance\PhraseBulk::MAX_LIMIT ?>.
+					К API — по <?= (int) \Titlo\Relevance\PhraseBulk::API_CHUNK ?> за запрос.
+				</span>
+			</span>:
+			<input type="number" id="titlo-bulk-limit" class="adm-input" value="<?= (int) \Titlo\Relevance\PhraseBulk::DEFAULT_LIMIT ?>" min="1" max="<?= (int) \Titlo\Relevance\PhraseBulk::MAX_LIMIT ?>" style="width:90px">
 		</label>
+		<span id="titlo-bulk-plan" class="titlo-bulk-plan" aria-live="polite"></span>
 		<input type="button" id="titlo-bulk-start" class="adm-btn-save" value="Сгенерировать по фильтру" <?= $hasKey ? '' : 'disabled' ?>>
-		<input type="button" id="titlo-bulk-stop" class="adm-btn" value="Стоп" disabled>
+		<input type="button" id="titlo-bulk-stop" class="adm-btn titlo-bulk-stop" value="Остановить генерацию" disabled
+			title="Прервать текущую пачку: оставшиеся в очереди не будут отправлены в API">
 		<span id="titlo-bulk-status" class="bulk-status">Массовая генерация не запущена</span>
 	</div>
 
@@ -175,6 +192,8 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 	var bulkTimer = null;
 	var bulkBusy = false;
 	var bulkMax = <?= (int) \Titlo\Relevance\PhraseBulk::MAX_LIMIT ?>;
+	var listTotal = 0;
+	var entityWord = <?= json_encode($isSection ? 'категорий' : 'товаров') ?>;
 
 	function post(action, data) {
 		data = data || {};
@@ -204,6 +223,60 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 		return '#';
 	}
 
+	function currentBulkLimit() {
+		var limit = parseInt(document.getElementById('titlo-bulk-limit').value, 10) || <?= (int) \Titlo\Relevance\PhraseBulk::DEFAULT_LIMIT ?>;
+		if (limit < 1) limit = 1;
+		if (limit > bulkMax) limit = bulkMax;
+		return limit;
+	}
+
+	function plannedBulkCount() {
+		var limit = currentBulkLimit();
+		if (listTotal <= 0) return 0;
+		return Math.min(limit, listTotal);
+	}
+
+	function updateBulkPlan() {
+		var plan = document.getElementById('titlo-bulk-plan');
+		var startBtn = document.getElementById('titlo-bulk-start');
+		var limit = currentBulkLimit();
+		var will = plannedBulkCount();
+		if (!plan) return;
+		if (listTotal <= 0) {
+			plan.innerHTML = 'По фильтру: <b>0</b>. Сначала нажмите «Показать» или смените фильтр.';
+			if (startBtn && !startBtn.disabled) {
+				startBtn.value = 'Сгенерировать по фильтру';
+			}
+			return;
+		}
+		var left = Math.max(0, listTotal - will);
+		var html = 'По фильтру: <b>' + listTotal + '</b> · за этот запуск: <b>' + will + '</b>';
+		if (will < listTotal) {
+			html += ' <span class="titlo-bulk-plan__cap">(лимит ' + limit + ', ещё ' + left + ' не войдут)</span>';
+		} else {
+			html += ' <span class="titlo-bulk-plan__all">(весь текущий фильтр)</span>';
+		}
+		plan.innerHTML = html;
+		if (startBtn) {
+			var stopBtn = document.getElementById('titlo-bulk-stop');
+			var running = stopBtn && !stopBtn.disabled;
+			if (!running) {
+				startBtn.value = will > 0
+					? ('Сгенерировать ' + will + (will < listTotal ? (' из ' + listTotal) : ''))
+					: 'Сгенерировать по фильтру';
+			}
+		}
+	}
+
+	function bulkStatusLabel(st) {
+		st = String(st || '');
+		if (st === 'running') return 'идёт';
+		if (st === 'stopped') return 'остановлена';
+		if (st === 'done') return 'готово';
+		if (st === 'queued') return 'в очереди';
+		return st;
+	}
+
 	function load() {
 		var filter = document.getElementById('titlo-filter').value;
 		var q = document.getElementById('titlo-q').value;
@@ -213,9 +286,13 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 			if (!res.ok) {
 				body.innerHTML = '<tr><td colspan="5">' + escapeHtml(res.error || 'Ошибка') + '</td></tr>';
 				document.getElementById('titlo-list-status').textContent = '';
+				listTotal = 0;
+				updateBulkPlan();
 				return;
 			}
-			document.getElementById('titlo-list-status').textContent = 'Всего: ' + res.total;
+			listTotal = parseInt(res.total, 10) || 0;
+			document.getElementById('titlo-list-status').textContent = 'Всего: ' + listTotal;
+			updateBulkPlan();
 			if (!res.items || !res.items.length) {
 				body.innerHTML = '<tr><td colspan="5">Ничего не найдено</td></tr>';
 			} else {
@@ -325,7 +402,7 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 
 	function fmtBulk(batch) {
 		if (!batch) return 'Массовая генерация не запущена';
-		return 'Пачка #' + batch.id + ': ' + batch.status +
+		return 'Пачка #' + batch.id + ': ' + bulkStatusLabel(batch.status) +
 			' · готово ' + batch.done +
 			' · ошибки ' + batch.failed +
 			' · осталось ' + batch.left +
@@ -340,6 +417,11 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 		var running = batch && batch.status === 'running';
 		startBtn.disabled = !hasKey || !!running;
 		stopBtn.disabled = !running;
+		if (!running) {
+			updateBulkPlan();
+		} else {
+			startBtn.value = 'Генерация…';
+		}
 		if (running && !bulkTimer) startBulkLoop();
 		if (!running && bulkTimer) {
 			clearInterval(bulkTimer);
@@ -364,11 +446,21 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 		if (!hasKey) return;
 		var filter = document.getElementById('titlo-filter').value;
 		var q = document.getElementById('titlo-q').value;
-		var limit = parseInt(document.getElementById('titlo-bulk-limit').value, 10) || 200;
-		if (limit < 1) limit = 1;
-		if (limit > bulkMax) limit = bulkMax;
-		var totalHint = document.getElementById('titlo-list-status').textContent || '';
-		if (!confirm('Запустить генерацию коротких фраз по текущему фильтру?\nЛимит: ' + limit + ' (макс. ' + bulkMax + ' за запуск).\nК API — волнами по <?= (int) \Titlo\Relevance\PhraseBulk::API_CHUNK ?> <?= $isSection ? 'категорий' : 'товаров' ?>.\n' + totalHint + '\n\nВкладку лучше не закрывать — так быстрее. Агент Bitrix тоже подхватит.')) {
+		var limit = currentBulkLimit();
+		document.getElementById('titlo-bulk-limit').value = String(limit);
+		var will = plannedBulkCount();
+		if (will <= 0) {
+			alert('По текущему фильтру нечего генерировать. Нажмите «Показать» и убедитесь, что «Всего» > 0.');
+			return;
+		}
+		var msg = 'Запустить генерацию коротких фраз?\n\n'
+			+ 'По фильтру найдено: ' + listTotal + ' ' + entityWord + '\n'
+			+ 'Будет обработано в этом запуске: ' + will
+			+ (will < listTotal ? (' (лимит ' + limit + ', остальные ' + (listTotal - will) + ' не войдут)') : ' (весь фильтр)')
+			+ '\nК API — волнами по <?= (int) \Titlo\Relevance\PhraseBulk::API_CHUNK ?>.\n\n'
+			+ 'Вкладку лучше не закрывать — так быстрее. Агент Bitrix тоже крутит.\n'
+			+ 'Остановить можно кнопкой «Остановить генерацию».';
+		if (!confirm(msg)) {
 			return;
 		}
 		document.getElementById('titlo-bulk-status').textContent = 'Ставим в очередь…';
@@ -383,13 +475,22 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 				document.getElementById('titlo-bulk-status').textContent = res.error || 'Не удалось стартовать';
 				return;
 			}
+			var queued = res.total || will;
+			var note = '';
+			if (res.filter_total && res.filter_total > queued) {
+				note = ' (из ' + res.filter_total + ' по фильтру)';
+			} else if (listTotal > queued) {
+				note = ' (из ' + listTotal + ' по фильтру)';
+			}
+			document.getElementById('titlo-bulk-status').textContent =
+				'В очереди: ' + queued + note;
 			setBulkUi({
 				id: res.batch_id,
 				status: 'running',
 				done: 0,
 				failed: 0,
-				left: res.total,
-				total: res.total
+				left: queued,
+				total: queued
 			});
 			startBulkLoop();
 			bulkBusy = true;
@@ -401,14 +502,31 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 	};
 
 	document.getElementById('titlo-bulk-stop').onclick = function () {
+		var stopBtn = document.getElementById('titlo-bulk-stop');
+		stopBtn.disabled = true;
+		document.getElementById('titlo-bulk-status').textContent = 'Останавливаем…';
 		post('bulk_phrase_stop', {}).then(function (res) {
 			if (res.batch) setBulkUi(res.batch);
-			else document.getElementById('titlo-bulk-status').textContent = res.error || 'Остановлено';
+			else {
+				document.getElementById('titlo-bulk-status').textContent = res.error || 'Остановлено';
+				updateBulkPlan();
+			}
+		}).catch(function () {
+			document.getElementById('titlo-bulk-status').textContent = 'Не удалось остановить';
+			stopBtn.disabled = false;
 		});
 	};
 
+	document.getElementById('titlo-bulk-limit').addEventListener('input', updateBulkPlan);
+	document.getElementById('titlo-bulk-limit').addEventListener('change', updateBulkPlan);
+	document.getElementById('titlo-filter').addEventListener('change', function () {
+		page = 1;
+		load();
+	});
+
 	post('bulk_phrase_status', {}).then(function (res) {
 		if (res.batch) setBulkUi(res.batch);
+		else updateBulkPlan();
 	});
 
 	document.getElementById('titlo-reload').onclick = function () { page = 1; load(); };

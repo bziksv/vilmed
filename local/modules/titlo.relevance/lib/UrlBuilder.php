@@ -278,4 +278,137 @@ class UrlBuilder
 		$path = '/' . ltrim($path, '/');
 		return $base !== '' ? $base . $path : $path;
 	}
+
+	/**
+	 * Похоже на URL/path каталога (для поиска в «Проверке названий»).
+	 */
+	public static function looksLikeUrlInput(string $q): bool
+	{
+		$q = trim($q);
+		if ($q === '') {
+			return false;
+		}
+		if (preg_match('#^https?://#i', $q)) {
+			return true;
+		}
+		if (isset($q[0]) && $q[0] === '/' && strpos($q, ' ') === false) {
+			return true;
+		}
+		if (preg_match('#^(product|catalog|category|section)/#i', $q) && strpos($q, ' ') === false) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Из URL/path → ID товара или раздела каталога модуля.
+	 * null — это не URL (искать как текст); [] — URL, но сущность не найдена.
+	 *
+	 * @return int[]|null
+	 */
+	public static function resolveCatalogIdsFromUrl(string $input, string $entityType): ?array
+	{
+		$input = trim($input);
+		if ($input === '' || !self::looksLikeUrlInput($input)) {
+			return null;
+		}
+
+		$entityType = strtoupper($entityType) === 'S' ? 'S' : 'E';
+		$raw = $input;
+		if (!preg_match('#^https?://#i', $raw)) {
+			$raw = 'https://local.test/' . ltrim($raw, '/');
+		}
+		$parts = parse_url($raw);
+		if (!is_array($parts)) {
+			return [];
+		}
+
+		$query = [];
+		if (!empty($parts['query'])) {
+			parse_str((string) $parts['query'], $query);
+		}
+		$idKeys = $entityType === 'S'
+			? ['SECTION_ID', 'SID', 'ID', 'id']
+			: ['ELEMENT_ID', 'ID', 'id'];
+		foreach ($idKeys as $key) {
+			if (!isset($query[$key])) {
+				continue;
+			}
+			$id = (int) $query[$key];
+			if ($id <= 0) {
+				continue;
+			}
+			$ok = $entityType === 'S'
+				? Config::sectionBelongsToCatalog($id)
+				: Config::elementBelongsToCatalog($id);
+			if ($ok) {
+				return [$id];
+			}
+		}
+
+		$path = (string) ($parts['path'] ?? '');
+		$segments = array_values(array_filter(explode('/', trim($path, '/')), 'strlen'));
+		$noise = [
+			'bitrix' => true, 'admin' => true, 'local' => true, 'index.php' => true,
+			'index.html' => true, 'ru' => true, 'en' => true,
+		];
+		$segments = array_values(array_filter($segments, static function ($s) use ($noise) {
+			return !isset($noise[mb_strtolower($s)]);
+		}));
+		if ($segments === []) {
+			return [];
+		}
+
+		foreach (array_reverse($segments) as $seg) {
+			$seg = rawurldecode((string) $seg);
+			$seg = trim($seg);
+			if ($seg === '') {
+				continue;
+			}
+			if (ctype_digit($seg)) {
+				$id = (int) $seg;
+				$ok = $entityType === 'S'
+					? Config::sectionBelongsToCatalog($id)
+					: Config::elementBelongsToCatalog($id);
+				if ($ok) {
+					return [$id];
+				}
+				continue;
+			}
+			$id = self::findCatalogIdByCode($seg, $entityType);
+			if ($id > 0) {
+				return [$id];
+			}
+		}
+
+		return [];
+	}
+
+	protected static function findCatalogIdByCode(string $code, string $entityType): int
+	{
+		$iblockId = Config::iblockId();
+		if ($iblockId <= 0 || $code === '') {
+			return 0;
+		}
+		if ($entityType === 'S') {
+			$res = \CIBlockSection::GetList(
+				[],
+				['IBLOCK_ID' => $iblockId, '=CODE' => $code, 'CHECK_PERMISSIONS' => 'N'],
+				false,
+				['ID'],
+				['nTopCount' => 1]
+			);
+			$row = $res->Fetch();
+			return $row ? (int) $row['ID'] : 0;
+		}
+		$res = \CIBlockElement::GetList(
+			[],
+			['IBLOCK_ID' => $iblockId, '=CODE' => $code, 'CHECK_PERMISSIONS' => 'N', 'SHOW_NEW' => 'Y'],
+			false,
+			['nTopCount' => 1],
+			['ID']
+		);
+		$row = $res->Fetch();
+		return $row ? (int) $row['ID'] : 0;
+	}
 }

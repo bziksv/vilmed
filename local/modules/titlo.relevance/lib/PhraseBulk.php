@@ -128,17 +128,17 @@ class PhraseBulk
 		}
 
 		$limit = $limit <= 0 ? self::DEFAULT_LIMIT : min(self::MAX_LIMIT, $limit);
+		$filterParams = [
+			'filter' => $filter,
+			'q' => $q,
+			'limit' => $limit,
+		];
+		$filterTotal = $entityType === 'S'
+			? CatalogRepository::countSectionsForPhraseBulk($filterParams)
+			: CatalogRepository::countElementsForPhraseBulk($filterParams);
 		$items = $entityType === 'S'
-			? CatalogRepository::listSectionsForPhraseBulk([
-				'filter' => $filter,
-				'q' => $q,
-				'limit' => $limit,
-			])
-			: CatalogRepository::listElementsForPhraseBulk([
-				'filter' => $filter,
-				'q' => $q,
-				'limit' => $limit,
-			]);
+			? CatalogRepository::listSectionsForPhraseBulk($filterParams)
+			: CatalogRepository::listElementsForPhraseBulk($filterParams);
 
 		if ($items === []) {
 			return ['ok' => false, 'error' => 'По фильтру нечего генерировать'];
@@ -151,6 +151,7 @@ class PhraseBulk
 			'limit' => $limit,
 			'prompt_id' => $promptId,
 			'total' => count($items),
+			'filter_total' => $filterTotal,
 		]);
 
 		$now = date('Y-m-d H:i:s');
@@ -209,7 +210,8 @@ class PhraseBulk
 			'ok' => true,
 			'batch_id' => $batchId,
 			'total' => $total,
-			'capped' => $total >= $limit,
+			'filter_total' => $filterTotal,
+			'capped' => $filterTotal > $total,
 			'limit' => $limit,
 			'entity_type' => $entityType,
 		];
