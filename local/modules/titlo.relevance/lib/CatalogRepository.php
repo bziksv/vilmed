@@ -119,10 +119,15 @@ class CatalogRepository
 
 	/**
 	 * Search by ID / NAME / CODE / URL.
-	 * @return array<int, array>
+	 * Multi-word: все токены должны встретиться в NAME или CODE (AND).
+	 * Сортировка по релевантности, не по алфавиту.
+	 *
+	 * @return array<int, array{id:int,name:string,code:string,type:string}>
 	 */
 	public static function search(string $entityType, string $q, int $limit = 20): array
 	{
+		global $DB;
+
 		$iblockId = Config::iblockId();
 		$q = trim($q);
 		$limit = max(1, min(50, $limit));
@@ -165,53 +170,127 @@ class CatalogRepository
 			return $out;
 		}
 
-		if ($entityType === 'S') {
-			$filter = ['IBLOCK_ID' => $iblockId];
-			if ($q !== '') {
-				if (ctype_digit($q)) {
-					$filter['ID'] = (int) $q;
-				} else {
-					$filter[] = [
-						'LOGIC' => 'OR',
-						['%NAME' => $q],
-						['%=CODE' => $q],
-					];
-				}
+		if ($q === '') {
+			return [];
+		}
+
+		if (ctype_digit($q)) {
+			$id = (int) $q;
+			if ($entityType === 'S') {
+				$row = \CIBlockSection::GetList(
+					[],
+					['IBLOCK_ID' => $iblockId, 'ID' => $id, 'CHECK_PERMISSIONS' => 'N'],
+					false,
+					['ID', 'NAME', 'CODE'],
+					['nTopCount' => 1]
+				)->Fetch();
+			} else {
+				$row = \CIBlockElement::GetList(
+					[],
+					['IBLOCK_ID' => $iblockId, 'ID' => $id, 'CHECK_PERMISSIONS' => 'N', 'SHOW_NEW' => 'Y'],
+					false,
+					['nTopCount' => 1],
+					['ID', 'NAME', 'CODE']
+				)->Fetch();
 			}
-			$res = \CIBlockSection::GetList(['NAME' => 'ASC'], $filter, false, ['ID', 'NAME', 'CODE'], ['nTopCount' => $limit]);
-			while ($row = $res->Fetch()) {
-				$out[] = [
+			if ($row) {
+				return [[
 					'id' => (int) $row['ID'],
 					'name' => (string) $row['NAME'],
 					'code' => (string) $row['CODE'],
-					'type' => 'S',
-				];
+					'type' => $entityType,
+				]];
 			}
-			return $out;
+			return [];
 		}
 
-		$filter = ['IBLOCK_ID' => $iblockId];
-		if ($q !== '') {
-			if (ctype_digit($q)) {
-				$filter['ID'] = (int) $q;
-			} else {
-				$filter[] = [
-					'LOGIC' => 'OR',
-					['%NAME' => $q],
-					['%=CODE' => $q],
-				];
-			}
+		$table = $entityType === 'S' ? 'b_iblock_section' : 'b_iblock_element';
+		$where = [
+			'T.IBLOCK_ID = ' . (int) $iblockId,
+		];
+		if ($entityType === 'E') {
+			$where[] = "T.ACTIVE = 'Y'";
+			$where[] = '(T.WF_STATUS_ID IS NULL OR T.WF_STATUS_ID = 1)';
+			$where[] = '(T.WF_PARENT_ELEMENT_ID IS NULL OR T.WF_PARENT_ELEMENT_ID = 0)';
+		} else {
+			$where[] = "T.ACTIVE = 'Y'";
 		}
-		$res = \CIBlockElement::GetList(['NAME' => 'ASC'], $filter, false, ['nTopCount' => $limit], ['ID', 'NAME', 'CODE']);
+
+		$tokens = self::searchTokens($q);
+		if ($tokens === []) {
+			return [];
+		}
+
+		$tokenConds = [];
+		foreach ($tokens as $token) {
+			$like = Config::forLike($token);
+			$tokenConds[] = '(T.NAME LIKE "%' . $like . '%" OR T.CODE LIKE "%' . $like . '%")';
+		}
+		$where[] = '(' . implode(' AND ', $tokenConds) . ')';
+
+		// Релевантность: точное имя → начинается с запроса → все токены ближе к началу → короче имя
+		$fullLike = Config::forLike($q);
+		$scoreParts = [
+			'(CASE WHEN LOWER(T.NAME) = LOWER("' . $DB->ForSql($q) . '") THEN 1000 ELSE 0 END)',
+			'(CASE WHEN T.NAME LIKE "' . $fullLike . '%" THEN 400 ELSE 0 END)',
+			'(CASE WHEN T.NAME LIKE "%' . $fullLike . '%" THEN 200 ELSE 0 END)',
+			'(CASE WHEN T.CODE LIKE "%' . $fullLike . '%" THEN 100 ELSE 0 END)',
+		];
+		foreach ($tokens as $i => $token) {
+			$like = Config::forLike($token);
+			$w = max(10, 80 - ($i * 10));
+			$scoreParts[] = '(CASE WHEN T.NAME LIKE "%' . $like . '%" THEN ' . $w . ' ELSE 0 END)';
+		}
+		$scoreSql = '(' . implode(' + ', $scoreParts) . ')';
+
+		$sql = '
+			SELECT T.ID, T.NAME, T.CODE, ' . $scoreSql . ' AS SCORE
+			FROM ' . $table . ' T
+			WHERE ' . implode(' AND ', $where) . '
+			ORDER BY SCORE DESC, CHAR_LENGTH(T.NAME) ASC, T.NAME ASC
+			LIMIT ' . (int) $limit;
+
+		$res = $DB->Query($sql);
 		while ($row = $res->Fetch()) {
 			$out[] = [
 				'id' => (int) $row['ID'],
 				'name' => (string) $row['NAME'],
 				'code' => (string) $row['CODE'],
-				'type' => 'E',
+				'type' => $entityType,
 			];
 		}
 		return $out;
+	}
+
+	/**
+	 * Токены поискового запроса (слова ≥ 2 символов, без пустых).
+	 *
+	 * @return string[]
+	 */
+	public static function searchTokens(string $q): array
+	{
+		$q = trim(preg_replace('/\s+/u', ' ', $q) ?? $q);
+		if ($q === '') {
+			return [];
+		}
+		$parts = preg_split('/[\s,;|]+/u', $q) ?: [];
+		$out = [];
+		foreach ($parts as $part) {
+			$part = trim((string) $part);
+			if ($part === '') {
+				continue;
+			}
+			// короткие служебные отбрасываем, но оставляем латиницу брендов (ka, 3m и т.п. ≥ 2)
+			if (mb_strlen($part) < 2) {
+				continue;
+			}
+			$out[] = $part;
+		}
+		// если всё отфильтровали — ищем целой фразой
+		if ($out === [] && $q !== '') {
+			$out[] = $q;
+		}
+		return array_values(array_unique($out));
 	}
 
 	/**
