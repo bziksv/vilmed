@@ -22,6 +22,30 @@
 	gap: 8px;
 	align-items: center;
 }
+
+/* Ветка каталога (автопроработка) */
+.titlo-section-branch {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 6px 8px;
+}
+.titlo-section-branch__controls {
+	display: inline-flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.titlo-section-branch__search {
+	width: 320px;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+.titlo-section-branch__select {
+	width: 320px;
+	max-width: 100%;
+	box-sizing: border-box;
+	min-height: 29px;
+}
 .titlo-names .pager,
 .titlo-dups .pager,
 .titlo-sdups .pager,

@@ -1083,12 +1083,101 @@ class CatalogRepository
 	}
 
 	/**
+	 * Дерево активных разделов каталога для select (порядок LEFT_MARGIN).
+	 *
+	 * @return array<int, array{id:int,name:string,depth:int,label:string}>
+	 */
+	public static function listSectionTreeForSelect(): array
+	{
+		$iblockId = Config::iblockId();
+		if ($iblockId <= 0) {
+			return [];
+		}
+		$res = \CIBlockSection::GetList(
+			['LEFT_MARGIN' => 'ASC'],
+			['IBLOCK_ID' => $iblockId, 'ACTIVE' => 'Y', 'CHECK_PERMISSIONS' => 'N'],
+			false,
+			['ID', 'NAME', 'DEPTH_LEVEL']
+		);
+		$out = [];
+		while ($row = $res->Fetch()) {
+			$depth = max(1, (int) ($row['DEPTH_LEVEL'] ?? 1));
+			$name = (string) ($row['NAME'] ?? '');
+			$pad = $depth > 1 ? str_repeat('— ', $depth - 1) : '';
+			$out[] = [
+				'id' => (int) $row['ID'],
+				'name' => $name,
+				'depth' => $depth,
+				'label' => $pad . $name,
+			];
+		}
+		return $out;
+	}
+
+	/**
+	 * Границы поддерева раздела (LEFT_MARGIN / RIGHT_MARGIN) в каталоге модуля.
+	 *
+	 * @return array{left:int,right:int}|null
+	 */
+	public static function getSectionSubtreeMargins(int $sectionId): ?array
+	{
+		$sectionId = (int) $sectionId;
+		$iblockId = Config::iblockId();
+		if ($sectionId <= 0 || $iblockId <= 0 || !Config::sectionBelongsToCatalog($sectionId)) {
+			return null;
+		}
+		global $DB;
+		$row = $DB->Query(
+			'SELECT LEFT_MARGIN, RIGHT_MARGIN FROM b_iblock_section'
+			. ' WHERE ID = ' . $sectionId . ' AND IBLOCK_ID = ' . (int) $iblockId
+			. ' LIMIT 1'
+		)->Fetch();
+		if (!$row) {
+			return null;
+		}
+		$left = (int) ($row['LEFT_MARGIN'] ?? 0);
+		$right = (int) ($row['RIGHT_MARGIN'] ?? 0);
+		if ($left <= 0 || $right <= $left) {
+			return null;
+		}
+		return ['left' => $left, 'right' => $right];
+	}
+
+	/**
+	 * SQL-условие: товар привязан к разделу ветки (основной или доп. через b_iblock_section_element).
+	 */
+	public static function sqlElementInSectionSubtree(string $elementAlias, int $left, int $right, int $iblockId): string
+	{
+		$alias = preg_replace('#[^A-Za-z0-9_]#', '', $elementAlias) ?: 'BE';
+		$iblockId = (int) $iblockId;
+		$left = (int) $left;
+		$right = (int) $right;
+		return '(
+			EXISTS (
+				SELECT 1 FROM b_iblock_section_element BSE
+				INNER JOIN b_iblock_section BSS ON BSS.ID = BSE.IBLOCK_SECTION_ID AND BSS.IBLOCK_ID = ' . $iblockId . '
+				WHERE BSE.IBLOCK_ELEMENT_ID = ' . $alias . '.ID
+				  AND BSS.LEFT_MARGIN >= ' . $left . '
+				  AND BSS.RIGHT_MARGIN <= ' . $right . '
+			)
+			OR EXISTS (
+				SELECT 1 FROM b_iblock_section BSS2
+				WHERE BSS2.ID = ' . $alias . '.IBLOCK_SECTION_ID
+				  AND BSS2.IBLOCK_ID = ' . $iblockId . '
+				  AND BSS2.LEFT_MARGIN >= ' . $left . '
+				  AND BSS2.RIGHT_MARGIN <= ' . $right . '
+			)
+		)';
+	}
+
+	/**
 	 * Товары с короткой фразой — кандидаты на автопроработку.
 	 *
-	 * @param array{page?:int,page_size?:int,q?:string,filter?:string,sort?:string} $params
+	 * @param array{page?:int,page_size?:int,q?:string,filter?:string,sort?:string,section_id?:int} $params
 	 *        filter: all|todo|done|scored (todo = без UF_TITLO_AUTO_AT; scored = есть балл в work_history)
 	 *        sort: id_desc|score_asc
-	 * @return array{items:array,total:int,page:int,page_size:int,pages:int,sort:string}
+	 *        section_id: ветка каталога (раздел + подразделы); 0 = все
+	 * @return array{items:array,total:int,page:int,page_size:int,pages:int,sort:string,section_id:int}
 	 */
 	public static function listElementsForAuto(array $params): array
 	{
@@ -1105,6 +1194,7 @@ class CatalogRepository
 		if ($sort !== 'score_asc') {
 			$sort = 'id_desc';
 		}
+		$sectionId = (int) ($params['section_id'] ?? 0);
 
 		$uts = 'b_uts_iblock_' . (int) $iblockId . '_element';
 		$phraseCol = UserFields::PHRASE_FIELD;
@@ -1128,6 +1218,13 @@ class CatalogRepository
 				WHERE whx.ENTITY_TYPE = \'E\' AND whx.ENTITY_ID = BE.ID
 				  AND (whx.BEFORE_POINTS IS NOT NULL OR whx.AFTER_POINTS IS NOT NULL)
 			)';
+		}
+
+		$margins = $sectionId > 0 ? self::getSectionSubtreeMargins($sectionId) : null;
+		if ($margins !== null) {
+			$where[] = self::sqlElementInSectionSubtree('BE', $margins['left'], $margins['right'], $iblockId);
+		} else {
+			$sectionId = 0;
 		}
 
 		if ($q !== '') {
@@ -1269,14 +1366,15 @@ class CatalogRepository
 			'page_size' => $pageSize,
 			'pages' => $pages,
 			'sort' => $sort,
+			'section_id' => $sectionId,
 		];
 	}
 
 	/**
 	 * Пагинированный список категорий для автопроработки.
 	 *
-	 * @param array{page?:int,page_size?:int,q?:string,filter?:string,sort?:string} $params
-	 * @return array{items:array,total:int,page:int,page_size:int,pages:int,sort:string}
+	 * @param array{page?:int,page_size?:int,q?:string,filter?:string,sort?:string,section_id?:int} $params
+	 * @return array{items:array,total:int,page:int,page_size:int,pages:int,sort:string,section_id:int}
 	 */
 	public static function listSectionsForAuto(array $params): array
 	{
@@ -1293,6 +1391,7 @@ class CatalogRepository
 		if ($sort !== 'score_asc') {
 			$sort = 'id_desc';
 		}
+		$sectionId = (int) ($params['section_id'] ?? 0);
 
 		$uts = 'b_uts_iblock_' . (int) $iblockId . '_section';
 		$phraseCol = UserFields::PHRASE_FIELD;
@@ -1314,6 +1413,14 @@ class CatalogRepository
 				WHERE whx.ENTITY_TYPE = \'S\' AND whx.ENTITY_ID = BS.ID
 				  AND (whx.BEFORE_POINTS IS NOT NULL OR whx.AFTER_POINTS IS NOT NULL)
 			)';
+		}
+
+		$margins = $sectionId > 0 ? self::getSectionSubtreeMargins($sectionId) : null;
+		if ($margins !== null) {
+			$where[] = 'BS.LEFT_MARGIN >= ' . (int) $margins['left']
+				. ' AND BS.RIGHT_MARGIN <= ' . (int) $margins['right'];
+		} else {
+			$sectionId = 0;
 		}
 
 		if ($q !== '') {
@@ -1455,6 +1562,7 @@ class CatalogRepository
 			'page_size' => $pageSize,
 			'pages' => $pages,
 			'sort' => $sort,
+			'section_id' => $sectionId,
 		];
 	}
 
