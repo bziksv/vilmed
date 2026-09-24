@@ -118,7 +118,7 @@ class CatalogRepository
 	}
 
 	/**
-	 * Search by ID / NAME / CODE.
+	 * Search by ID / NAME / CODE / URL.
 	 * @return array<int, array>
 	 */
 	public static function search(string $entityType, string $q, int $limit = 20): array
@@ -127,6 +127,43 @@ class CatalogRepository
 		$q = trim($q);
 		$limit = max(1, min(50, $limit));
 		$out = [];
+		$entityType = strtoupper($entityType) === 'S' ? 'S' : 'E';
+
+		$urlIds = UrlBuilder::resolveCatalogIdsFromUrl($q, $entityType);
+		if ($urlIds !== null) {
+			foreach ($urlIds as $id) {
+				$id = (int) $id;
+				if ($id <= 0) {
+					continue;
+				}
+				if ($entityType === 'S') {
+					$row = \CIBlockSection::GetList(
+						[],
+						['IBLOCK_ID' => $iblockId, 'ID' => $id, 'CHECK_PERMISSIONS' => 'N'],
+						false,
+						['ID', 'NAME', 'CODE'],
+						['nTopCount' => 1]
+					)->Fetch();
+				} else {
+					$row = \CIBlockElement::GetList(
+						[],
+						['IBLOCK_ID' => $iblockId, 'ID' => $id, 'CHECK_PERMISSIONS' => 'N', 'SHOW_NEW' => 'Y'],
+						false,
+						['nTopCount' => 1],
+						['ID', 'NAME', 'CODE']
+					)->Fetch();
+				}
+				if ($row) {
+					$out[] = [
+						'id' => (int) $row['ID'],
+						'name' => (string) $row['NAME'],
+						'code' => (string) $row['CODE'],
+						'type' => $entityType,
+					];
+				}
+			}
+			return $out;
+		}
 
 		if ($entityType === 'S') {
 			$filter = ['IBLOCK_ID' => $iblockId];

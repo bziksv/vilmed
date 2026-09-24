@@ -53,7 +53,11 @@ $hasKey = Config::apiKey() !== '';
 	<div class="adm-detail-content-item-block">
 		<table class="adm-detail-content-table edit-table">
 			<tr>
-				<td class="adm-detail-content-cell-l" width="30%">Тип</td>
+				<td class="adm-detail-content-cell-l" width="30%">Тип
+					<span class="titlo-help" tabindex="0" aria-label="Тип сущности">?
+						<span class="titlo-help__tip">Товар — карточка из каталога (элемент инфоблока). Категория — раздел каталога. От типа зависят поиск, URL и какое поле текста генерируем (анонс/деталка vs описание раздела).</span>
+					</span>
+				</td>
 				<td class="adm-detail-content-cell-r">
 					<label><input type="radio" name="entity_type" value="E" <?= $entityType === 'E' ? 'checked' : '' ?>> Товар</label>
 					&nbsp;
@@ -61,15 +65,25 @@ $hasKey = Config::apiKey() !== '';
 				</td>
 			</tr>
 			<tr>
-				<td class="adm-detail-content-cell-l">Поиск (ID / название / код)</td>
+				<td class="adm-detail-content-cell-l">Поиск
+					<span class="titlo-help" tabindex="0" aria-label="Поиск сущности">?
+						<span class="titlo-help__tip">Найдите нужную позицию по ID, названию, символьному коду или полному URL страницы на сайте (например https://vilmed.ru/product/…/ или раздел /catalog/…/). Затем выберите строку из списка.</span>
+					</span>
+				</td>
 				<td class="adm-detail-content-cell-r">
-					<input type="text" id="titlo-search-q" class="adm-input" style="width:360px" value="<?= $prefill ? htmlspecialcharsbx($prefill['name']) : '' ?>">
+					<input type="text" id="titlo-search-q" class="adm-input" style="width:360px"
+						placeholder="ID / название / код / URL"
+						value="<?= $prefill ? htmlspecialcharsbx($prefill['name']) : '' ?>">
 					<input type="button" id="titlo-search-btn" class="adm-btn" value="Найти">
 					<div id="titlo-search-results" class="titlo-search-results"></div>
 				</td>
 			</tr>
 			<tr>
-				<td class="adm-detail-content-cell-l">Выбрано</td>
+				<td class="adm-detail-content-cell-l">Выбрано
+					<span class="titlo-help" tabindex="0" aria-label="Выбранная сущность">?
+						<span class="titlo-help__tip">Текущая позиция для анализа и генерации. Ссылка «на проде» открывает карточку/раздел на боевом сайте (не на localhost).</span>
+					</span>
+				</td>
 				<td class="adm-detail-content-cell-r">
 					<input type="hidden" id="titlo-entity-id" value="<?= $prefill ? (int) $prefill['id'] : 0 ?>">
 					<strong id="titlo-entity-label"><?= $prefill ? htmlspecialcharsbx('#' . $prefill['id'] . ' — ' . $prefill['name']) : '—' ?></strong>
@@ -77,7 +91,11 @@ $hasKey = Config::apiKey() !== '';
 				</td>
 			</tr>
 			<tr>
-				<td class="adm-detail-content-cell-l">URL посадочной</td>
+				<td class="adm-detail-content-cell-l">URL посадочной
+					<span class="titlo-help" tabindex="0" aria-label="URL посадочной">?
+						<span class="titlo-help__tip">Страница, которую Titlo скачает и сравнит с выдачей. Подставляется при выборе товара/категории. Можно поправить вручную, если нужен другой URL. Для краула кабинет должен открывать публичный адрес (не 127.0.0.1).</span>
+					</span>
+				</td>
 				<td class="adm-detail-content-cell-r">
 					<input type="text" id="titlo-url" class="adm-input" style="width:100%" value="<?= $prefill ? htmlspecialcharsbx($prefill['url']) : '' ?>">
 					<div style="margin-top:4px">
@@ -86,7 +104,11 @@ $hasKey = Config::apiKey() !== '';
 				</td>
 			</tr>
 			<tr>
-				<td class="adm-detail-content-cell-l">Ключевая фраза</td>
+				<td class="adm-detail-content-cell-l">Ключевая фраза
+					<span class="titlo-help" tabindex="0" aria-label="Ключевая фраза">?
+						<span class="titlo-help__tip">Короткий запрос (обычно до 50 символов), по которому собирается выдача и считается релевантность. Берётся из UF_TITLO_PHRASE («Проверка названий»), иначе — из названия. Именно её, а не полный NAME, лучше править перед анализом.</span>
+					</span>
+				</td>
 				<td class="adm-detail-content-cell-r">
 					<input type="text" id="titlo-phrase" class="adm-input" style="width:100%" maxlength="50" value="<?= $prefill ? htmlspecialcharsbx(\Titlo\Relevance\CatalogRepository::preferredPhrase($prefill)) : '' ?>">
 				</td>
@@ -94,7 +116,7 @@ $hasKey = Config::apiKey() !== '';
 			<tr>
 				<td class="adm-detail-content-cell-l">Поиск / регион / топ
 					<span class="titlo-help" tabindex="0" aria-label="Параметры выдачи">?
-		<span class="titlo-help__tip">Параметры сбора выдачи. Яндекс и Google — разные ID городов (lr vs geo). Смена ПС подставляет Москву для этой ПС. History_id ниже — прошлый анализ по URL, сам по себе от смены ПС не меняется: новый появится после нового запуска.</span>
+						<span class="titlo-help__tip">Параметры сбора выдачи. Яндекс и Google — разные ID городов (lr vs geo). Смена ПС подставляет Москву для этой ПС. history_id ниже — прошлый анализ по URL: сам по себе от смены ПС не меняется, новый появится после нового запуска.</span>
 					</span>
 				</td>
 				<td class="adm-detail-content-cell-r">
@@ -125,28 +147,54 @@ $hasKey = Config::apiKey() !== '';
 				</td>
 			</tr>
 			<tr>
-				<td class="adm-detail-content-cell-l">Готовый history_id</td>
+				<td class="adm-detail-content-cell-l">Готовый history_id
+					<span class="titlo-help" tabindex="0" aria-label="Что такое history_id">?
+						<span class="titlo-help__tip">
+							<b>history_id</b> — номер готовой проверки релевантности в кабинете Titlo
+							(карточка вида cabinet.titlo.ru/show-history/<i>номер</i>).<br>
+							После «Запустить анализ» подставляется сам. Можно вписать вручную
+							(из кабинета или из таблицы «Прошлые проверки» ниже) и нажать
+							<b>«Подтянуть фразы»</b> — загрузятся баллы и TLP <b>без нового анализа</b>.
+						</span>
+					</span>
+				</td>
 				<td class="adm-detail-content-cell-r">
 					<input type="text" id="titlo-history-id" class="adm-input" style="width:160px" placeholder="например 55371">
-					<input type="button" id="titlo-load-history" class="adm-btn" value="Подтянуть фразы">
+					<input type="button" id="titlo-load-history" class="adm-btn" value="Подтянуть фразы"
+						title="Загрузить баллы и TLP по уже готовому history_id без нового анализа">
 				</td>
 			</tr>
 		</table>
 		<div style="margin-top:12px">
 			<input type="button" id="titlo-start-analysis" class="adm-btn-save" value="Запустить анализ релевантности" <?= $hasKey ? '' : 'disabled' ?>>
+			<span class="titlo-help" tabindex="0" aria-label="Запуск анализа" style="margin-left:6px">?
+				<span class="titlo-help__tip">Отправляет URL и ключевую фразу в Titlo: сбор выдачи → сравнение с посадочной → баллы и TLP. Занимает время (прогресс справа). После успеха заполняется history_id и блоки ниже.</span>
+			</span>
 			<span id="titlo-analysis-status" class="titlo-status"></span>
 		</div>
 	</div>
 
 	<div class="adm-detail-content-item-block">
-		<h3>Результат анализа / динамика</h3>
+		<h3>Результат анализа / динамика
+			<span class="titlo-help" tabindex="0" aria-label="Результат анализа">?
+				<span class="titlo-help__tip">Сводка последней проверки: ваш балл / рекомендуемый, покрытие, позиция. Таблица ниже — история проверок этой посадочной; «открыть» подгружает TLP выбранного history_id.</span>
+			</span>
+		</h3>
 		<div id="titlo-scores" class="titlo-scores-box">
 			<div class="titlo-status" style="margin:0">Пока нет данных — выберите товар (подтянем прошлые проверки) или запустите новый анализ.</div>
 		</div>
 		<div id="titlo-hist-wrap" style="display:none">
-			<strong style="font-size:13px">Прошлые проверки этой посадочной</strong>
+			<strong style="font-size:13px">Прошлые проверки этой посадочной
+				<span class="titlo-help" tabindex="0" aria-label="История проверок">?
+					<span class="titlo-help__tip">Список анализов Titlo по текущему URL. Колонка history_id — номер проверки в кабинете. «Открыть» подставляет этот id и подтягивает TLP без нового запуска.</span>
+				</span>
+			</strong>
 			<table class="titlo-hist-table">
-				<thead><tr><th>Дата</th><th>history_id</th><th>Домен</th><th>ПС</th><th>Регион</th><th>ТОП</th><th>Баллы (ваш / рек.)
+				<thead><tr><th>Дата</th><th>history_id
+					<span class="titlo-help" tabindex="0" aria-label="history_id в таблице">?
+						<span class="titlo-help__tip">ID проверки в кабинете Titlo. По нему можно открыть карточку на cabinet.titlo.ru/show-history/… или вставить в поле «Готовый history_id» выше.</span>
+					</span>
+				</th><th>Домен</th><th>ПС</th><th>Регион</th><th>ТОП</th><th>Баллы (ваш / рек.)
 					<span class="titlo-help" tabindex="0" aria-label="Про рекомендуемый балл">?
 						<span class="titlo-help__tip">До рекомендованного балла доходить не всегда нужно. Изучите конкурентов: часть слов часто в меню, шапке, футере и других сквозных блоках — их не обязательно вшивать в текст посадочной.</span>
 					</span>
@@ -203,10 +251,16 @@ $hasKey = Config::apiKey() !== '';
 		</h3>
 		<div class="titlo-tlp-limits" id="titlo-tlp-limits" style="display:none;margin:8px 0 10px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px">
 			<label style="margin-right:16px">Нет на сайте
+				<span class="titlo-help" tabindex="0" aria-label="Лимит нет на сайте">?
+					<span class="titlo-help__tip">Сколько слов из таблицы «Нет на сайте» взять в генерацию (потолок в модели — около 80). Рядом — сколько всего доступно в анализе.</span>
+				</span>
 				<input type="number" id="titlo-tlp-missing-limit" class="adm-input" value="300" min="0" max="500" style="width:70px">
 				<span class="titlo-status" id="titlo-tlp-missing-avail"></span>
 			</label>
 			<label style="margin-right:16px">С разницей
+				<span class="titlo-help" tabindex="0" aria-label="Лимит с разницей">?
+					<span class="titlo-help__tip">Сколько слов из «С разницей» добавить к списку для генерации — у конкурентов их больше, чем на вашей странице.</span>
+				</span>
 				<input type="number" id="titlo-tlp-diff-limit" class="adm-input" value="5" min="0" max="200" style="width:70px">
 				<span class="titlo-status" id="titlo-tlp-diff-avail"></span>
 			</label>
@@ -247,6 +301,9 @@ $hasKey = Config::apiKey() !== '';
 		</p>
 		<div class="titlo-gen-row" data-type="preview">
 			<label>Анонс — промпт
+				<span class="titlo-help" tabindex="0" aria-label="Анонс">?
+					<span class="titlo-help__tip">Короткий PREVIEW_TEXT (анонс в списках/карточках). Промпт из раздела «Промпты» → «Анонс». К тексту дописываются TLP и HTML страницы.</span>
+				</span>
 				<select class="titlo-prompt-select adm-input" data-type="preview" style="min-width:280px"></select>
 			</label>
 			<span class="titlo-prompt-meta titlo-status"></span>
@@ -254,6 +311,9 @@ $hasKey = Config::apiKey() !== '';
 		</div>
 		<div class="titlo-gen-row" data-type="detail" style="margin-top:8px">
 			<label>Детальное — промпт
+				<span class="titlo-help" tabindex="0" aria-label="Детальное описание">?
+					<span class="titlo-help__tip">Длинный DETAIL_TEXT карточки товара. Можно выбрать «со стилями (Vilmed)» (.vmd-desc). Для категорий это поле не сохраняется — используйте блок «Категория».</span>
+				</span>
 				<select class="titlo-prompt-select adm-input" data-type="detail" style="min-width:280px"></select>
 			</label>
 			<span class="titlo-prompt-meta titlo-status"></span>
@@ -261,6 +321,9 @@ $hasKey = Config::apiKey() !== '';
 		</div>
 		<div class="titlo-gen-row" data-type="category" style="margin-top:8px">
 			<label>Категория — промпт
+				<span class="titlo-help" tabindex="0" aria-label="Описание категории">?
+					<span class="titlo-help__tip">Текст раздела каталога (DESCRIPTION). Актуально при типе «Категория». Промпт — из «Промпты» → описание категории.</span>
+				</span>
 				<select class="titlo-prompt-select adm-input" data-type="category" style="min-width:280px"></select>
 			</label>
 			<span class="titlo-prompt-meta titlo-status"></span>
@@ -268,15 +331,30 @@ $hasKey = Config::apiKey() !== '';
 		</div>
 		<span id="titlo-gen-status" class="titlo-status" style="display:block;margin-top:8px"></span>
 		<div class="titlo-preview" style="margin-top:12px">
-			<label>Анонс</label>
+			<label>Анонс
+				<span class="titlo-help" tabindex="0" aria-label="Поле анонса">?
+					<span class="titlo-help__tip">Черновик анонса после генерации. Можно править руками перед «Сохранить в Bitrix».</span>
+				</span>
+			</label>
 			<textarea id="titlo-text-preview"></textarea>
-			<label>Детальное</label>
+			<label>Детальное
+				<span class="titlo-help" tabindex="0" aria-label="Поле детального">?
+					<span class="titlo-help__tip">Черновик детального описания. HTML сохраняется в DETAIL_TEXT товара.</span>
+				</span>
+			</label>
 			<textarea id="titlo-text-detail"></textarea>
-			<label>Категория</label>
+			<label>Категория
+				<span class="titlo-help" tabindex="0" aria-label="Поле категории">?
+					<span class="titlo-help__tip">Черновик описания раздела. Сохраняется в DESCRIPTION категории.</span>
+				</span>
+			</label>
 			<textarea id="titlo-text-category"></textarea>
 		</div>
 		<div style="margin-top:12px">
 			<input type="button" id="titlo-save" class="adm-btn-save" value="Сохранить в Bitrix с подтверждением">
+			<span class="titlo-help" tabindex="0" aria-label="Сохранение">?
+				<span class="titlo-help__tip">Записывает заполненные поля в каталог Bitrix (с подтверждением). Пустые текстовые поля не затирают уже существующий контент без нужды — смотрите диалог подтверждения.</span>
+			</span>
 			<span id="titlo-save-status" class="titlo-status"></span>
 		</div>
 	</div>
