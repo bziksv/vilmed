@@ -139,7 +139,7 @@ if ($sort !== 'id_desc') {
 				<option value="id_desc" <?= $sort === 'id_desc' ? 'selected' : '' ?>>ID ↓</option>
 			</select>
 		</label>
-		<input type="text" id="titlo-auto-q" class="adm-input" placeholder="ID / название / код" value="<?= htmlspecialcharsbx($q) ?>" style="width:260px">
+		<input type="text" id="titlo-auto-q" class="adm-input" placeholder="ID или части слов: kaw oto" value="<?= htmlspecialcharsbx($q) ?>" style="width:280px">
 		<input type="button" id="titlo-auto-reload" class="adm-btn" value="Показать">
 		<span id="titlo-auto-list-status" class="status"></span>
 	</div>

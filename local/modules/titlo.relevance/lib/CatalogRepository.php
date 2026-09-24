@@ -5,7 +5,9 @@ namespace Titlo\Relevance;
 class CatalogRepository
 {
 	/**
-	 * Поиск в «Проверке названий»: ID / название / код / полный URL.
+	 * Поиск в списках: ID / название / код / короткая фраза / полный URL.
+	 * Несколько слов — все токены обязательны (AND), порядок и регистр не важны,
+	 * достаточно вхождения части слова (LIKE %token%).
 	 * Пустая строка — без доп. условия.
 	 */
 	public static function sqlPhraseSearchCondition(
@@ -14,13 +16,13 @@ class CatalogRepository
 		string $entityType,
 		string $phraseCol
 	): string {
-		global $DB;
 		$q = trim($q);
 		if ($q === '') {
 			return '';
 		}
 		$alias = preg_replace('#[^A-Za-z0-9_]#', '', $tableAlias) ?: 'BE';
 		$entityType = strtoupper($entityType) === 'S' ? 'S' : 'E';
+		$phraseCol = preg_replace('#[^A-Za-z0-9_]#', '', $phraseCol) ?: 'UF_TITLO_PHRASE';
 
 		$urlIds = UrlBuilder::resolveCatalogIdsFromUrl($q, $entityType);
 		if ($urlIds !== null) {
@@ -38,9 +40,58 @@ class CatalogRepository
 			return $alias . '.ID = ' . (int) $q;
 		}
 
-		$like = Config::forLike($q);
-		return '(' . $alias . '.NAME LIKE "%' . $like . '%" OR '
-			. $alias . '.CODE LIKE "%' . $like . '%" OR UTS.' . $phraseCol . ' LIKE "%' . $like . '%")';
+		$tokens = self::searchTokens($q);
+		if ($tokens === []) {
+			return '1 = 0';
+		}
+
+		$parts = [];
+		foreach ($tokens as $token) {
+			$like = Config::forLike($token);
+			$parts[] = '(' . $alias . '.NAME LIKE "%' . $like . '%" OR '
+				. $alias . '.CODE LIKE "%' . $like . '%" OR UTS.' . $phraseCol . ' LIKE "%' . $like . '%")';
+		}
+		return '(' . implode(' AND ', $parts) . ')';
+	}
+
+	/**
+	 * SQL-выражение релевантности для ORDER BY (больше = лучше).
+	 */
+	public static function sqlSearchRelevanceScore(string $tableAlias, string $q, ?string $phraseCol = null): string
+	{
+		global $DB;
+		$alias = preg_replace('#[^A-Za-z0-9_]#', '', $tableAlias) ?: 'BE';
+		$q = trim($q);
+		if ($q === '' || ctype_digit($q)) {
+			return '0';
+		}
+		$tokens = self::searchTokens($q);
+		if ($tokens === []) {
+			return '0';
+		}
+
+		$fullLike = Config::forLike($q);
+		$parts = [
+			'(CASE WHEN LOWER(' . $alias . '.NAME) = LOWER("' . $DB->ForSql($q) . '") THEN 1000 ELSE 0 END)',
+			'(CASE WHEN ' . $alias . '.NAME LIKE "' . $fullLike . '%" THEN 400 ELSE 0 END)',
+			'(CASE WHEN ' . $alias . '.NAME LIKE "%' . $fullLike . '%" THEN 200 ELSE 0 END)',
+			'(CASE WHEN ' . $alias . '.CODE LIKE "%' . $fullLike . '%" THEN 100 ELSE 0 END)',
+		];
+		$safePhrase = $phraseCol !== null && $phraseCol !== ''
+			? preg_replace('#[^A-Za-z0-9_]#', '', $phraseCol)
+			: '';
+		if ($safePhrase !== '') {
+			$parts[] = '(CASE WHEN UTS.' . $safePhrase . ' LIKE "%' . $fullLike . '%" THEN 80 ELSE 0 END)';
+		}
+		foreach ($tokens as $i => $token) {
+			$like = Config::forLike($token);
+			$w = max(10, 80 - ($i * 10));
+			$parts[] = '(CASE WHEN ' . $alias . '.NAME LIKE "%' . $like . '%" THEN ' . $w . ' ELSE 0 END)';
+			if ($safePhrase !== '') {
+				$parts[] = '(CASE WHEN UTS.' . $safePhrase . ' LIKE "%' . $like . '%" THEN ' . (int) max(5, $w / 2) . ' ELSE 0 END)';
+			}
+		}
+		return '(' . implode(' + ', $parts) . ')';
 	}
 
 	/**
@@ -1533,11 +1584,9 @@ class CatalogRepository
 		}
 
 		if ($q !== '') {
-			if (ctype_digit($q)) {
-				$where[] = 'BE.ID = ' . (int) $q;
-			} else {
-				$like = Config::forLike($q);
-				$where[] = '(BE.NAME LIKE "%' . $like . '%" OR BE.CODE LIKE "%' . $like . '%" OR UTS.' . $phraseCol . ' LIKE "%' . $like . '%")';
+			$cond = self::sqlPhraseSearchCondition($q, 'BE', 'E', $phraseCol);
+			if ($cond !== '') {
+				$where[] = $cond;
 			}
 		}
 
@@ -1574,6 +1623,9 @@ class CatalogRepository
 			$orderSql = '(COALESCE(WH.AFTER_POINTS, WH.BEFORE_POINTS) IS NULL) ASC,'
 				. ' COALESCE(WH.AFTER_POINTS, WH.BEFORE_POINTS) ASC,'
 				. ' BE.ID DESC';
+		}
+		if ($q !== '' && !ctype_digit($q)) {
+			$orderSql = self::sqlSearchRelevanceScore('BE', $q, $phraseCol) . ' DESC, ' . $orderSql;
 		}
 
 		$res = $DB->Query("
@@ -1731,11 +1783,9 @@ class CatalogRepository
 		}
 
 		if ($q !== '') {
-			if (ctype_digit($q)) {
-				$where[] = 'BS.ID = ' . (int) $q;
-			} else {
-				$like = Config::forLike($q);
-				$where[] = '(BS.NAME LIKE "%' . $like . '%" OR BS.CODE LIKE "%' . $like . '%" OR UTS.' . $phraseCol . ' LIKE "%' . $like . '%")';
+			$cond = self::sqlPhraseSearchCondition($q, 'BS', 'S', $phraseCol);
+			if ($cond !== '') {
+				$where[] = $cond;
 			}
 		}
 
@@ -1772,6 +1822,9 @@ class CatalogRepository
 			$orderSql = '(COALESCE(WH.AFTER_POINTS, WH.BEFORE_POINTS) IS NULL) ASC,'
 				. ' COALESCE(WH.AFTER_POINTS, WH.BEFORE_POINTS) ASC,'
 				. ' BS.ID DESC';
+		}
+		if ($q !== '' && !ctype_digit($q)) {
+			$orderSql = self::sqlSearchRelevanceScore('BS', $q, $phraseCol) . ' DESC, ' . $orderSql;
 		}
 
 		$res = $DB->Query("
