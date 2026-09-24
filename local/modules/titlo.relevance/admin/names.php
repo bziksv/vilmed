@@ -177,7 +177,15 @@ $phraseMaxLen = (int) UserFields::PHRASE_MAX_LEN;
 		<tr>
 			<th style="width:70px">ID</th>
 			<th>Полное название</th>
-			<th style="width:300px">Ключевая фраза (до <?= $phraseMaxLen ?>)</th>
+			<th style="width:300px">Ключевая фраза
+				<span class="titlo-help" tabindex="0" aria-label="Лимит фразы">?
+					<span class="titlo-help__tip">
+						Стандартные промпты ≈50 символов.<br>
+						Свой промпт — свои правила, хранение до <?= $phraseMaxLen ?> (лимит NAME в Bitrix).<br>
+						Счётчик под полем — текущая длина / максимум.
+					</span>
+				</span>
+			</th>
 			<th style="width:130px">Не прорабатывать</th>
 			<th style="width:280px">Действия</th>
 		</tr>
