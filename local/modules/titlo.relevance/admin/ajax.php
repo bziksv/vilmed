@@ -440,7 +440,7 @@ try {
 				'q' => (string) ($_POST['q'] ?? ''),
 				'filter' => (string) ($_POST['filter'] ?? 'todo'),
 				'sort' => (string) ($_POST['sort'] ?? 'id_desc'),
-				'section_id' => (int) ($_POST['section_id'] ?? 0),
+				'section_ids' => $_POST['section_ids'] ?? ($_POST['section_id'] ?? 0),
 			]);
 			titlo_json(array_merge(['ok' => true], $list));
 
@@ -453,7 +453,7 @@ try {
 				'q' => (string) ($_POST['q'] ?? ''),
 				'filter' => (string) ($_POST['filter'] ?? 'todo'),
 				'sort' => (string) ($_POST['sort'] ?? 'id_desc'),
-				'section_id' => (int) ($_POST['section_id'] ?? 0),
+				'section_ids' => $_POST['section_ids'] ?? ($_POST['section_id'] ?? 0),
 			]);
 			titlo_json(array_merge(['ok' => true], $list));
 

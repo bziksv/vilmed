@@ -1230,6 +1230,63 @@ class CatalogRepository
 	}
 
 	/**
+	 * Нормализация списка ID разделов из GET/POST (CSV, JSON, массив, одиночный int).
+	 *
+	 * @param mixed $raw
+	 * @return int[] уникальные ID > 0
+	 */
+	public static function normalizeSectionIds($raw): array
+	{
+		if ($raw === null || $raw === '' || $raw === []) {
+			return [];
+		}
+		if (is_int($raw) || (is_string($raw) && ctype_digit(trim($raw)))) {
+			$id = (int) $raw;
+			return $id > 0 ? [$id] : [];
+		}
+		if (is_string($raw)) {
+			$trim = trim($raw);
+			if ($trim === '') {
+				return [];
+			}
+			if ($trim[0] === '[') {
+				$decoded = json_decode($trim, true);
+				$raw = is_array($decoded) ? $decoded : [];
+			} else {
+				$raw = preg_split('/[\s,;]+/', $trim) ?: [];
+			}
+		}
+		if (!is_array($raw)) {
+			return [];
+		}
+		$out = [];
+		foreach ($raw as $v) {
+			$id = (int) $v;
+			if ($id > 0) {
+				$out[$id] = $id;
+			}
+		}
+		return array_values($out);
+	}
+
+	/**
+	 * Извлечь section_ids из params (поддержка section_ids + legacy section_id).
+	 *
+	 * @param array $params
+	 * @return int[]
+	 */
+	public static function sectionIdsFromParams(array $params): array
+	{
+		if (array_key_exists('section_ids', $params) && $params['section_ids'] !== null && $params['section_ids'] !== '') {
+			$ids = self::normalizeSectionIds($params['section_ids']);
+			if ($ids !== []) {
+				return $ids;
+			}
+		}
+		return self::normalizeSectionIds($params['section_id'] ?? 0);
+	}
+
+	/**
 	 * Границы поддерева раздела (LEFT_MARGIN / RIGHT_MARGIN) в каталоге модуля.
 	 *
 	 * @return array{left:int,right:int}|null
@@ -1286,13 +1343,65 @@ class CatalogRepository
 	}
 
 	/**
+	 * OR по нескольким веткам каталога для товаров.
+	 *
+	 * @param int[] $sectionIds
+	 */
+	public static function sqlElementInAnySectionSubtree(string $elementAlias, array $sectionIds, int $iblockId): ?string
+	{
+		$parts = [];
+		foreach (self::normalizeSectionIds($sectionIds) as $sectionId) {
+			$margins = self::getSectionSubtreeMargins($sectionId);
+			if ($margins !== null) {
+				$parts[] = self::sqlElementInSectionSubtree(
+					$elementAlias,
+					$margins['left'],
+					$margins['right'],
+					$iblockId
+				);
+			}
+		}
+		if ($parts === []) {
+			return null;
+		}
+		if (count($parts) === 1) {
+			return $parts[0];
+		}
+		return '(' . implode(' OR ', $parts) . ')';
+	}
+
+	/**
+	 * OR по нескольким веткам для списка категорий (LEFT/RIGHT margin).
+	 *
+	 * @param int[] $sectionIds
+	 */
+	public static function sqlSectionInAnySubtree(array $sectionIds): ?string
+	{
+		$parts = [];
+		foreach (self::normalizeSectionIds($sectionIds) as $sectionId) {
+			$margins = self::getSectionSubtreeMargins($sectionId);
+			if ($margins !== null) {
+				$parts[] = '(BS.LEFT_MARGIN >= ' . (int) $margins['left']
+					. ' AND BS.RIGHT_MARGIN <= ' . (int) $margins['right'] . ')';
+			}
+		}
+		if ($parts === []) {
+			return null;
+		}
+		if (count($parts) === 1) {
+			return $parts[0];
+		}
+		return '(' . implode(' OR ', $parts) . ')';
+	}
+
+	/**
 	 * Товары с короткой фразой — кандидаты на автопроработку.
 	 *
-	 * @param array{page?:int,page_size?:int,q?:string,filter?:string,sort?:string,section_id?:int} $params
+	 * @param array{page?:int,page_size?:int,q?:string,filter?:string,sort?:string,section_id?:int,section_ids?:int[]|string} $params
 	 *        filter: all|todo|done|scored (todo = без UF_TITLO_AUTO_AT; scored = есть балл в work_history)
 	 *        sort: id_desc|score_asc
-	 *        section_id: ветка каталога (раздел + подразделы); 0 = все
-	 * @return array{items:array,total:int,page:int,page_size:int,pages:int,sort:string,section_id:int}
+	 *        section_ids: ветки каталога (раздел + подразделы); пусто = все
+	 * @return array{items:array,total:int,page:int,page_size:int,pages:int,sort:string,section_id:int,section_ids:int[]}
 	 */
 	public static function listElementsForAuto(array $params): array
 	{
@@ -1309,7 +1418,8 @@ class CatalogRepository
 		if ($sort !== 'score_asc') {
 			$sort = 'id_desc';
 		}
-		$sectionId = (int) ($params['section_id'] ?? 0);
+		$sectionIds = self::sectionIdsFromParams($params);
+		$sectionId = $sectionIds[0] ?? 0;
 
 		$uts = 'b_uts_iblock_' . (int) $iblockId . '_element';
 		$phraseCol = UserFields::PHRASE_FIELD;
@@ -1335,10 +1445,11 @@ class CatalogRepository
 			)';
 		}
 
-		$margins = $sectionId > 0 ? self::getSectionSubtreeMargins($sectionId) : null;
-		if ($margins !== null) {
-			$where[] = self::sqlElementInSectionSubtree('BE', $margins['left'], $margins['right'], $iblockId);
+		$branchSql = self::sqlElementInAnySectionSubtree('BE', $sectionIds, $iblockId);
+		if ($branchSql !== null) {
+			$where[] = $branchSql;
 		} else {
+			$sectionIds = [];
 			$sectionId = 0;
 		}
 
@@ -1482,14 +1593,15 @@ class CatalogRepository
 			'pages' => $pages,
 			'sort' => $sort,
 			'section_id' => $sectionId,
+			'section_ids' => $sectionIds,
 		];
 	}
 
 	/**
 	 * Пагинированный список категорий для автопроработки.
 	 *
-	 * @param array{page?:int,page_size?:int,q?:string,filter?:string,sort?:string,section_id?:int} $params
-	 * @return array{items:array,total:int,page:int,page_size:int,pages:int,sort:string,section_id:int}
+	 * @param array{page?:int,page_size?:int,q?:string,filter?:string,sort?:string,section_id?:int,section_ids?:int[]|string} $params
+	 * @return array{items:array,total:int,page:int,page_size:int,pages:int,sort:string,section_id:int,section_ids:int[]}
 	 */
 	public static function listSectionsForAuto(array $params): array
 	{
@@ -1506,7 +1618,8 @@ class CatalogRepository
 		if ($sort !== 'score_asc') {
 			$sort = 'id_desc';
 		}
-		$sectionId = (int) ($params['section_id'] ?? 0);
+		$sectionIds = self::sectionIdsFromParams($params);
+		$sectionId = $sectionIds[0] ?? 0;
 
 		$uts = 'b_uts_iblock_' . (int) $iblockId . '_section';
 		$phraseCol = UserFields::PHRASE_FIELD;
@@ -1530,11 +1643,11 @@ class CatalogRepository
 			)';
 		}
 
-		$margins = $sectionId > 0 ? self::getSectionSubtreeMargins($sectionId) : null;
-		if ($margins !== null) {
-			$where[] = 'BS.LEFT_MARGIN >= ' . (int) $margins['left']
-				. ' AND BS.RIGHT_MARGIN <= ' . (int) $margins['right'];
+		$branchSql = self::sqlSectionInAnySubtree($sectionIds);
+		if ($branchSql !== null) {
+			$where[] = $branchSql;
 		} else {
+			$sectionIds = [];
 			$sectionId = 0;
 		}
 
@@ -1678,6 +1791,7 @@ class CatalogRepository
 			'pages' => $pages,
 			'sort' => $sort,
 			'section_id' => $sectionId,
+			'section_ids' => $sectionIds,
 		];
 	}
 

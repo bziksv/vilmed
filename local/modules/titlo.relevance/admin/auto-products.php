@@ -33,7 +33,9 @@ $hasKey = Config::apiKey() !== '';
 $filter = (string) ($_GET['filter'] ?? 'todo');
 $q = (string) ($_GET['q'] ?? '');
 $page = max(1, (int) ($_GET['page'] ?? 1));
-$sectionId = max(0, (int) ($_GET['section_id'] ?? 0));
+$sectionIds = \Titlo\Relevance\CatalogRepository::normalizeSectionIds(
+	$_GET['section_ids'] ?? ($_GET['section_id'] ?? [])
+);
 
 $policy = Config::getAutoOption('existing_policy', 'E', BatchQueue::POLICY_OVERWRITE);
 if ($policy !== BatchQueue::POLICY_SKIP) {
@@ -110,7 +112,7 @@ if ($sort !== 'id_desc') {
 	</details>
 
 	<div class="filters">
-		<?php AdminUi::renderSectionBranchFilter($sectionId, 'товары'); ?>
+		<?php AdminUi::renderSectionBranchFilter($sectionIds, 'товары'); ?>
 		<label>Фильтр
 			<span class="titlo-help" tabindex="0" aria-label="Фильтр списка">?
 				<span class="titlo-help__tip">
@@ -332,31 +334,11 @@ if ($sort !== 'id_desc') {
 		return '#';
 	}
 
-	function normalizeSearch(s) {
-		return String(s || '').toLowerCase().replace(/ё/g, 'е').trim();
-	}
-
-	function currentSectionId() {
-		var sel = document.getElementById('titlo-auto-section');
-		return sel ? (parseInt(sel.value, 10) || 0) : 0;
-	}
-
-	function filterSectionOptions() {
-		var qEl = document.getElementById('titlo-auto-section-q');
-		var sel = document.getElementById('titlo-auto-section');
-		if (!qEl || !sel) return;
-		var q = normalizeSearch(qEl.value);
-		Array.prototype.forEach.call(sel.options, function (opt, i) {
-			if (i === 0) {
-				opt.hidden = false;
-				opt.disabled = false;
-				return;
-			}
-			var name = normalizeSearch(opt.getAttribute('data-name') || opt.textContent);
-			var match = q === '' || name.indexOf(q) !== -1;
-			opt.hidden = !match;
-			opt.disabled = !match;
-		});
+	function currentSectionIds() {
+		if (window.TitloSectionBranch && typeof TitloSectionBranch.getIds === 'function') {
+			return TitloSectionBranch.getIds();
+		}
+		return [];
 	}
 
 	function setStatus(id, text, isError) {
@@ -774,7 +756,7 @@ if ($sort !== 'id_desc') {
 			q: document.getElementById('titlo-auto-q').value,
 			filter: document.getElementById('titlo-auto-filter').value,
 			sort: document.getElementById('titlo-auto-sort').value,
-			section_id: currentSectionId()
+			section_ids: currentSectionIds().join(',')
 		}).then(function (res) {
 			var body = document.getElementById('titlo-auto-body');
 			if (!res.ok) {
@@ -974,30 +956,12 @@ if ($sort !== 'id_desc') {
 		page = 1;
 		loadList();
 	};
-	document.getElementById('titlo-auto-section').onchange = function () {
-		page = 1;
-		loadList();
-	};
-	document.getElementById('titlo-auto-section-q').oninput = function () {
-		filterSectionOptions();
-	};
-	document.getElementById('titlo-auto-section-q').onkeydown = function (e) {
-		if (e.key !== 'Enter') return;
-		e.preventDefault();
-		var sel = document.getElementById('titlo-auto-section');
-		if (!sel) return;
-		var first = null;
-		Array.prototype.some.call(sel.options, function (opt, i) {
-			if (i === 0 || opt.disabled || opt.hidden) return false;
-			first = opt;
-			return true;
-		});
-		if (first) {
-			sel.value = first.value;
+	if (window.TitloSectionBranch) {
+		TitloSectionBranch.bind(function () {
 			page = 1;
 			loadList();
-		}
-	};
+		});
+	}
 	document.getElementById('titlo-auto-q').onkeydown = function (e) {
 		if (e.key === 'Enter') {
 			page = 1;
