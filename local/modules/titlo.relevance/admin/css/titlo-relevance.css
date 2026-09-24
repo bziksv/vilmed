@@ -1123,6 +1123,26 @@
 	min-height: 120px;
 	font-family: monospace;
 }
+.titlo-gen-field { margin-bottom: 10px; }
+.titlo-gen-field > label { display: block; margin-bottom: 4px; }
+
+/* Товар ↔ категория: показываем только нужные блоки генерации */
+.titlo-gen-block[data-entity-mode="E"] .titlo-gen-for-section,
+.titlo-gen-block[data-entity-mode="S"] .titlo-gen-for-product {
+	display: none !important;
+}
+.titlo-gen-block[data-entity-mode="S"] .titlo-gen-for-section,
+.titlo-gen-block[data-entity-mode="E"] .titlo-gen-for-product {
+	display: block;
+}
+.titlo-gen-block[data-entity-mode="E"] .titlo-gen-row.titlo-gen-for-product,
+.titlo-gen-block[data-entity-mode="S"] .titlo-gen-row.titlo-gen-for-section {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+}
+
 .titlo-status { margin: 8px 0; color: #555; }
 .titlo-error { color: #c00; }
 .titlo-ok { color: #080; }

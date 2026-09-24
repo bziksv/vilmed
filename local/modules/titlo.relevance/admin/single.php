@@ -304,17 +304,20 @@ $hasKey = Config::apiKey() !== '';
 		</div>
 	</div>
 
-	<div class="adm-detail-content-item-block">
+	<div class="adm-detail-content-item-block titlo-gen-block" id="titlo-gen-block" data-entity-mode="<?= $entityType === 'S' ? 'S' : 'E' ?>">
 		<h3>Генерация текстов
 			<span class="titlo-help" tabindex="0" aria-label="Как связаны фразы и промпт">?
-				<span class="titlo-help__tip">1) Промпт из селекта.<br>2) К нему дописывается выбранный срез TLP: первые ~40 слов — обязательно, остальные желательно.<br>3) Плюс HTML страницы по URL.</span>
+				<span class="titlo-help__tip">1) Промпт из селекта.<br>2) К нему дописывается выбранный срез TLP: первые ~40 слов — обязательно, остальные желательно.<br>3) Плюс HTML страницы по URL.<br><br>Для <b>товара</b> — анонс и детальное. Для <b>категории</b> — только описание раздела.</span>
 			</span>
 		</h3>
-		<p class="titlo-status" style="margin:0 0 10px">
-			Промпт выбираете здесь. Слова из TLP выше (по лимитам) при генерации дописываются в конец: топ обязателен, остальное — по возможности.
-			После первого прохода, если балл ещё низкий, выберите промпт «Повторная доработка» или «Повторная доработка: со стилями (Vilmed)» — TLP берётся из текущего history_id.
+		<p class="titlo-status" id="titlo-gen-mode-hint" style="margin:0 0 10px">
+			<?php if ($entityType === 'S'): ?>
+				Режим <b>категории</b>: доступна генерация описания раздела. Анонс и детальное описание карточки скрыты.
+			<?php else: ?>
+				Режим <b>товара</b>: доступны анонс и детальное описание. Генерация текста категории скрыта.
+			<?php endif; ?>
 		</p>
-		<div class="titlo-gen-row" data-type="preview">
+		<div class="titlo-gen-row titlo-gen-for-product" data-type="preview">
 			<label>Анонс — промпт
 				<span class="titlo-help" tabindex="0" aria-label="Анонс">?
 					<span class="titlo-help__tip">Короткий PREVIEW_TEXT (анонс в списках/карточках). Промпт из раздела «Промпты» → «Анонс». К тексту дописываются TLP и HTML страницы.</span>
@@ -324,20 +327,20 @@ $hasKey = Config::apiKey() !== '';
 			<span class="titlo-prompt-meta titlo-status"></span>
 			<input type="button" class="adm-btn titlo-gen-btn" data-type="preview" value="Сгенерировать анонс" <?= $hasKey ? '' : 'disabled' ?>>
 		</div>
-		<div class="titlo-gen-row" data-type="detail" style="margin-top:8px">
+		<div class="titlo-gen-row titlo-gen-for-product" data-type="detail" style="margin-top:8px">
 			<label>Детальное — промпт
 				<span class="titlo-help" tabindex="0" aria-label="Детальное описание">?
-					<span class="titlo-help__tip">Длинный DETAIL_TEXT карточки товара. Можно выбрать «со стилями (Vilmed)» (.vmd-desc). Для категорий это поле не сохраняется — используйте блок «Категория».</span>
+					<span class="titlo-help__tip">Длинный DETAIL_TEXT карточки товара. Можно выбрать «со стилями (Vilmed)» (.vmd-desc).</span>
 				</span>
 				<select class="titlo-prompt-select adm-input" data-type="detail" style="min-width:280px"></select>
 			</label>
 			<span class="titlo-prompt-meta titlo-status"></span>
 			<input type="button" class="adm-btn titlo-gen-btn" data-type="detail" value="Сгенерировать детальное" <?= $hasKey ? '' : 'disabled' ?>>
 		</div>
-		<div class="titlo-gen-row" data-type="category" style="margin-top:8px">
+		<div class="titlo-gen-row titlo-gen-for-section" data-type="category" style="margin-top:8px">
 			<label>Категория — промпт
 				<span class="titlo-help" tabindex="0" aria-label="Описание категории">?
-					<span class="titlo-help__tip">Текст раздела каталога (DESCRIPTION). Актуально при типе «Категория». Промпт — из «Промпты» → описание категории.</span>
+					<span class="titlo-help__tip">Текст раздела каталога (DESCRIPTION). Промпт — из «Промпты» → описание категории.</span>
 				</span>
 				<select class="titlo-prompt-select adm-input" data-type="category" style="min-width:280px"></select>
 			</label>
@@ -346,24 +349,30 @@ $hasKey = Config::apiKey() !== '';
 		</div>
 		<span id="titlo-gen-status" class="titlo-status" style="display:block;margin-top:8px"></span>
 		<div class="titlo-preview" style="margin-top:12px">
-			<label>Анонс
-				<span class="titlo-help" tabindex="0" aria-label="Поле анонса">?
-					<span class="titlo-help__tip">Черновик анонса после генерации. Можно править руками перед «Сохранить в Bitrix».</span>
-				</span>
-			</label>
-			<textarea id="titlo-text-preview"></textarea>
-			<label>Детальное
-				<span class="titlo-help" tabindex="0" aria-label="Поле детального">?
-					<span class="titlo-help__tip">Черновик детального описания. HTML сохраняется в DETAIL_TEXT товара.</span>
-				</span>
-			</label>
-			<textarea id="titlo-text-detail"></textarea>
-			<label>Категория
-				<span class="titlo-help" tabindex="0" aria-label="Поле категории">?
-					<span class="titlo-help__tip">Черновик описания раздела. Сохраняется в DESCRIPTION категории.</span>
-				</span>
-			</label>
-			<textarea id="titlo-text-category"></textarea>
+			<div class="titlo-gen-field titlo-gen-for-product">
+				<label>Анонс
+					<span class="titlo-help" tabindex="0" aria-label="Поле анонса">?
+						<span class="titlo-help__tip">Черновик анонса после генерации. Можно править руками перед «Сохранить в Bitrix».</span>
+					</span>
+				</label>
+				<textarea id="titlo-text-preview"></textarea>
+			</div>
+			<div class="titlo-gen-field titlo-gen-for-product">
+				<label>Детальное
+					<span class="titlo-help" tabindex="0" aria-label="Поле детального">?
+						<span class="titlo-help__tip">Черновик детального описания. HTML сохраняется в DETAIL_TEXT товара.</span>
+					</span>
+				</label>
+				<textarea id="titlo-text-detail"></textarea>
+			</div>
+			<div class="titlo-gen-field titlo-gen-for-section">
+				<label>Категория
+					<span class="titlo-help" tabindex="0" aria-label="Поле категории">?
+						<span class="titlo-help__tip">Черновик описания раздела. Сохраняется в DESCRIPTION категории.</span>
+					</span>
+				</label>
+				<textarea id="titlo-text-category"></textarea>
+			</div>
 		</div>
 		<div style="margin-top:12px">
 			<input type="button" id="titlo-save" class="adm-btn-save" value="Сохранить в Bitrix с подтверждением">
@@ -1486,6 +1495,15 @@ $hasKey = Config::apiKey() !== '';
 	Array.prototype.forEach.call(document.querySelectorAll('.titlo-gen-btn'), function (btn) {
 		btn.onclick = function () {
 			var type = btn.getAttribute('data-type');
+			var isSection = entityType() === 'S';
+			if (isSection && (type === 'preview' || type === 'detail')) {
+				setStatus('titlo-gen-status', 'В режиме категории доступна только генерация описания раздела', true);
+				return;
+			}
+			if (!isSection && type === 'category') {
+				setStatus('titlo-gen-status', 'В режиме товара генерация текста категории недоступна', true);
+				return;
+			}
 			var sel = document.querySelector('.titlo-prompt-select[data-type="' + type + '"]');
 			var promptId = sel ? (parseInt(sel.value, 10) || 0) : 0;
 			var promptName = sel && sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '';
@@ -1562,24 +1580,17 @@ $hasKey = Config::apiKey() !== '';
 	}
 
 	function syncGenRowsByEntity() {
-		var isSection = entityType() === 'S';
-		Array.prototype.forEach.call(document.querySelectorAll('.titlo-gen-row'), function (row) {
-			var t = row.getAttribute('data-type');
-			var show = isSection ? (t === 'category') : (t === 'preview' || t === 'detail');
-			row.style.display = show ? '' : 'none';
-		});
-		var previewBox = document.getElementById('titlo-text-preview');
-		var detailBox = document.getElementById('titlo-text-detail');
-		var catBox = document.getElementById('titlo-text-category');
-		var previewLab = previewBox ? previewBox.previousElementSibling : null;
-		var detailLab = detailBox ? detailBox.previousElementSibling : null;
-		var catLab = catBox ? catBox.previousElementSibling : null;
-		if (previewBox) previewBox.style.display = isSection ? 'none' : '';
-		if (detailBox) detailBox.style.display = isSection ? 'none' : '';
-		if (catBox) catBox.style.display = isSection ? '' : 'none';
-		if (previewLab && previewLab.tagName === 'LABEL') previewLab.style.display = isSection ? 'none' : '';
-		if (detailLab && detailLab.tagName === 'LABEL') detailLab.style.display = isSection ? 'none' : '';
-		if (catLab && catLab.tagName === 'LABEL') catLab.style.display = isSection ? '' : 'none';
+		var mode = entityType() === 'S' ? 'S' : 'E';
+		var block = document.getElementById('titlo-gen-block');
+		if (block) {
+			block.setAttribute('data-entity-mode', mode);
+		}
+		var hint = document.getElementById('titlo-gen-mode-hint');
+		if (hint) {
+			hint.innerHTML = mode === 'S'
+				? 'Режим <b>категории</b>: доступна генерация описания раздела. Анонс и детальное описание карточки скрыты.'
+				: 'Режим <b>товара</b>: доступны анонс и детальное описание. Генерация текста категории скрыта.';
+		}
 	}
 
 	function loadPhrasePromptSelect(byType) {
@@ -1696,6 +1707,7 @@ $hasKey = Config::apiKey() !== '';
 	};
 
 	loadPromptSelects();
+	syncGenRowsByEntity();
 
 	['titlo-tlp-missing-limit', 'titlo-tlp-diff-limit'].forEach(function (id) {
 		var el = document.getElementById(id);
