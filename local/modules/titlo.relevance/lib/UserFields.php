@@ -9,6 +9,8 @@ class UserFields
 	public const PHRASE_FIELD = 'UF_TITLO_PHRASE';
 	public const SKIP_FIELD = 'UF_TITLO_PHRASE_SKIP';
 	public const PHRASE_AT_FIELD = 'UF_TITLO_PHRASE_AT';
+	/** Оригинальное NAME до замены короткой фразой. */
+	public const NAME_ORIG_FIELD = 'UF_TITLO_NAME_ORIG';
 	/** Дата автопроработки карточки (анализ → генерация → сохранение). */
 	public const AUTO_AT_FIELD = 'UF_TITLO_AUTO_AT';
 
@@ -54,8 +56,9 @@ class UserFields
 		$okPhrase = self::ensureStringField($entityId);
 		$okSkip = self::ensureSkipField($entityId);
 		$okAt = self::ensurePhraseAtField($entityId);
+		$okOrig = self::ensureNameOrigField($entityId);
 
-		return $okPhrase && $okSkip && $okAt;
+		return $okPhrase && $okSkip && $okAt && $okOrig;
 	}
 
 	protected static function ensureStringField(string $entityId): bool
@@ -96,6 +99,51 @@ class UserFields
 			'HELP_MESSAGE' => [
 				'ru' => 'Укороченное название (до 50 символов) для анализатора релевантности Titlo',
 				'en' => 'Short phrase (max 50) for Titlo relevance analyzer',
+			],
+		]);
+
+		return (bool) $id;
+	}
+
+	protected static function ensureNameOrigField(string $entityId): bool
+	{
+		$exists = \CUserTypeEntity::GetList([], [
+			'ENTITY_ID' => $entityId,
+			'FIELD_NAME' => self::NAME_ORIG_FIELD,
+		])->Fetch();
+
+		if ($exists) {
+			return true;
+		}
+
+		$oUserType = new \CUserTypeEntity();
+		$id = $oUserType->Add([
+			'ENTITY_ID' => $entityId,
+			'FIELD_NAME' => self::NAME_ORIG_FIELD,
+			'USER_TYPE_ID' => 'string',
+			'XML_ID' => self::NAME_ORIG_FIELD,
+			'SORT' => 106,
+			'MULTIPLE' => 'N',
+			'MANDATORY' => 'N',
+			'SHOW_FILTER' => 'N',
+			'SHOW_IN_LIST' => 'Y',
+			'EDIT_IN_LIST' => 'Y',
+			'IS_SEARCHABLE' => 'N',
+			'SETTINGS' => [
+				'SIZE' => 60,
+				'ROWS' => 1,
+				'REGEXP' => '',
+				'MIN_LENGTH' => 0,
+				'MAX_LENGTH' => 255,
+				'DEFAULT_VALUE' => '',
+			],
+			'EDIT_FORM_LABEL' => ['ru' => 'Titlo: оригинальное название', 'en' => 'Titlo: original name'],
+			'LIST_COLUMN_LABEL' => ['ru' => 'Titlo: NAME orig', 'en' => 'Titlo NAME orig'],
+			'LIST_FILTER_LABEL' => ['ru' => 'Оригинал NAME', 'en' => 'Original NAME'],
+			'ERROR_MESSAGE' => ['ru' => '', 'en' => ''],
+			'HELP_MESSAGE' => [
+				'ru' => 'Копия NAME до замены короткой фразой (кнопка «В название»)',
+				'en' => 'NAME backup before applying short phrase',
 			],
 		]);
 

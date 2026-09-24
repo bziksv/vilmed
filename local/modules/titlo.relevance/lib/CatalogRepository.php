@@ -420,7 +420,8 @@ class CatalogRepository
 				BE.ACTIVE,
 				UTS.{$phraseCol} AS TITLO_PHRASE,
 				UTS.{$skipCol} AS TITLO_SKIP,
-				UTS.{$phraseAtCol} AS TITLO_PHRASE_AT
+				UTS.{$phraseAtCol} AS TITLO_PHRASE_AT,
+				UTS." . UserFields::NAME_ORIG_FIELD . " AS TITLO_NAME_ORIG
 			FROM b_iblock_element BE
 			LEFT JOIN {$uts} UTS ON UTS.VALUE_ID = BE.ID
 			WHERE {$whereSql}
@@ -438,11 +439,13 @@ class CatalogRepository
 			$nameLen = mb_strlen($name);
 			$hasCountry = CountryInName::contains($name);
 			$phraseAt = UserFields::formatPhraseAt($row['TITLO_PHRASE_AT'] ?? null);
+			$nameOrig = trim((string) ($row['TITLO_NAME_ORIG'] ?? ''));
 
 			$items[] = [
 				'id' => (int) $row['ID'],
 				'name' => $name,
 				'name_len' => $nameLen,
+				'name_orig' => $nameOrig,
 				'code' => $code,
 				'active' => (string) $row['ACTIVE'],
 				'titlo_phrase' => $phrase,
@@ -656,7 +659,8 @@ class CatalogRepository
 				BS.ACTIVE,
 				UTS.{$phraseCol} AS TITLO_PHRASE,
 				UTS.{$skipCol} AS TITLO_SKIP,
-				UTS.{$phraseAtCol} AS TITLO_PHRASE_AT
+				UTS.{$phraseAtCol} AS TITLO_PHRASE_AT,
+				UTS." . UserFields::NAME_ORIG_FIELD . " AS TITLO_NAME_ORIG
 			FROM b_iblock_section BS
 			LEFT JOIN {$uts} UTS ON UTS.VALUE_ID = BS.ID
 			WHERE {$whereSql}
@@ -674,11 +678,13 @@ class CatalogRepository
 			$nameLen = mb_strlen($name);
 			$hasCountry = CountryInName::contains($name);
 			$phraseAt = UserFields::formatPhraseAt($row['TITLO_PHRASE_AT'] ?? null);
+			$nameOrig = trim((string) ($row['TITLO_NAME_ORIG'] ?? ''));
 
 			$items[] = [
 				'id' => (int) $row['ID'],
 				'name' => $name,
 				'name_len' => $nameLen,
+				'name_orig' => $nameOrig,
 				'code' => $code,
 				'active' => (string) $row['ACTIVE'],
 				'titlo_phrase' => $phrase,
@@ -919,6 +925,235 @@ class CatalogRepository
 			\CIBlock::clearIblockTagCache(Config::iblockId());
 		}
 		return $ok;
+	}
+
+	/**
+	 * Заменить NAME короткой фразой. Оригинал один раз пишется в UF_TITLO_NAME_ORIG.
+	 *
+	 * @return array{ok:bool,error?:string,name?:string,name_orig?:string,phrase?:string}
+	 */
+	public static function applyPhraseToName(string $entityType, int $id, string $phrase = ''): array
+	{
+		UserFields::ensurePhraseField();
+		$entityType = strtoupper($entityType) === 'S' ? 'S' : 'E';
+		$id = (int) $id;
+		if ($id <= 0) {
+			return ['ok' => false, 'error' => 'entity_id required'];
+		}
+		$belongs = $entityType === 'S'
+			? Config::sectionBelongsToCatalog($id)
+			: Config::elementBelongsToCatalog($id);
+		if (!$belongs) {
+			return ['ok' => false, 'error' => 'entity not in catalog'];
+		}
+
+		$phrase = trim($phrase);
+		if ($phrase === '') {
+			$phrase = $entityType === 'S'
+				? self::getSectionPhrase($id)
+				: self::getElementPhrase($id);
+		}
+		if ($entityType === 'S') {
+			$phrase = self::normalizeSectionPhrase($phrase);
+		} else {
+			if (mb_strlen($phrase) > 50) {
+				$phrase = rtrim(mb_substr($phrase, 0, 50));
+			}
+		}
+		if ($phrase === '') {
+			return ['ok' => false, 'error' => 'Сначала укажите короткую фразу'];
+		}
+		if (mb_strlen($phrase) > 255) {
+			$phrase = rtrim(mb_substr($phrase, 0, 255));
+		}
+
+		$current = $entityType === 'S'
+			? self::getSectionNameAndOrig($id)
+			: self::getElementNameAndOrig($id);
+		if ($current === null) {
+			return ['ok' => false, 'error' => 'not found'];
+		}
+
+		$name = $current['name'];
+		$nameOrig = $current['name_orig'];
+
+		if ($name === $phrase) {
+			// всё равно синхронизируем UF-фразу
+			if ($entityType === 'S') {
+				self::saveSectionPhrase($id, $phrase, null);
+			} else {
+				self::saveElementPhrase($id, $phrase, null);
+			}
+			return [
+				'ok' => true,
+				'name' => $name,
+				'name_orig' => $nameOrig,
+				'phrase' => $phrase,
+				'unchanged' => true,
+			];
+		}
+
+		if ($nameOrig === '') {
+			$nameOrig = $name;
+			$ufOk = $entityType === 'S'
+				? self::updateSectionUserFields($id, [UserFields::NAME_ORIG_FIELD => $nameOrig])
+				: self::updateElementUserFields($id, [UserFields::NAME_ORIG_FIELD => $nameOrig]);
+			if (!$ufOk) {
+				return ['ok' => false, 'error' => 'Не удалось сохранить оригинал NAME'];
+			}
+		}
+
+		if ($entityType === 'S') {
+			$sec = new \CIBlockSection();
+			$ok = (bool) $sec->Update($id, ['NAME' => $phrase]);
+			$err = $sec->LAST_ERROR ?: '';
+		} else {
+			$el = new \CIBlockElement();
+			$ok = (bool) $el->Update($id, ['NAME' => $phrase]);
+			$err = $el->LAST_ERROR ?: '';
+		}
+		if (!$ok) {
+			return ['ok' => false, 'error' => $err !== '' ? strip_tags($err) : 'Update NAME failed'];
+		}
+
+		if ($entityType === 'S') {
+			self::saveSectionPhrase($id, $phrase, null);
+		} else {
+			self::saveElementPhrase($id, $phrase, null);
+		}
+
+		\CIBlock::clearIblockTagCache(Config::iblockId());
+		AuditLog::write('apply_phrase_to_name', [
+			'entity_type' => $entityType,
+			'entity_id' => $id,
+			'from' => $name,
+			'to' => $phrase,
+			'name_orig' => $nameOrig,
+		]);
+
+		return [
+			'ok' => true,
+			'name' => $phrase,
+			'name_orig' => $nameOrig,
+			'phrase' => $phrase,
+		];
+	}
+
+	/**
+	 * Вернуть NAME из UF_TITLO_NAME_ORIG.
+	 *
+	 * @return array{ok:bool,error?:string,name?:string,name_orig?:string}
+	 */
+	public static function restoreOriginalName(string $entityType, int $id): array
+	{
+		UserFields::ensurePhraseField();
+		$entityType = strtoupper($entityType) === 'S' ? 'S' : 'E';
+		$id = (int) $id;
+		if ($id <= 0) {
+			return ['ok' => false, 'error' => 'entity_id required'];
+		}
+		$belongs = $entityType === 'S'
+			? Config::sectionBelongsToCatalog($id)
+			: Config::elementBelongsToCatalog($id);
+		if (!$belongs) {
+			return ['ok' => false, 'error' => 'entity not in catalog'];
+		}
+
+		$current = $entityType === 'S'
+			? self::getSectionNameAndOrig($id)
+			: self::getElementNameAndOrig($id);
+		if ($current === null) {
+			return ['ok' => false, 'error' => 'not found'];
+		}
+		$nameOrig = $current['name_orig'];
+		if ($nameOrig === '') {
+			return ['ok' => false, 'error' => 'Оригинал NAME не сохранён'];
+		}
+		if ($current['name'] === $nameOrig) {
+			return [
+				'ok' => true,
+				'name' => $current['name'],
+				'name_orig' => $nameOrig,
+				'unchanged' => true,
+			];
+		}
+
+		if ($entityType === 'S') {
+			$sec = new \CIBlockSection();
+			$ok = (bool) $sec->Update($id, ['NAME' => $nameOrig]);
+			$err = $sec->LAST_ERROR ?: '';
+		} else {
+			$el = new \CIBlockElement();
+			$ok = (bool) $el->Update($id, ['NAME' => $nameOrig]);
+			$err = $el->LAST_ERROR ?: '';
+		}
+		if (!$ok) {
+			return ['ok' => false, 'error' => $err !== '' ? strip_tags($err) : 'Update NAME failed'];
+		}
+
+		\CIBlock::clearIblockTagCache(Config::iblockId());
+		AuditLog::write('restore_original_name', [
+			'entity_type' => $entityType,
+			'entity_id' => $id,
+			'from' => $current['name'],
+			'to' => $nameOrig,
+		]);
+
+		return [
+			'ok' => true,
+			'name' => $nameOrig,
+			'name_orig' => $nameOrig,
+		];
+	}
+
+	/**
+	 * @return array{name:string,name_orig:string}|null
+	 */
+	protected static function getElementNameAndOrig(int $id): ?array
+	{
+		global $DB;
+		$iblockId = Config::iblockId();
+		$uts = 'b_uts_iblock_' . (int) $iblockId . '_element';
+		$col = UserFields::NAME_ORIG_FIELD;
+		$row = $DB->Query(
+			'SELECT BE.NAME, UTS.' . $col . ' AS NAME_ORIG
+			FROM b_iblock_element BE
+			LEFT JOIN ' . $uts . ' UTS ON UTS.VALUE_ID = BE.ID
+			WHERE BE.ID = ' . (int) $id . ' AND BE.IBLOCK_ID = ' . (int) $iblockId . '
+			LIMIT 1'
+		)->Fetch();
+		if (!$row) {
+			return null;
+		}
+		return [
+			'name' => (string) ($row['NAME'] ?? ''),
+			'name_orig' => trim((string) ($row['NAME_ORIG'] ?? '')),
+		];
+	}
+
+	/**
+	 * @return array{name:string,name_orig:string}|null
+	 */
+	protected static function getSectionNameAndOrig(int $id): ?array
+	{
+		global $DB;
+		$iblockId = Config::iblockId();
+		$uts = 'b_uts_iblock_' . (int) $iblockId . '_section';
+		$col = UserFields::NAME_ORIG_FIELD;
+		$row = $DB->Query(
+			'SELECT BS.NAME, UTS.' . $col . ' AS NAME_ORIG
+			FROM b_iblock_section BS
+			LEFT JOIN ' . $uts . ' UTS ON UTS.VALUE_ID = BS.ID
+			WHERE BS.ID = ' . (int) $id . ' AND BS.IBLOCK_ID = ' . (int) $iblockId . '
+			LIMIT 1'
+		)->Fetch();
+		if (!$row) {
+			return null;
+		}
+		return [
+			'name' => (string) ($row['NAME'] ?? ''),
+			'name_orig' => trim((string) ($row['NAME_ORIG'] ?? '')),
+		];
 	}
 
 	/**

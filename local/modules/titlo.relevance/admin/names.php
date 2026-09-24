@@ -68,7 +68,10 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 				<li>
 					<strong>Сгенерировать</strong> — сразу пишет фразу в UF.
 					<strong>Сохранить</strong> — если правите руками.
-					<strong>В непроработанные</strong> — очищает фразу, позиция снова в «Нужно проработать».
+					<strong>В название</strong> — подставляет короткую фразу в поле NAME
+					(оригинал сохраняется в <code><?= htmlspecialcharsbx(UserFields::NAME_ORIG_FIELD) ?></code>,
+					можно <strong>Вернуть NAME</strong>).
+					<strong>Сбросить</strong> — очищает фразу, позиция снова в «Нужно проработать».
 				</li>
 				<li>
 					Фильтр <strong>«Проработанные»</strong> — <?= $isSection ? 'категории' : 'товары' ?> с короткой фразой.
@@ -300,12 +303,17 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 					var warn = item.name_len > 50 && !item.titlo_phrase && !item.skip ? ' warn' : '';
 					var ok = item.titlo_phrase ? ' ok' : '';
 					var skipped = item.skip ? ' style="opacity:.65"' : '';
-					return '<tr data-id="' + item.id + '"' + skipped + '>' +
-						'<td><a href="' + iblockEditBase + item.id + '&lang=<?= LANGUAGE_ID ?>" target="_blank">' + item.id + '</a></td>' +
-						'<td><div class="name-full' + warn + '">' + escapeHtml(item.name) +
+					var hasOrig = !!(item.name_orig && String(item.name_orig).trim());
+					var nameBlock = '<div class="name-full' + warn + '">' + escapeHtml(item.name) +
 						(item.has_country ? ' <span class="badge-country">страна</span>' : '') +
 						'</div>' +
-						'<div class="name-len">' + item.name_len + ' симв. · <a href="' + safeHref(item.url) + '" target="_blank" rel="noopener">на сайте</a></div></td>' +
+						'<div class="name-len">' + item.name_len + ' симв. · <a href="' + safeHref(item.url) + '" target="_blank" rel="noopener">на сайте</a></div>';
+					if (hasOrig) {
+						nameBlock += '<div class="name-orig" title="Оригинал до замены фразой">было: ' + escapeHtml(item.name_orig) + '</div>';
+					}
+					return '<tr data-id="' + item.id + '" data-name-orig="' + escapeHtml(item.name_orig || '') + '"' + skipped + '>' +
+						'<td><a href="' + iblockEditBase + item.id + '&lang=<?= LANGUAGE_ID ?>" target="_blank">' + item.id + '</a></td>' +
+						'<td>' + nameBlock + '</td>' +
 						'<td><input type="text" class="adm-input phrase-input" maxlength="50" value="' + escapeHtml(item.titlo_phrase || '') + '"' + (item.skip ? ' disabled' : '') + '>' +
 						'<div class="name-len phrase-len' + ok + '">' + (item.titlo_phrase ? item.phrase_len : 0) + '/50</div>' +
 						'<div class="phrase-at">' + (item.phrase_at ? ('проработано ' + escapeHtml(item.phrase_at)) : '') + '</div></td>' +
@@ -313,6 +321,8 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 						'<td class="row-actions">' +
 						'<input type="button" class="adm-btn titlo-gen" value="Сгенерировать"' + (hasKey && !item.skip ? '' : ' disabled') + '>' +
 						'<input type="button" class="adm-btn-save titlo-save" value="Сохранить">' +
+						'<input type="button" class="adm-btn titlo-apply-name" value="В название"' + (item.titlo_phrase ? '' : ' disabled') + ' title="Подставить короткую фразу в NAME (оригинал сохранится)">' +
+						'<input type="button" class="adm-btn titlo-restore-name" value="Вернуть NAME"' + (hasOrig ? '' : ' disabled') + ' title="Вернуть оригинальное название из бэкапа">' +
 						'<input type="button" class="adm-btn titlo-reset" value="Сбросить"' + (item.titlo_phrase ? '' : ' disabled') + ' title="Очистить короткую фразу — вернуть в «Нужно проработать»">' +
 						'<a class="adm-btn" href="titlo_relevance_single.php?lang=<?= LANGUAGE_ID ?>&ENTITY=' + singleEntity + '&ID=' + item.id + '">Проработка</a>' +
 						'<div class="status row-status" aria-live="polite"></div></td></tr>';
@@ -341,6 +351,12 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 					var len = inp.value.length;
 					var el = inp.parentNode.querySelector('.phrase-len');
 					if (el) el.textContent = len + '/50';
+					var tr = inp.closest('tr');
+					if (!tr) return;
+					var applyBtn = tr.querySelector('.titlo-apply-name');
+					if (applyBtn) applyBtn.disabled = !inp.value.trim();
+					var resetBtn = tr.querySelector('.titlo-reset');
+					if (resetBtn) resetBtn.disabled = !inp.value.trim();
 				});
 			});
 		});
@@ -391,6 +407,8 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 					}
 					var resetBtn = tr.querySelector('.titlo-reset');
 					if (resetBtn) resetBtn.disabled = !res.phrase;
+					var applyBtn = tr.querySelector('.titlo-apply-name');
+					if (applyBtn) applyBtn.disabled = !res.phrase;
 				}
 			} else {
 				setRowStatus(tr, res.error || 'Ошибка сохранения', true);
@@ -398,6 +416,25 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 			if (res.ok && opts.reload !== false) load();
 			return res;
 		});
+	}
+
+	function updateNameCell(tr, name, nameOrig) {
+		var td = tr.querySelector('td:nth-child(2)');
+		if (!td) return;
+		name = String(name || '');
+		nameOrig = String(nameOrig || '').trim();
+		tr.setAttribute('data-name-orig', nameOrig);
+		var urlA = td.querySelector('a[href]');
+		var url = urlA ? urlA.getAttribute('href') : '#';
+		var warn = name.length > 50 ? ' warn' : '';
+		var html = '<div class="name-full' + warn + '">' + escapeHtml(name) + '</div>' +
+			'<div class="name-len">' + name.length + ' симв. · <a href="' + safeHref(url) + '" target="_blank" rel="noopener">на сайте</a></div>';
+		if (nameOrig) {
+			html += '<div class="name-orig" title="Оригинал до замены фразой">было: ' + escapeHtml(nameOrig) + '</div>';
+		}
+		td.innerHTML = html;
+		var restoreBtn = tr.querySelector('.titlo-restore-name');
+		if (restoreBtn) restoreBtn.disabled = !nameOrig;
 	}
 
 	function fmtBulk(batch) {
@@ -536,13 +573,75 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 
 	document.getElementById('titlo-names-body').addEventListener('click', function (e) {
 		var btn = e.target;
-		if (!btn.classList.contains('titlo-save') && !btn.classList.contains('titlo-gen') && !btn.classList.contains('titlo-reset')) return;
+		if (!btn.classList.contains('titlo-save')
+			&& !btn.classList.contains('titlo-gen')
+			&& !btn.classList.contains('titlo-reset')
+			&& !btn.classList.contains('titlo-apply-name')
+			&& !btn.classList.contains('titlo-restore-name')) return;
 		var tr = btn.closest('tr');
 		if (!tr) return;
 		var id = tr.getAttribute('data-id');
 		var input = tr.querySelector('.phrase-input');
 		var skipBox = tr.querySelector('.titlo-skip');
 		var status = tr.querySelector('.row-status');
+
+		if (btn.classList.contains('titlo-apply-name')) {
+			var phrase = (input && input.value || '').trim();
+			if (!phrase) {
+				setRowStatus(tr, 'Сначала укажите короткую фразу', true);
+				return;
+			}
+			var nameEl = tr.querySelector('.name-full');
+			var curName = nameEl ? nameEl.childNodes[0].textContent.trim() : '';
+			if (!curName) curName = (nameEl && nameEl.textContent || '').replace(/\s*страна\s*$/, '').trim();
+			if (!confirm(
+				'Заменить NAME на короткую фразу?\n\n'
+				+ 'Было: ' + curName + '\n'
+				+ 'Станет: ' + phrase + '\n\n'
+				+ 'Оригинал сохранится — можно вернуть кнопкой «Вернуть NAME».'
+			)) {
+				return;
+			}
+			setRowStatus(tr, 'Пишем в NAME…', false);
+			post('apply_phrase_to_name', {entity_id: id, phrase: phrase}).then(function (res) {
+				if (!res.ok) {
+					setRowStatus(tr, res.error || 'Ошибка', true);
+					return;
+				}
+				updateNameCell(tr, res.name || phrase, res.name_orig || '');
+				if (typeof res.phrase === 'string' && input) {
+					input.value = res.phrase;
+					var el = tr.querySelector('.phrase-len');
+					if (el) {
+						el.textContent = (res.phrase ? res.phrase.length : 0) + '/50';
+						el.className = 'name-len phrase-len' + (res.phrase ? ' ok' : '');
+					}
+				}
+				setRowStatus(tr, res.unchanged ? 'NAME уже совпадает' : 'NAME обновлён', false);
+			});
+			return;
+		}
+
+		if (btn.classList.contains('titlo-restore-name')) {
+			var orig = (tr.getAttribute('data-name-orig') || '').trim();
+			if (!orig) {
+				setRowStatus(tr, 'Оригинал NAME не сохранён', true);
+				return;
+			}
+			if (!confirm('Вернуть оригинальное название?\n\n' + orig)) {
+				return;
+			}
+			setRowStatus(tr, 'Возвращаем NAME…', false);
+			post('restore_original_name', {entity_id: id}).then(function (res) {
+				if (!res.ok) {
+					setRowStatus(tr, res.error || 'Ошибка', true);
+					return;
+				}
+				updateNameCell(tr, res.name || orig, res.name_orig || orig);
+				setRowStatus(tr, 'NAME возвращён', false);
+			});
+			return;
+		}
 
 		if (btn.classList.contains('titlo-reset')) {
 			if (!confirm('Очистить короткую фразу и вернуть в непроработанные по названиям?')) {
@@ -565,6 +664,8 @@ $page = max(1, (int) ($_GET['page'] ?? 1));
 				var atEl = tr.querySelector('.phrase-at');
 				if (atEl) atEl.textContent = '';
 				btn.disabled = true;
+				var applyBtn = tr.querySelector('.titlo-apply-name');
+				if (applyBtn) applyBtn.disabled = true;
 				status.textContent = 'В непроработанных';
 				status.style.color = '#15803d';
 				load();

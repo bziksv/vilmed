@@ -253,6 +253,18 @@
 	display: none;
 	margin: 0;
 }
+.titlo-names .name-orig {
+	margin-top: 4px;
+	font-size: 11px;
+	color: #6b7280;
+	line-height: 1.35;
+	max-width: 420px;
+	word-break: break-word;
+}
+.titlo-names .titlo-apply-name {
+	background: #eff6ff !important;
+	border-color: #93c5fd !important;
+}
 .titlo-dups td.row-actions,
 .titlo-sdups td.row-actions { overflow: visible; }
 .titlo-names .warn,

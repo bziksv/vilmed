@@ -663,6 +663,32 @@ try {
 				: CatalogRepository::saveElementSkip($id, $skip);
 			titlo_json(['ok' => (bool) $ok, 'error' => $ok ? null : 'update failed']);
 
+		case 'apply_phrase_to_name':
+			UserFields::ensurePhraseField();
+			$id = (int) ($_POST['entity_id'] ?? 0);
+			if ($id <= 0) {
+				titlo_json(['ok' => false, 'error' => 'entity_id required'], 422);
+			}
+			$entityType = strtoupper((string) ($_POST['entity_type'] ?? 'E')) === 'S' ? 'S' : 'E';
+			$res = CatalogRepository::applyPhraseToName(
+				$entityType,
+				$id,
+				(string) ($_POST['phrase'] ?? '')
+			);
+			$status = !empty($res['ok']) ? 200 : 422;
+			titlo_json($res, $status);
+
+		case 'restore_original_name':
+			UserFields::ensurePhraseField();
+			$id = (int) ($_POST['entity_id'] ?? 0);
+			if ($id <= 0) {
+				titlo_json(['ok' => false, 'error' => 'entity_id required'], 422);
+			}
+			$entityType = strtoupper((string) ($_POST['entity_type'] ?? 'E')) === 'S' ? 'S' : 'E';
+			$res = CatalogRepository::restoreOriginalName($entityType, $id);
+			$status = !empty($res['ok']) ? 200 : 422;
+			titlo_json($res, $status);
+
 		case 'generate_phrase':
 			$id = (int) ($_POST['entity_id'] ?? 0);
 			$name = trim((string) ($_POST['name'] ?? ''));
