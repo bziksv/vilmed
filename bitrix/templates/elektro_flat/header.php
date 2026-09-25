@@ -14,14 +14,14 @@ Loc::loadMessages(__FILE__);
 	<meta property="og:title" content="<?=$APPLICATION->ShowTitle();?>"/>
     <meta property="og:description" content="<?=$APPLICATION->ShowProperty("description");?>"/>
     <meta property="og:type" content="<?=$APPLICATION->ShowProperty("ogtype");?>"/>
-    <meta property="og:url" content= "<?=(CMain::IsHTTPS() ? 'https' : 'http' ) . "://" . SITE_SERVER_NAME . $APPLICATION->GetCurPage();?>" />
-	<meta property="og:image" content="<?=$APPLICATION->ShowProperty("ogimage");?>">
-	<meta property='og:image:width' content="<?=$APPLICATION->ShowProperty("ogimagewidth");?>" />
-	<meta property='og:image:height' content="<?=$APPLICATION->ShowProperty("ogimageheight");?>" />
+	<meta property="og:url" content= "<?=(CMain::IsHTTPS() ? 'https' : 'http' ) . "://" . SITE_SERVER_NAME . $APPLICATION->GetCurPage();?>" />
 	<?php
-	// W3C: href="" на <link> запрещён — выводим image_src только при непустом ogimage
+	// W3C: пустой href/content у image_src и og:image — не выводим
 	$vilmedOgImage = trim((string)$APPLICATION->GetProperty("ogimage"));
 	if ($vilmedOgImage !== ''): ?>
+	<meta property="og:image" content="<?=htmlspecialcharsbx($vilmedOgImage)?>">
+	<meta property='og:image:width' content="<?=$APPLICATION->ShowProperty("ogimagewidth");?>" />
+	<meta property='og:image:height' content="<?=$APPLICATION->ShowProperty("ogimageheight");?>" />
 	<link rel="image_src" href="<?=htmlspecialcharsbx($vilmedOgImage)?>" />
 	<?php endif; ?>
 	<?$APPLICATION->SetPageProperty("ogtype", "website");

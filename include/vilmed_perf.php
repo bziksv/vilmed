@@ -1238,7 +1238,9 @@ if (!function_exists('vilmedEncodeTextHtmlTemplates')) {
 
 if (!function_exists('vilmedStripInvalidCss')) {
 	/**
-	 * W3C CSS Parse Error на каждой странице: Bitrix popup CSS с IE filter:alpha(...).
+	 * W3C CSS Parse Error на каждой странице:
+	 * - Bitrix popup CSS с IE filter:alpha(...)
+	 * - Bitrix minified @keyframes с «0{» вместо «0%{»
 	 * Также убираем пустые <style> в body (левое меню раньше писало style внутрь div).
 	 */
 	function vilmedStripInvalidCss(string &$content): void
@@ -1248,6 +1250,10 @@ if (!function_exists('vilmedStripInvalidCss')) {
 		}
 		if (stripos($content, 'filter:alpha') !== false) {
 			$content = preg_replace('/;?\s*filter\s*:\s*alpha\([^)]*\)\s*;?/i', ';', $content) ?? $content;
+		}
+		// Bitrix core popup: @keyframes name{0{...}100%{...}} → 0%{
+		if (stripos($content, 'keyframes') !== false) {
+			$content = preg_replace('/(@[-a-z]*keyframes[^{]+\{)0\{/i', '$10%{', $content) ?? $content;
 		}
 		// пустые / whitespace-only style в body
 		$content = preg_replace('#<style\b[^>]*>\s*</style>#i', '', $content) ?? $content;
