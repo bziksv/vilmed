@@ -473,8 +473,42 @@ if (!function_exists('vilmedInjectWebpImages')) {
 					$fullMatch
 				);
 			} else {
-				$replacement = '<picture><source srcset="' . htmlspecialcharsbx($webp, ENT_QUOTES) . '" type="image/webp">'
-					. $fullMatch . '</picture>';
+				// width:% на img ломается внутри <picture> (flex/% от родителя) — переносим на picture
+				$imgTag = $fullMatch;
+				$pictureAttrs = '';
+				if (preg_match('/\sstyle="([^"]*)"/i', $attrs, $sm)) {
+					$style = $sm[1];
+					$moved = [];
+					$remain = $style;
+					if (preg_match_all('/(?:^|;)\s*((?:max-)?width)\s*:\s*([^;]+)/i', $style, $pm, PREG_SET_ORDER)) {
+						foreach ($pm as $p) {
+							$prop = strtolower(trim($p[1]));
+							$val = trim($p[2]);
+							if (strpos($val, '%') === false) {
+								continue;
+							}
+							$moved[] = $prop . ':' . $val;
+							$remain = preg_replace(
+								'/(?:^|;)\s*' . preg_quote($p[1], '/') . '\s*:\s*' . preg_quote($p[2], '/') . '\s*/i',
+								';',
+								$remain
+							);
+						}
+					}
+					if ($moved) {
+						$pictureAttrs = ' style="' . htmlspecialcharsbx(implode(';', $moved), ENT_QUOTES) . ';display:inline-block"';
+						$remain = trim(preg_replace('/;+/', ';', $remain), "; \t");
+						$remain = ($remain === '' ? '' : $remain . ';') . 'width:100%;height:auto';
+						$imgTag = preg_replace(
+							'/\sstyle="[^"]*"/i',
+							' style="' . htmlspecialcharsbx($remain, ENT_QUOTES) . '"',
+							$fullMatch,
+							1
+						) ?? $fullMatch;
+					}
+				}
+				$replacement = '<picture' . $pictureAttrs . '><source srcset="' . htmlspecialcharsbx($webp, ENT_QUOTES) . '" type="image/webp">'
+					. $imgTag . '</picture>';
 			}
 
 			$content = substr_replace($content, $replacement, $pos, strlen($fullMatch));
