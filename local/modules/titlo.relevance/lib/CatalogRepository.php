@@ -2341,12 +2341,21 @@ class CatalogRepository
 			$html
 		) ?? $html;
 
-		// FAQ: голый <summary> + .vmd-faq__a → <details>
-		$html = preg_replace(
-			'#<summary>(.*?)</summary>\s*(<div\b[^>]*\bclass="[^"]*\bvmd-faq__a\b[^"]*"[^>]*>.*?</div>)#is',
-			'<details><summary>$1</summary>$2</details>',
+		// FAQ: голый <summary> + .vmd-faq__a → <details> (не трогать уже обёрнутые)
+		$html = preg_replace_callback(
+			'#(.{0,24})<summary>(.*?)</summary>\s*(<div\b[^>]*\bclass="[^"]*\bvmd-faq__a\b[^"]*"[^>]*>.*?</div>)#is',
+			static function (array $m): string {
+				if (preg_match('/<details\b[^>]*>\s*$/i', $m[1])) {
+					return $m[0];
+				}
+
+				return $m[1] . '<details><summary>' . $m[2] . '</summary>' . $m[3] . '</details>';
+			},
 			$html
 		) ?? $html;
+		// Снять двойную обёртку от прошлых прогонов
+		$html = preg_replace('#<details(\s[^>]*)?>\s*<details(\s[^>]*)?>#i', '<details>', $html) ?? $html;
+		$html = preg_replace('#</details>\s*</details>#i', '</details>', $html) ?? $html;
 
 		// Старые HTML4-чекеры ругаются на <mark>
 		$html = preg_replace('#<mark\b([^>]*)>#i', '<span class="vmd-mark"$1>', $html) ?? $html;

@@ -26,6 +26,7 @@ foreach ($argv as $arg) {
 $sql = "SELECT ID, IBLOCK_ID, CODE, DETAIL_TEXT, PREVIEW_TEXT FROM b_iblock_element
 	WHERE (DETAIL_TEXT LIKE '%class=\"ic\"%' OR DETAIL_TEXT LIKE '%<summary%' OR DETAIL_TEXT LIKE '%<mark%'
 		OR DETAIL_TEXT LIKE '%<circle%' OR DETAIL_TEXT LIKE '%vmd-faq%'
+		OR DETAIL_TEXT LIKE '%<details><details%'
 		OR PREVIEW_TEXT LIKE '%<li>%' OR PREVIEW_TEXT LIKE '%</li%')
 	ORDER BY ID";
 if ($limit > 0) {
