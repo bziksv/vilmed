@@ -2326,6 +2326,43 @@ class CatalogRepository
 		$html = preg_replace('#</ol>\s*</p>#i', '</ol>', $html) ?? $html;
 		// «Заголовок</p><ul>» без открывающего <p>
 		$html = preg_replace('#(^|[\n>])([А-ЯA-Z][^<\n]{1,80})</p>(\s*<ul)#u', '$1<p>$2</p>$3', $html) ?? $html;
+		// typo text.м</ul>
+		$html = preg_replace('#([^>])\.м</ul>#u', '$1.</li></ul>', $html) ?? $html;
+		// <li>заголовок:</li><ul>…</ul> → <li>заголовок:<ul>…</ul></li>
+		$html = preg_replace(
+			'#<li>([^<]*)</li>\s*(<(?:ul|ol)\b[^>]*>.*?</(?:ul|ol)>)#is',
+			'<li>$1$2</li>',
+			$html
+		) ?? $html;
+		// <p>…<ol>/<ul>…</p> — списки нельзя внутри <p> (браузер закрывает p → orphan </p>)
+		$html = preg_replace_callback(
+			'#<p(\b[^>]*)>([\s\S]*?)</p>#i',
+			static function (array $m): string {
+				$attrs = $m[1];
+				$inner = $m[2];
+				if (!preg_match('#<(?:ul|ol)\b#i', $inner)) {
+					return $m[0];
+				}
+				$parts = preg_split('#(<(?:ul|ol)\b[^>]*>.*?</(?:ul|ol)>)#is', $inner, -1, PREG_SPLIT_DELIM_CAPTURE);
+				$out = '';
+				foreach ($parts as $part) {
+					if ($part === '' || $part === null) {
+						continue;
+					}
+					if (preg_match('#^<(?:ul|ol)\b#i', $part)) {
+						$out .= $part;
+						continue;
+					}
+					$trim = preg_replace('#(?:\s*<br\s*/?>\s*)+#i', "\n", $part) ?? $part;
+					if (trim(strip_tags($trim, '<img><a><strong><b><em><i><span><br>')) === '') {
+						continue;
+					}
+					$out .= '<p' . $attrs . '>' . $part . '</p>';
+				}
+				return $out;
+			},
+			$html
+		) ?? $html;
 		// `<ul></li>текст` — </li> вместо <li>
 		$html = preg_replace_callback('#<ul>(.*?)</ul>#is', static function (array $m): string {
 			$inner = $m[1];
@@ -2342,6 +2379,22 @@ class CatalogRepository
 			) ?? $inner;
 			$inner = preg_replace('#</li>\s*</li>#u', '</li>', $inner) ?? $inner;
 			return '<ul>' . $inner . '</ul>';
+		}, $html) ?? $html;
+		$html = preg_replace_callback('#<ol>(.*?)</ol>#is', static function (array $m): string {
+			$inner = $m[1];
+			if (!preg_match('#^\s*</li>#u', $inner)) {
+				return $m[0];
+			}
+			$inner = preg_replace_callback(
+				'#</li>([^<]+?)(?=</li>|<li>|</ol>|$)#us',
+				static function (array $mm): string {
+					$text = rtrim($mm[1]);
+					return $text === '' ? '' : '<li>' . $text . '</li>';
+				},
+				$inner
+			) ?? $inner;
+			$inner = preg_replace('#</li>\s*</li>#u', '</li>', $inner) ?? $inner;
+			return '<ol>' . $inner . '</ol>';
 		}, $html) ?? $html;
 
 		// Lucide-иконки: <div class="ic"><circle/…> без <svg> → W3C «Tag circle invalid»
