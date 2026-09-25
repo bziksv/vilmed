@@ -87,8 +87,8 @@ $arLinkPrFilter["PROPERTY_THIS_COLLECTION"] = false;?>
 		"COMPARE_PATH" => "",
 		"BACKGROUND_IMAGE" => "",
 		"DISABLE_INIT_JS_IN_COMPONENT" => "",
-		"DISPLAY_IMG_WIDTH"	 =>	"178",
-		"DISPLAY_IMG_HEIGHT" =>	"178",
+		"DISPLAY_IMG_WIDTH" => "360",
+		"DISPLAY_IMG_HEIGHT" => "360",
 		"PROPERTY_CODE_MOD" => array(
 			0 => "GUARANTEE",
 		),

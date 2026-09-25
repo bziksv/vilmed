@@ -1,5 +1,7 @@
 <?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true) die();
 
+require_once $_SERVER["DOCUMENT_ROOT"] . "/include/vilmed_perf.php";
+
 global $arSetting;
 
 //USE_PRICE_RATIO//
@@ -38,37 +40,21 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 
 //ELEMENTS//
 foreach($arResult["ITEMS"] as $key => $arElement) {
-	//PREVIEW_PICTURE//	
-	if(is_array($arElement["PREVIEW_PICTURE"])) {
-		if($arElement["PREVIEW_PICTURE"]["WIDTH"] > $arParams["DISPLAY_IMG_WIDTH"] || $arElement["PREVIEW_PICTURE"]["HEIGHT"] > $arParams["DISPLAY_IMG_HEIGHT"]) {
-			$arFileTmp = CFile::ResizeImageGet(
-				$arElement["PREVIEW_PICTURE"],
-				array("width" => $arParams["DISPLAY_IMG_WIDTH"], "height" => $arParams["DISPLAY_IMG_HEIGHT"]),
-				BX_RESIZE_IMAGE_PROPORTIONAL,
-				true
-			);
-			$arResult["ITEMS"][$key]["PREVIEW_PICTURE"] = array(
-				"SRC" => $arFileTmp["src"],
-				"WIDTH" => $arFileTmp["width"],
-				"HEIGHT" => $arFileTmp["height"]
-			);
-		}
-	} elseif(is_array($arElement["DETAIL_PICTURE"])) {
-		if($arElement["DETAIL_PICTURE"]["WIDTH"] > $arParams["DISPLAY_IMG_WIDTH"] || $arElement["DETAIL_PICTURE"]["HEIGHT"] > $arParams["DISPLAY_IMG_HEIGHT"]) {
-			$arFileTmp = CFile::ResizeImageGet(
-				$arElement["DETAIL_PICTURE"],
-				array("width" => $arParams["DISPLAY_IMG_WIDTH"], "height" => $arParams["DISPLAY_IMG_HEIGHT"]),
-				BX_RESIZE_IMAGE_PROPORTIONAL,
-				true
-			);
-			$arResult["ITEMS"][$key]["PREVIEW_PICTURE"] = array(
-				"SRC" => $arFileTmp["src"],
-				"WIDTH" => $arFileTmp["width"],
-				"HEIGHT" => $arFileTmp["height"]
-			);
-		} else {
-			$arResult["ITEMS"][$key]["PREVIEW_PICTURE"] = $arElement["DETAIL_PICTURE"];
-		}
+	//PREVIEW_PICTURE// — DETAIL, если превью мелкое
+	$imgW = (int)($arParams["DISPLAY_IMG_WIDTH"] ?? 360);
+	$imgH = (int)($arParams["DISPLAY_IMG_HEIGHT"] ?? 360);
+	if ($imgW < 360) {
+		$imgW = 360;
+	}
+	if ($imgH < 360) {
+		$imgH = 360;
+	}
+	$source = vilmedPickLargerPicture(
+		is_array($arElement["PREVIEW_PICTURE"] ?? null) ? $arElement["PREVIEW_PICTURE"] : null,
+		is_array($arElement["DETAIL_PICTURE"] ?? null) ? $arElement["DETAIL_PICTURE"] : null
+	);
+	if (is_array($source)) {
+		$arResult["ITEMS"][$key]["PREVIEW_PICTURE"] = vilmedOptimizePicture($source, $imgW, $imgH);
 	}
 
 	//MANUFACTURER//
