@@ -109,6 +109,17 @@ if ($sort !== 'id_desc') {
 		</div>
 	</details>
 
+	<div class="titlo-auto-search-bar">
+		<label class="titlo-auto-search" for="titlo-auto-q">Поиск категории</label>
+		<input type="search" id="titlo-auto-q" class="adm-input titlo-auto-search__input"
+			placeholder="части слов в любом порядке, напр. узи vivid"
+			value="<?= htmlspecialcharsbx($q) ?>" autocomplete="off" spellcheck="false">
+		<input type="button" id="titlo-auto-reload" class="adm-btn-save" value="Найти">
+		<input type="button" id="titlo-auto-q-clear" class="adm-btn" value="Очистить">
+		<span id="titlo-auto-list-status" class="status"></span>
+		<span class="titlo-auto-search__hint">Все слова обязательны · порядок не важен · срабатывает при вводе</span>
+	</div>
+
 	<div class="filters">
 		<?php AdminUi::renderSectionBranchFilter($sectionIds, 'категории'); ?>
 		<label>Фильтр
@@ -137,16 +148,6 @@ if ($sort !== 'id_desc') {
 				<option value="id_desc" <?= $sort === 'id_desc' ? 'selected' : '' ?>>ID ↓</option>
 			</select>
 		</label>
-		<label class="titlo-auto-search">Поиск
-			<span class="titlo-help" tabindex="0" aria-label="Поиск">?
-				<span class="titlo-help__tip">ID целиком, или <b>части слов в любом порядке</b> — все токены обязательны.
-					Пример: <code>узи vivid</code>. Список обновляется при вводе.</span>
-			</span>:
-			<input type="text" id="titlo-auto-q" class="adm-input" placeholder="ID или части слов: узи vivid"
-				value="<?= htmlspecialcharsbx($q) ?>" style="width:300px" autocomplete="off" spellcheck="false">
-		</label>
-		<input type="button" id="titlo-auto-reload" class="adm-btn-save" value="Найти">
-		<span id="titlo-auto-list-status" class="status"></span>
 	</div>
 
 	<div class="bulk-bar">
@@ -985,6 +986,16 @@ if ($sort !== 'id_desc') {
 				TitloSectionBranch.close();
 			}
 		});
+		var clearBtn = document.getElementById('titlo-auto-q-clear');
+		if (clearBtn) {
+			clearBtn.onclick = function () {
+				if (timer) clearTimeout(timer);
+				inp.value = '';
+				page = 1;
+				loadList();
+				inp.focus();
+			};
+		}
 	})();
 
 	document.getElementById('titlo-auto-enqueue').onclick = function () {

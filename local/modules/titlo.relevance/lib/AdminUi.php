@@ -74,8 +74,8 @@ class AdminUi
 						<?php endforeach; ?>
 					</div>
 					<div class="titlo-section-ms__footer">
-						<button type="button" class="adm-btn" id="titlo-section-ms-clear">Сбросить</button>
-						<button type="button" class="adm-btn-save" id="titlo-section-ms-apply">Применить</button>
+						<button type="button" class="adm-btn" id="titlo-section-ms-clear">Очистить разделы</button>
+						<button type="button" class="adm-btn-save" id="titlo-section-ms-apply">Выбрать ветки</button>
 					</div>
 				</div>
 			</span>

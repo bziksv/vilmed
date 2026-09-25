@@ -11,6 +11,39 @@
 .titlo-prompts { max-width: 980px; }
 .titlo-guide { max-width: 880px; }
 
+/* Поиск товара/категории — отдельная полоса, не путать с веткой каталога */
+.titlo-auto-search-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 10px;
+	margin: 12px 0 8px;
+	padding: 10px 12px;
+	background: #f8fafc;
+	border: 1px solid #cbd5e1;
+	border-radius: 6px;
+}
+.titlo-auto-search-bar .titlo-auto-search {
+	font-weight: 600;
+	color: #0f172a;
+	margin: 0;
+}
+.titlo-auto-search-bar .titlo-auto-search__input {
+	flex: 1 1 280px;
+	min-width: 220px;
+	max-width: 480px;
+	font-size: 14px !important;
+}
+.titlo-auto-search-bar .titlo-auto-search__hint {
+	flex: 1 1 100%;
+	font-size: 12px;
+	color: #64748b;
+}
+.titlo-auto-search-bar .status {
+	min-width: 140px;
+}
+
+
 /* ========== filters / pager ========== */
 .titlo-names .filters,
 .titlo-dups .filters,
@@ -21,6 +54,38 @@
 	flex-wrap: wrap;
 	gap: 8px;
 	align-items: center;
+}
+
+/* Поиск товара/категории — отдельная полоса, не путать с веткой каталога */
+.titlo-auto-search-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 10px;
+	margin: 12px 0 8px;
+	padding: 10px 12px;
+	background: #f8fafc;
+	border: 1px solid #cbd5e1;
+	border-radius: 6px;
+}
+.titlo-auto-search-bar .titlo-auto-search {
+	font-weight: 600;
+	color: #0f172a;
+	margin: 0;
+}
+.titlo-auto-search-bar .titlo-auto-search__input {
+	flex: 1 1 280px;
+	min-width: 220px;
+	max-width: 480px;
+	font-size: 14px !important;
+}
+.titlo-auto-search-bar .titlo-auto-search__hint {
+	flex: 1 1 100%;
+	font-size: 12px;
+	color: #64748b;
+}
+.titlo-auto-search-bar .status {
+	min-width: 140px;
 }
 
 /* Ветка каталога (автопроработка) — мультивыбор */
