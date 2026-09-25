@@ -1174,7 +1174,7 @@ if (!function_exists('vilmedEscapeScriptHtmlEndTags')) {
 	/**
 	 * Наивные HTML-чекеры считают </div></i></span> внутри JS как разметку страницы.
 	 * В JS-строках экранируем как <\/…> (значение для браузера то же).
-	 * type="text/html" (Bitrix-шаблоны) не трогаем.
+	 * type="text/html" (Bitrix-шаблоны) — см. vilmedEncodeTextHtmlTemplates.
 	 */
 	function vilmedEscapeScriptHtmlEndTags(string &$content): void
 	{
@@ -1202,6 +1202,40 @@ if (!function_exists('vilmedEscapeScriptHtmlEndTags')) {
 	}
 }
 
+if (!function_exists('vilmedEncodeTextHtmlTemplates')) {
+	/**
+	 * Bitrix UI: <script type="text/html">…<div>…</div>…</script> (sale.location и др.).
+	 * Наивные SEO-чекеры видят лишние </div></span></script> на каждой странице.
+	 * Кодируем разметку в entities: в DOM скрипта браузер декодирует обратно в HTML
+	 * (templates[k].innerHTML в core_ui_widget.js получает тот же текст).
+	 */
+	function vilmedEncodeTextHtmlTemplates(string &$content): void
+	{
+		if ($content === '' || stripos($content, 'text/html') === false) {
+			return;
+		}
+
+		$content = preg_replace_callback(
+			'#<script(\b[^>]*\btype\s*=\s*["\']text/(?:html|template)["\'][^>]*)>(.*?)</script>#is',
+			static function (array $m): string {
+				$body = $m[2];
+				if ($body === '' || (strpos($body, '<') === false && strpos($body, '>') === false)) {
+					return $m[0];
+				}
+				// Уже закодировано
+				if (strpos($body, '&lt;') !== false && strpos($body, '<') === false) {
+					return $m[0];
+				}
+
+				return '<script' . $m[1] . '>'
+					. htmlspecialchars($body, ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8')
+					. '</script>';
+			},
+			$content
+		) ?? $content;
+	}
+}
+
 if (!function_exists('vilmedOnEndBufferContent')) {
 	function vilmedOnEndBufferContent(string &$content): void
 	{
@@ -1221,6 +1255,7 @@ if (!function_exists('vilmedOnEndBufferContent')) {
 		vilmedResequenceCoreScripts($content);
 		vilmedInjectHomeDeferredLoader($content);
 		vilmedFixVmdMarkup($content);
+		vilmedEncodeTextHtmlTemplates($content);
 		vilmedEscapeScriptHtmlEndTags($content);
 		vilmedNormalizeNoindexTags($content);
 	}

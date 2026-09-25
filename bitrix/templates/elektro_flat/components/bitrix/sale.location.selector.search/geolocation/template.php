@@ -39,17 +39,8 @@ if(!empty($arResult["ERRORS"]["FATAL"])):?>
 		<div class="submit">
 			<button class="btn_buy popdef" id="selectCity" name="select-city"><?=Loc::getMessage("SALE_SLS_SELECT_CITY")?></button>
 		</div>
-		<script type="text/html" data-template-id="bx-ui-sls-error">
-			<div class="bx-ui-sls-error">
-				<div></div>
-				{{message}}
-			</div>
-		</script>
-		<script type="text/html" data-template-id="bx-ui-sls-dropdown-item">
-			<div class="dropdown-item bx-ui-sls-variant">
-				<span class="dropdown-item-text">{{display_wrapped}}</span>
-			</div>
-		</script>
+		<script type="text/html" data-template-id="bx-ui-sls-error"><?=htmlspecialcharsbx('<div class="bx-ui-sls-error"><div></div>{{message}}</div>')?></script>
+		<script type="text/html" data-template-id="bx-ui-sls-dropdown-item"><?=htmlspecialcharsbx('<div class="dropdown-item bx-ui-sls-variant"><span class="dropdown-item-text">{{display_wrapped}}</span></div>')?></script>
 		<?if(!$arParams["SUPPRESS_ERRORS"]):
 			if(!empty($arResult["ERRORS"]["NONFATAL"])):?>
 				<div class="bx-ui-sls-error-message">
