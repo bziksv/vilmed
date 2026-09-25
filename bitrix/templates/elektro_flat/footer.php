@@ -398,7 +398,8 @@ Loc::loadMessages(__FILE__);?>
 		BX.addClass(btn, "ppp");
 		BX.adjust(btn, {
 			props: {disabled: btn.tagName === "BUTTON"},
-			html: "<i class='fa fa-check'></i><span>" + addedText + "</span>"
+			// <\/…> — чтобы наивные HTML-чекеры не считали </i></span> внутри <script>
+			html: "<i class='fa fa-check'><\/i><span>" + addedText + "<\/span>"
 		});
 
 		if (window.vilmedAdd2BasketWindow !== "Y" || typeof flyingCart !== "function" || typeof jQuery === "undefined") {
