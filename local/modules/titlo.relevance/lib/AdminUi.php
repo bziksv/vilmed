@@ -80,7 +80,7 @@ class AdminUi
 					<div class="titlo-section-ms__footer">
 						<button type="button" class="adm-btn" id="titlo-section-ms-select-visible" title="Отметить все разделы в списке ниже (с учётом поиска)">Выбрать все</button>
 						<button type="button" class="adm-btn" id="titlo-section-ms-clear">Очистить</button>
-						<button type="button" class="adm-btn-save" id="titlo-section-ms-apply">Выбрать ветки</button>
+						<button type="button" class="adm-btn-save" id="titlo-section-ms-apply">Применить</button>
 					</div>
 				</div>
 			</span>

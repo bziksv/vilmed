@@ -47,6 +47,10 @@
 	min-width: 220px;
 	max-width: 480px;
 	font-size: 14px !important;
+	height: 30px !important;
+	box-sizing: border-box !important;
+	line-height: 28px !important;
+	padding: 0 10px !important;
 }
 .titlo-auto-search-bar .titlo-auto-search__hint {
 	flex: 1 1 100%;
@@ -55,6 +59,22 @@
 }
 .titlo-auto-search-bar .status {
 	min-width: 140px;
+}
+
+/* Одинаковая высота кнопок в полосах Titlo (adm-btn-save иначе выше) */
+.titlo-names .titlo-auto-search-bar .adm-btn,
+.titlo-names .titlo-auto-search-bar .adm-btn-save,
+.titlo-names .titlo-section-ms__footer .adm-btn,
+.titlo-names .titlo-section-ms__footer .adm-btn-save,
+.titlo-names .titlo-list-scope .adm-btn,
+.titlo-names .titlo-list-scope .adm-btn-save {
+	height: 30px !important;
+	min-height: 30px !important;
+	line-height: 28px !important;
+	padding: 0 12px !important;
+	box-sizing: border-box !important;
+	vertical-align: middle;
+	font-size: 13px !important;
 }
 
 /* Ветка каталога — отдельная подложка (мятный тон, не путать с поиском/bulk) */
@@ -207,6 +227,10 @@
 	align-items: center;
 	gap: 6px;
 	margin-top: 8px;
+}
+.titlo-section-ms__footer .adm-btn,
+.titlo-section-ms__footer .adm-btn-save {
+	flex: 0 0 auto;
 }
 .titlo-section-ms__footer .adm-btn-save {
 	margin-left: auto;
