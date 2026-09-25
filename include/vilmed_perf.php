@@ -1253,7 +1253,7 @@ if (!function_exists('vilmedStripInvalidCss')) {
 		}
 		// Bitrix core popup: @keyframes name{0{...}100%{...}} → 0%{
 		if (stripos($content, 'keyframes') !== false) {
-			$content = preg_replace('/(@[-a-z]*keyframes[^{]+\{)0\{/i', '$10%{', $content) ?? $content;
+			$content = preg_replace('/(@[-a-z]*keyframes[^{]+\{)0\{/i', '${1}0%{', $content) ?? $content;
 		}
 		// пустые / whitespace-only style в body
 		$content = preg_replace('#<style\b[^>]*>\s*</style>#i', '', $content) ?? $content;
