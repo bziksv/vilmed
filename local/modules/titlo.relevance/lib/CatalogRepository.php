@@ -2302,12 +2302,27 @@ class CatalogRepository
 			'table' => true, 'thead' => true, 'tbody' => true, 'tfoot' => true,
 			'tr' => true, 'th' => true, 'td' => true, 'caption' => true,
 			'figure' => true, 'figcaption' => true, 'img' => true,
+			// FAQ-аккордеон .vmd-faq (нативный <details>)
+			'details' => true, 'summary' => true,
+			// Lucide-иконки в .ic
+			'svg' => true, 'path' => true, 'circle' => true, 'line' => true,
+			'polyline' => true, 'polygon' => true, 'rect' => true, 'g' => true,
+			'defs' => true, 'title' => true, 'desc' => true, 'use' => true,
+			'clippath' => true, 'lineargradient' => true, 'stop' => true,
 		];
 		$allowedAttrs = [
 			'class' => true, 'title' => true, 'lang' => true,
 			'href' => true, 'target' => true, 'rel' => true,
 			'src' => true, 'alt' => true, 'width' => true, 'height' => true,
 			'colspan' => true, 'rowspan' => true, 'scope' => true,
+			'open' => true,
+			// SVG
+			'viewbox' => true, 'fill' => true, 'stroke' => true,
+			'stroke-width' => true, 'stroke-linecap' => true, 'stroke-linejoin' => true,
+			'd' => true, 'cx' => true, 'cy' => true, 'r' => true, 'rx' => true, 'ry' => true,
+			'x' => true, 'y' => true, 'x1' => true, 'y1' => true, 'x2' => true, 'y2' => true,
+			'points' => true, 'transform' => true, 'xmlns' => true, 'xmlns:xlink' => true,
+			'aria-hidden' => true, 'role' => true, 'focusable' => true,
 		];
 
 		$wrapped = '<?xml encoding="UTF-8"><div id="titlo-sanitize-root">' . $html . '</div>';
@@ -2360,6 +2375,10 @@ class CatalogRepository
 			}
 
 			$tag = strtolower($child->tagName);
+			// DOM может отдавать clipPath как clippath — нормализуем ключ allowlist
+			if ($tag === 'clippath') {
+				$tag = 'clippath';
+			}
 			if (!isset($allowedTags[$tag])) {
 				// unwrap: keep children, drop forbidden wrapper
 				while ($child->firstChild) {
