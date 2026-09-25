@@ -45,14 +45,17 @@ class AdminUi
 			? 'Все разделы'
 			: ('Выбрано: ' . $count);
 		?>
-		<label class="titlo-section-branch">Ветка каталога
-			<span class="titlo-help" tabindex="0" aria-label="Ветка каталога">?
-				<span class="titlo-help__tip">
-					<?= htmlspecialcharsbx($hint) ?><br>
-					Поиск сужает список. Можно отметить несколько веток — в списке будут элементы из любой из них.
-					Пустой выбор = все разделы.
+		<div class="titlo-section-branch" id="titlo-section-branch-wrap">
+			<div class="titlo-section-branch__head">
+				<span class="titlo-section-branch__title">Ветка каталога</span>
+				<span class="titlo-help" tabindex="0" aria-label="Ветка каталога">?
+					<span class="titlo-help__tip">
+						<?= htmlspecialcharsbx($hint) ?><br>
+						Поиск сужает список. Можно отметить несколько веток — в списке будут элементы из любой из них.
+						Пустой выбор = все разделы.
+					</span>
 				</span>
-			</span>:
+			</div>
 			<span class="titlo-section-ms" id="titlo-section-ms">
 				<button type="button" class="adm-btn titlo-section-ms__btn" id="titlo-section-ms-btn"
 					aria-haspopup="listbox" aria-expanded="false"><?= htmlspecialcharsbx($btnLabel) ?></button>
@@ -81,7 +84,7 @@ class AdminUi
 					</div>
 				</div>
 			</span>
-		</label>
+		</div>
 		<?php
 		self::renderSectionBranchFilterScript();
 	}

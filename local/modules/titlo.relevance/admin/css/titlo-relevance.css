@@ -15,15 +15,17 @@
 .titlo-names .filters,
 .titlo-dups .filters,
 .titlo-sdups .filters,
-.titlo-work .filters {
+.titlo-work .filters,
+.titlo-auto-products .filters,
+.titlo-auto-sections .filters {
 	margin: 12px 0;
 	display: flex;
 	flex-wrap: wrap;
-	gap: 8px;
+	gap: 10px 12px;
 	align-items: center;
 }
 
-/* Поиск товара/категории — отдельная полоса, не путать с веткой каталога */
+/* Поиск товара/категории — серая полоса */
 .titlo-auto-search-bar {
 	display: flex;
 	flex-wrap: wrap;
@@ -55,24 +57,44 @@
 	min-width: 140px;
 }
 
-/* Ветка каталога (автопроработка) — мультивыбор */
+/* Ветка каталога — отдельная подложка (мятный тон, не путать с поиском/bulk) */
 .titlo-section-branch {
 	display: inline-flex;
-	flex-wrap: wrap;
-	align-items: flex-end;
-	gap: 6px 8px;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 6px;
 	position: relative;
 	z-index: 5;
+	padding: 8px 12px 10px;
+	background: #ecfdf5;
+	border: 1px solid #6ee7b7;
+	border-radius: 6px;
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.titlo-section-branch__head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	line-height: 1.2;
+}
+.titlo-section-branch__title {
+	font-weight: 600;
+	font-size: 12px;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	color: #047857;
 }
 .titlo-section-ms {
 	position: relative;
-	display: inline-block;
-	vertical-align: bottom;
+	display: block;
 }
 .titlo-section-ms__btn {
 	min-width: 220px;
 	max-width: 360px;
+	width: 100%;
 	text-align: left !important;
+	background: #fff !important;
+	border-color: #34d399 !important;
 }
 .titlo-section-ms__panel {
 	position: absolute;
@@ -81,9 +103,9 @@
 	width: 360px;
 	max-width: min(360px, 92vw);
 	background: #fff;
-	border: 1px solid #c6cdd7;
-	border-radius: 4px;
-	box-shadow: 0 8px 24px rgba(30, 40, 60, 0.18);
+	border: 1px solid #6ee7b7;
+	border-radius: 6px;
+	box-shadow: 0 10px 28px rgba(6, 95, 70, 0.18);
 	padding: 8px;
 	z-index: 40;
 	box-sizing: border-box;
