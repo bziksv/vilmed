@@ -60,7 +60,8 @@ class AdminUi
 					<input type="text" id="titlo-auto-section-q" class="adm-input titlo-section-ms__search"
 						placeholder="части слов: отос kaw" autocomplete="off" spellcheck="false"
 						aria-label="Поиск раздела по частям слов">
-					<div class="titlo-section-ms__hint">Части слов в любом порядке · список разделов ниже</div>					<div class="titlo-section-ms__list" id="titlo-section-ms-list" role="listbox" aria-multiselectable="true">
+					<div class="titlo-section-ms__hint">Части слов в любом порядке · список разделов ниже</div>
+					<div class="titlo-section-ms__list" id="titlo-section-ms-list" role="listbox" aria-multiselectable="true">
 						<?php foreach ($tree as $sec): ?>
 							<?php
 							$sid = (int) $sec['id'];
@@ -74,7 +75,8 @@ class AdminUi
 						<?php endforeach; ?>
 					</div>
 					<div class="titlo-section-ms__footer">
-						<button type="button" class="adm-btn" id="titlo-section-ms-clear">Очистить разделы</button>
+						<button type="button" class="adm-btn" id="titlo-section-ms-select-visible" title="Отметить все разделы в списке ниже (с учётом поиска)">Выбрать все</button>
+						<button type="button" class="adm-btn" id="titlo-section-ms-clear">Очистить</button>
 						<button type="button" class="adm-btn-save" id="titlo-section-ms-apply">Выбрать ветки</button>
 					</div>
 				</div>
@@ -263,6 +265,19 @@ class AdminUi
 								first.checked = !first.checked;
 							}
 						}
+					});
+				}
+
+				var selectVisible = document.getElementById('titlo-section-ms-select-visible');
+				if (selectVisible) {
+					selectVisible.addEventListener('click', function (e) {
+						e.preventDefault();
+						var list = document.getElementById('titlo-section-ms-list');
+						if (!list) return;
+						Array.prototype.forEach.call(list.querySelectorAll('.titlo-section-ms__item:not([hidden]) .titlo-section-ms__cb'), function (cb) {
+							cb.checked = true;
+						});
+						updateBtn();
 					});
 				}
 
