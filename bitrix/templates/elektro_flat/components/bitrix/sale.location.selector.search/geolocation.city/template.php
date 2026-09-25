@@ -60,12 +60,12 @@ if(!empty($arResult["ERRORS"]["FATAL"])):?>
                             <? if($i == 15): ?>
                                 </div>
                                 <div class="item-city">
-                                    <a href="javascript:void(0)" class="city-show" onclick="$(this).closest('.popular-city').find('.item-city:last-child').toggleClass('active'); return false;">Показать все города</a>
+                                    <button type="button" class="city-show" onclick="$(this).closest('.popular-city').find('.item-city:last-child').toggleClass('active'); return false;">Показать все города</button>
                                 </div>
                                 <div class="item-city">
                             <? endif; ?>
 
-                            <a href="javascript:void(0)" data-id="<?=intval($loc['ID'])?>"><?=htmlspecialcharsbx($loc["NAME"])?></a>
+                            <button type="button" data-id="<?=intval($loc['ID'])?>"><?=htmlspecialcharsbx($loc["NAME"])?></button>
                         <?
                         $i++;
                         endforeach;?>

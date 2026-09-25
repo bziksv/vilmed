@@ -140,6 +140,13 @@ header .center{
 .header_4 .geolocation__link{
 	display:table;
 	margin-left:3px;
+	padding:0;
+	border:0;
+	background:none;
+	font:inherit;
+	color:inherit;
+	cursor:pointer;
+	text-align:left;
 }
 
 .header_4 .geolocation__link i,

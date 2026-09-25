@@ -8,16 +8,24 @@
 .city-change .popular-city .item-city.hidden {
     display: none;
 }
-.city-change .popular-city .item-city a {
+.city-change .popular-city .item-city button {
     width: 120px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
     color: #575b71;
+    text-align: left;
     text-decoration: none;
+    cursor: pointer;
 }
-.city-change .popular-city .item-city a.city-show {
+.city-change .popular-city .item-city button.city-show {
     flex-grow: 1;
+    width: auto;
     text-align: center;
 }
-.city-change .popular-city .item-city a:hover {
+.city-change .popular-city .item-city button:hover {
     color: #660901;
 }
 .city-change .popular-city .item-city:last-child{

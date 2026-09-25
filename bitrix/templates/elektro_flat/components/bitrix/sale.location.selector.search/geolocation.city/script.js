@@ -135,8 +135,11 @@ if(typeof BX.Sale.component.location.selector.search == 'undefined' && typeof BX
 			var ctx = this;
 
 			// quick links
-			BX.bindDelegate(this.getControl('quick-locations', true), 'click', {tag: 'a'}, function() {
-				ctx.setValueByLocationId(BX.data(this, 'id'));
+			BX.bindDelegate(this.getControl('quick-locations', true), 'click', {tag: 'button'}, function() {
+				var id = BX.data(this, 'id');
+				if (id) {
+					ctx.setValueByLocationId(id);
+				}
 			});
 
 			this.vars.outSideClickScope = this.ctrls.inputBlock;

@@ -1293,6 +1293,13 @@
 	display: inline-flex;
 	align-items: center;
 	width: auto;
+	padding: 0;
+	border: 0;
+	background: none;
+	font: inherit;
+	color: inherit;
+	cursor: pointer;
+	text-align: left;
 }
 
 .vilmed-hdr-icons {

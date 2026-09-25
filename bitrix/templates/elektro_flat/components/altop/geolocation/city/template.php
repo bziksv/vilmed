@@ -11,7 +11,7 @@ if($arParams["USE_GEOLOCATION"] == "Y"):
 	$phpCity = !empty($arParams["GEOLOCATION_CITY"]) ? (string)$arParams["GEOLOCATION_CITY"] : "";
 ?>
 	<div id="geolocation" class="geolocation">
-		<a id="geolocationChangeCity" class="geolocation__link" href="javascript:void(0);"><i class="fa fa-map-marker" aria-hidden="true"></i><span class="geolocation__value"><?=($phpCity !== "" ? htmlspecialcharsbx($phpCity) : Loc::getMessage("GEOLOCATION_POSITIONING"));?></span></a>
+		<button type="button" id="geolocationChangeCity" class="geolocation__link"><i class="fa fa-map-marker" aria-hidden="true"></i><span class="geolocation__value"><?=($phpCity !== "" ? htmlspecialcharsbx($phpCity) : Loc::getMessage("GEOLOCATION_POSITIONING"));?></span></button>
 	</div>
 	<div class="telephone"><?=(!empty($arResult["CONTACTS"]) ? $arResult["CONTACTS"] : "");?></div>
 
