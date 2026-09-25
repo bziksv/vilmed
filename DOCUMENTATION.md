@@ -281,6 +281,7 @@ ID инфоблоков зашиты в коде компонентов и inclu
 - `askaron.agents` — агенты
 - `niges.cookiesaccept` — cookie-баннер
 - `prime.alerts` (1.2.2) — политика e-mail (запрет иностранных доменов на регистрации/заказе), `local/modules/prime.alerts/`. Frontend (`OnEndBufferContent`) инжектит CSS/JS **только** в HTML с `</body>` / не в AJAX — иначе ломает JSON («Купить в 1 клик», выбор города на оформлении).
+- `titlo.relevance` (1.1.0) — интеграция с Titlo Shop API: релевантность + генерация анонса/детального/категории + **проверка названий** (`UF_TITLO_PHRASE`, до 50 символов через DeepSeek; кнопка «В название» пишет фразу в `NAME`, оригинал — в `UF_TITLO_NAME_ORIG`). Модуль: `local/modules/titlo.relevance/`. Админка: Сервисы → «Titlo: тексты». HTML из AI: `CatalogRepository::sanitizeCatalogHtml()` (`.ic`→`<svg>`, FAQ summary→details, mark→span.vmd-mark, `;` между атрибутами). Пересанитизация: `php tools/perf/fix-w3c-vmd-html.php`. Runtime: `vilmedFixVmdMarkup` / `vilmedEscapeScriptHtmlEndTags` в `include/vilmed_perf.php`.
 - `arturgolubev.chatgpt` (6.2.0) — генерация контента (ChatGPT / DeepSeek / GigaChat), админка `/bitrix/admin/arturgolubev_chatgpt_*.php`, таблицы `ag_chatgpt_*`. Устанавливался на prod вне git → в репозитории с 2026-08.
 - `sng.secure` — безопасность
 - `abtest` — A/B тестирование
