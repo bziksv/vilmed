@@ -1,5 +1,5 @@
 <?
-$MESS["GEOLOCATION_POSITIONING"] = "Воронеж";
+$MESS["GEOLOCATION_POSITIONING"] = "Выберите город";
 $MESS["GEOLOCATION_NOT_DEFINED"] = "Не определен";
 $MESS["GEOLOCATION_YOUR_CITY"] = "Ваш город";
 $MESS["GEOLOCATION_YES"] = "Да";

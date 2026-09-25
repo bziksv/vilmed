@@ -48,6 +48,8 @@ $APPLICATION->IncludeComponent("bitrix:sale.location.selector.search", "geolocat
 			}
 		}
 		if (!locationId) {
+			// Кликнули «Выбрать» без выбора из подсказки / популярных — ID нет.
+			window.alert("Выберите город из списка подсказок или популярных городов.");
 			return;
 		}
 

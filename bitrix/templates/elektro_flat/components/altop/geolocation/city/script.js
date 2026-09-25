@@ -197,6 +197,17 @@ BX.GeolocationDelivery = function(elementId) {
 
 //GEOLOCATION//
 BX.Geolocation = function(geolocation) {
+	// Уже выбранный город (BITRIX_SM_GEOLOCATION_CITY) — не дергаем searchLocation,
+	// иначе Yandex IP затрёт Москву на Воронеж.
+	try {
+		var m = document.cookie.match(/(?:^|; )(?:BITRIX_SM_|BITRIX_)?GEOLOCATION_CITY=([^;]*)/);
+		var existingCity = m ? decodeURIComponent(m[1].replace(/\+/g, " ")) : "";
+		if (existingCity) {
+			$(".geolocation__value").html(existingCity);
+			return;
+		}
+	} catch (e) {}
+
 	if(geolocation.city) {
 		BX.ajax.post(
 			BX.message("GEOLOCATION_COMPONENT_PATH") + "/ajax.php",
@@ -213,7 +224,7 @@ BX.Geolocation = function(geolocation) {
 				$(".geolocation__value").html(json.city);
 				var confirmed = false;
 				try {
-					confirmed = /(?:^|; )GEOLOCATION_CONFIRMED=Y(?:;|$)/.test(document.cookie);
+					confirmed = /(?:^|; )(?:BITRIX_SM_)?GEOLOCATION_CONFIRMED=Y(?:;|$)/.test(document.cookie);
 				} catch (e) {}
 				if(BX.message("GEOLOCATION_SHOW_CONFIRM") == "Y" && !confirmed) {
 					BX.CityConfirm();
@@ -235,7 +246,7 @@ BX.Geolocation = function(geolocation) {
 		$(".geolocation__value").html(BX.message("GEOLOCATION_NOT_DEFINED"));
 		var confirmed = false;
 		try {
-			confirmed = /(?:^|; )GEOLOCATION_CONFIRMED=Y(?:;|$)/.test(document.cookie);
+			confirmed = /(?:^|; )(?:BITRIX_SM_)?GEOLOCATION_CONFIRMED=Y(?:;|$)/.test(document.cookie);
 		} catch (e) {}
 		if(BX.message("GEOLOCATION_SHOW_CONFIRM") == "Y" && !confirmed) {
 			BX.CityConfirm(true);

@@ -5,9 +5,11 @@ use Bitrix\Main\Localization\Loc;
 // Динамическая область композита — город/телефон зависят от cookie
 $frame = $this->createFrame("geolocation", false)->begin();
 
-if($arParams["USE_GEOLOCATION"] == "Y"):?>
+if($arParams["USE_GEOLOCATION"] == "Y"):
+	$phpCity = !empty($arParams["GEOLOCATION_CITY"]) ? (string)$arParams["GEOLOCATION_CITY"] : "";
+?>
 	<div id="geolocation" class="geolocation">
-		<a id="geolocationChangeCity" class="geolocation__link" href="javascript:void(0);"><i class="fa fa-map-marker" aria-hidden="true"></i><span class="geolocation__value"><?=(!empty($arParams["GEOLOCATION_CITY"]) ? htmlspecialcharsbx($arParams["GEOLOCATION_CITY"]) : Loc::getMessage("GEOLOCATION_POSITIONING"));?></span></a>
+		<a id="geolocationChangeCity" class="geolocation__link" href="javascript:void(0);"><i class="fa fa-map-marker" aria-hidden="true"></i><span class="geolocation__value"><?=($phpCity !== "" ? htmlspecialcharsbx($phpCity) : Loc::getMessage("GEOLOCATION_POSITIONING"));?></span></a>
 	</div>
 	<div class="telephone"><?=(!empty($arResult["CONTACTS"]) ? $arResult["CONTACTS"] : "");?></div>
 
@@ -27,13 +29,26 @@ if($arParams["USE_GEOLOCATION"] == "Y"):?>
 		});
 
 		(function() {
+			var phpCity = <?=CUtil::PhpToJSObject($phpCity)?>;
+
 			function vilmedGetCookie(name) {
 				var m = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/([.$?*|{}()[\]\\/+^])/g, "\\$1") + "=([^;]*)"));
 				return m ? decodeURIComponent(m[1].replace(/\+/g, " ")) : "";
 			}
 
-			function vilmedApplyCityFromCookie() {
-				var city = vilmedGetCookie("GEOLOCATION_CITY");
+			// Bitrix пишет BITRIX_SM_GEOLOCATION_CITY — без префикса cookie «не видна» в document.cookie
+			function vilmedGetGeoCityCookie() {
+				var prefixes = ["BITRIX_SM_", "BITRIX_", ""];
+				for (var i = 0; i < prefixes.length; i++) {
+					var v = vilmedGetCookie(prefixes[i] + "GEOLOCATION_CITY");
+					if (v) {
+						return v;
+					}
+				}
+				return "";
+			}
+
+			function vilmedApplyKnownCity(city) {
 				if (!city) {
 					return false;
 				}
@@ -44,9 +59,8 @@ if($arParams["USE_GEOLOCATION"] == "Y"):?>
 				return true;
 			}
 
-			// Уже выбрали город — не гоняем Yandex/Bitrix geo и не показываем CityConfirm
-			// (иначе композит-статика снова открывает попап на каждом хите).
-			if (vilmedApplyCityFromCookie()) {
+			// Уже есть город (cookie или PHP) — не гоняем Yandex, иначе затрёт выбранную Москву.
+			if (vilmedApplyKnownCity(phpCity || vilmedGetGeoCityCookie())) {
 				BX.bind(BX("geolocationChangeCity"), "click", BX.delegate(BX.CityChange, BX));
 				return;
 			}
@@ -60,7 +74,7 @@ if($arParams["USE_GEOLOCATION"] == "Y"):?>
 				};
 				(function() {
 					var run = function() {
-						if (vilmedApplyCityFromCookie()) {
+						if (vilmedApplyKnownCity(vilmedGetGeoCityCookie())) {
 							return;
 						}
 						BX.Geolocation(geolocation);
@@ -80,7 +94,7 @@ if($arParams["USE_GEOLOCATION"] == "Y"):?>
 				})();
 			<?} else {?>
 				window.addEventListener("load", function() {
-					if (vilmedApplyCityFromCookie()) {
+					if (vilmedApplyKnownCity(vilmedGetGeoCityCookie())) {
 						return;
 					}
 					BX.loadYandexMaps(function() {
