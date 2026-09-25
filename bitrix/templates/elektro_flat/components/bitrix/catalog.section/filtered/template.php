@@ -402,7 +402,6 @@ $inQuickView = in_array("QUICK_VIEW", $arSetting["GENERAL_SETTINGS"]["VALUE"]);
 							<div class="available">
 								<?if($arElement["TOTAL_OFFERS"]["QUANTITY"] > 0 || !$arElement["CHECK_QUANTITY"]) {?>
 									<?if($arParams['SHOW_MAX_QUANTITY'] !== 'N') { ?>
-                                        <meta content="InStock" itemprop="availability"/>
                                         <div class="avl">
                                             <i class="fa fa-check-circle"></i>
                                             <span>
@@ -445,7 +444,6 @@ $inQuickView = in_array("QUICK_VIEW", $arSetting["GENERAL_SETTINGS"]["VALUE"]);
 							<div class="available">
 								<?if($arElement["CAN_BUY"]) {?>
 									<?if($arParams['SHOW_MAX_QUANTITY'] !== 'N') { ?>
-                                        <meta content="InStock" itemprop="availability"/>
                                         <div class="avl">
                                             <i class="fa fa-check-circle"></i>
                                             <span>
