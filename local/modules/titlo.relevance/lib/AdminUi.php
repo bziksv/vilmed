@@ -58,9 +58,9 @@ class AdminUi
 					aria-haspopup="listbox" aria-expanded="false"><?= htmlspecialcharsbx($btnLabel) ?></button>
 				<div class="titlo-section-ms__panel" id="titlo-section-ms-panel" hidden>
 					<input type="text" id="titlo-auto-section-q" class="adm-input titlo-section-ms__search"
-						placeholder="Фильтр списка разделов…" autocomplete="off" spellcheck="false"
-						aria-label="Фильтр разделов (не поиск товаров)">
-					<div class="titlo-section-ms__list" id="titlo-section-ms-list" role="listbox" aria-multiselectable="true">
+						placeholder="части слов: отос kaw" autocomplete="off" spellcheck="false"
+						aria-label="Поиск раздела по частям слов">
+					<div class="titlo-section-ms__hint">Части слов в любом порядке · список разделов ниже</div>					<div class="titlo-section-ms__list" id="titlo-section-ms-list" role="listbox" aria-multiselectable="true">
 						<?php foreach ($tree as $sec): ?>
 							<?php
 							$sid = (int) $sec['id'];
@@ -100,6 +100,35 @@ class AdminUi
 
 			function normalizeSearch(s) {
 				return String(s || '').toLowerCase().replace(/ё/g, 'е').trim();
+			}
+
+			function searchTokens(q) {
+				var parts = normalizeSearch(q).split(/[\s,;|]+/);
+				var out = [];
+				for (var i = 0; i < parts.length; i++) {
+					if (parts[i].length >= 2) out.push(parts[i]);
+				}
+				return out;
+			}
+
+			function itemHaystack(item) {
+				var name = item.getAttribute('data-name') || '';
+				var label = item.textContent || '';
+				return normalizeSearch(name + ' ' + label);
+			}
+
+			function tokensMatch(hay, tokens, modeAnd) {
+				if (!tokens.length) return true;
+				if (modeAnd) {
+					for (var i = 0; i < tokens.length; i++) {
+						if (hay.indexOf(tokens[i]) === -1) return false;
+					}
+					return true;
+				}
+				for (var j = 0; j < tokens.length; j++) {
+					if (hay.indexOf(tokens[j]) !== -1) return true;
+				}
+				return false;
 			}
 
 			function root() {
@@ -144,6 +173,7 @@ class AdminUi
 						q.focus();
 						q.select();
 					}
+					filterList();
 				} else {
 					p.hidden = true;
 					b.setAttribute('aria-expanded', 'false');
@@ -154,11 +184,34 @@ class AdminUi
 				var qEl = document.getElementById('titlo-auto-section-q');
 				var list = document.getElementById('titlo-section-ms-list');
 				if (!qEl || !list) return;
-				var q = normalizeSearch(qEl.value);
-				Array.prototype.forEach.call(list.querySelectorAll('.titlo-section-ms__item'), function (item) {
-					var name = normalizeSearch(item.getAttribute('data-name') || item.textContent);
-					item.hidden = q !== '' && name.indexOf(q) === -1;
+				var tokens = searchTokens(qEl.value);
+				var items = list.querySelectorAll('.titlo-section-ms__item');
+				var andHits = 0;
+				Array.prototype.forEach.call(items, function (item) {
+					var hay = itemHaystack(item);
+					var ok = tokensMatch(hay, tokens, true);
+					item.hidden = !ok;
+					if (ok) andHits++;
 				});
+				// если все слова сразу нигде не встретились — покажем разделы по любому слову
+				if (tokens.length > 1 && andHits === 0) {
+					Array.prototype.forEach.call(items, function (item) {
+						item.hidden = !tokensMatch(itemHaystack(item), tokens, false);
+					});
+				}
+				var empty = list.querySelector('.titlo-section-ms__empty');
+				var visible = list.querySelector('.titlo-section-ms__item:not([hidden])');
+				if (!visible) {
+					if (!empty) {
+						empty = document.createElement('div');
+						empty.className = 'titlo-section-ms__empty';
+						empty.textContent = 'Нет разделов по запросу';
+						list.appendChild(empty);
+					}
+					empty.hidden = false;
+				} else if (empty) {
+					empty.hidden = true;
+				}
 			}
 
 			var changeCb = null;
