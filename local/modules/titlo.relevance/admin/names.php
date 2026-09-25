@@ -126,34 +126,47 @@ $sectionIds = CatalogRepository::normalizeSectionIds(
 		</div>
 	</details>
 
-	<div class="filters">
-		<?php AdminUi::renderSectionBranchFilter($sectionIds, $isSection ? 'категории' : 'товары'); ?>
-		<div class="titlo-list-scope">
-			<div class="titlo-list-scope__head">
-				<span class="titlo-list-scope__title">Список</span>
-			</div>
-			<div class="titlo-list-scope__row">
-				<label>Фильтр:
-					<select id="titlo-filter">
-						<option value="todo" <?= $filter === 'todo' ? 'selected' : '' ?>>Нужно проработать (длинные без фразы)</option>
-						<option value="filled" <?= $filter === 'filled' ? 'selected' : '' ?>>Проработанные (есть короткая фраза)</option>
-						<option value="country_todo" <?= $filter === 'country_todo' ? 'selected' : '' ?>>Страна в названии — без фразы</option>
-						<option value="country" <?= $filter === 'country' ? 'selected' : '' ?>>Страна в названии (все)</option>
-						<option value="empty" <?= $filter === 'empty' ? 'selected' : '' ?>>Без короткой фразы</option>
-						<option value="long" <?= $filter === 'long' ? 'selected' : '' ?>>NAME длиннее 50</option>
-						<option value="skip" <?= $filter === 'skip' ? 'selected' : '' ?>>Не прорабатывать</option>
-						<option value="all" <?= $filter === 'all' ? 'selected' : '' ?>>Все</option>
-					</select>
-				</label>
-				<input type="text" id="titlo-q" class="adm-input" placeholder="ID / название / код / URL" value="<?= htmlspecialcharsbx($q) ?>" style="width:280px"
-					title="Можно вставить полный URL страницы товара или категории">
-				<input type="button" id="titlo-reload" class="adm-btn" value="Показать">
-				<span id="titlo-list-status" class="status"></span>
+	<section class="titlo-panel titlo-panel--select" aria-labelledby="titlo-panel-select-title">
+		<header class="titlo-panel__head">
+			<h3 class="titlo-panel__title" id="titlo-panel-select-title">Отбор <?= $isSection ? 'категорий' : 'товаров' ?></h3>
+			<span class="titlo-panel__hint">Ветка каталога, фильтр и поиск — кого берём в работу</span>
+		</header>
+		<div class="titlo-panel__body">
+			<div class="filters">
+				<?php AdminUi::renderSectionBranchFilter($sectionIds, $isSection ? 'категории' : 'товары'); ?>
+				<div class="titlo-list-scope">
+					<div class="titlo-list-scope__head">
+						<span class="titlo-list-scope__title">Список</span>
+					</div>
+					<div class="titlo-list-scope__row">
+						<label>Фильтр:
+							<select id="titlo-filter">
+								<option value="todo" <?= $filter === 'todo' ? 'selected' : '' ?>>Нужно проработать (длинные без фразы)</option>
+								<option value="filled" <?= $filter === 'filled' ? 'selected' : '' ?>>Проработанные (есть короткая фраза)</option>
+								<option value="country_todo" <?= $filter === 'country_todo' ? 'selected' : '' ?>>Страна в названии — без фразы</option>
+								<option value="country" <?= $filter === 'country' ? 'selected' : '' ?>>Страна в названии (все)</option>
+								<option value="empty" <?= $filter === 'empty' ? 'selected' : '' ?>>Без короткой фразы</option>
+								<option value="long" <?= $filter === 'long' ? 'selected' : '' ?>>NAME длиннее 50</option>
+								<option value="skip" <?= $filter === 'skip' ? 'selected' : '' ?>>Не прорабатывать</option>
+								<option value="all" <?= $filter === 'all' ? 'selected' : '' ?>>Все</option>
+							</select>
+						</label>
+						<input type="text" id="titlo-q" class="adm-input" placeholder="ID / название / код / URL" value="<?= htmlspecialcharsbx($q) ?>" style="width:280px"
+							title="Можно вставить полный URL страницы товара или категории">
+						<input type="button" id="titlo-reload" class="adm-btn" value="Показать">
+						<span id="titlo-list-status" class="status"></span>
+					</div>
+				</div>
 			</div>
 		</div>
-	</div>
+	</section>
 
-	<div class="bulk-bar">
+	<section class="titlo-panel titlo-panel--run" aria-labelledby="titlo-panel-run-title">
+		<header class="titlo-panel__head">
+			<h3 class="titlo-panel__title" id="titlo-panel-run-title">Генерация коротких фраз</h3>
+			<span class="titlo-panel__hint">Промпты и пачка по текущему отбору</span>
+		</header>
+		<div class="titlo-panel__body bulk-bar">
 		<label>Промпт (строка)
 			<span class="titlo-help" tabindex="0" aria-label="Что такое промпт строки">?
 				<span class="titlo-help__tip"><?= $isSection
@@ -190,7 +203,8 @@ $sectionIds = CatalogRepository::normalizeSectionIds(
 		<input type="button" id="titlo-bulk-stop" class="adm-btn titlo-bulk-stop" value="Остановить генерацию" disabled
 			title="Прервать текущую пачку: оставшиеся в очереди не будут отправлены в API">
 		<span id="titlo-bulk-status" class="bulk-status">Массовая генерация не запущена</span>
-	</div>
+		</div>
+	</section>
 
 	<table>
 		<thead>

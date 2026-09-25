@@ -57,12 +57,21 @@
 	background: #f7fef9;
 }
 .titlo-panel--select .filters {
-	margin: 0 0 8px;
+	margin: 0;
 }
 .titlo-panel--select .titlo-auto-search-bar {
 	margin: 0;
 	background: #fff;
 	border-color: #cbd5e1;
+}
+/* Внутри отбора вложенные чипы светлее, чтобы не спорили с рамкой панели */
+.titlo-panel--select .titlo-section-branch {
+	background: #fff;
+	border-color: #86efac;
+}
+.titlo-panel--select .titlo-list-scope {
+	background: #fff;
+	border-color: #93c5fd;
 }
 .titlo-panel--run {
 	border: 1px solid #93c5fd;
