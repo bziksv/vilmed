@@ -2,8 +2,10 @@
 
 use Bitrix\Main\Localization\Loc;
 
-// Динамическая область композита — город/телефон зависят от cookie
-$frame = $this->createFrame("geolocation", false)->begin();
+// Динамическая область композита — город/телефон зависят от cookie.
+// ID НЕ должен быть "geolocation": иначе Bitrix подменяет innerHTML у #geolocation,
+// а .telephone остаётся снаружи → после AJAX два номера в шапке.
+$frame = $this->createFrame("vilmed_geo", true)->begin();
 
 if($arParams["USE_GEOLOCATION"] == "Y"):
 	$phpCity = !empty($arParams["GEOLOCATION_CITY"]) ? (string)$arParams["GEOLOCATION_CITY"] : "";
