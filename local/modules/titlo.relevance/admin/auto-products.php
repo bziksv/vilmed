@@ -139,8 +139,16 @@ if ($sort !== 'id_desc') {
 				<option value="id_desc" <?= $sort === 'id_desc' ? 'selected' : '' ?>>ID ↓</option>
 			</select>
 		</label>
-		<input type="text" id="titlo-auto-q" class="adm-input" placeholder="ID или части слов: kaw oto" value="<?= htmlspecialcharsbx($q) ?>" style="width:280px">
-		<input type="button" id="titlo-auto-reload" class="adm-btn" value="Показать">
+		<label class="titlo-auto-search">Поиск
+			<span class="titlo-help" tabindex="0" aria-label="Поиск">?
+				<span class="titlo-help__tip">ID целиком, или <b>части слов в любом порядке</b> — все токены обязательны.
+					Пример: <code>отоскоп he</code> → название/код/фраза содержат и «отоскоп», и «he».
+					Список обновляется при вводе (Enter / «Найти» тоже работают).</span>
+			</span>:
+			<input type="text" id="titlo-auto-q" class="adm-input" placeholder="ID или части слов: отоскоп he"
+				value="<?= htmlspecialcharsbx($q) ?>" style="width:280px" autocomplete="off" spellcheck="false">
+		</label>
+		<input type="button" id="titlo-auto-reload" class="adm-btn-save" value="Найти">
 		<span id="titlo-auto-list-status" class="status"></span>
 	</div>
 
@@ -785,7 +793,13 @@ if ($sort !== 'id_desc') {
 			body.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="' + COLSPAN + '">Нет товаров по фильтру (нужна короткая фраза)</td></tr>';
 			bindListEvents(body);
 			renderPager(res.total || 0, res.page_size || 25, res.pages || 1);
-			setStatus('titlo-auto-list-status', 'Найдено: ' + (res.total || 0));
+			var qShow = (document.getElementById('titlo-auto-q').value || '').trim();
+			setStatus(
+				'titlo-auto-list-status',
+				qShow
+					? ('Найдено: ' + (res.total || 0) + ' по «' + qShow + '»')
+					: ('Найдено: ' + (res.total || 0))
+			);
 			updateEnqueueBtn();
 			document.getElementById('titlo-auto-check-all').checked = false;
 		});
@@ -962,12 +976,33 @@ if ($sort !== 'id_desc') {
 			loadList();
 		});
 	}
-	document.getElementById('titlo-auto-q').onkeydown = function (e) {
-		if (e.key === 'Enter') {
+	(function bindLiveSearch() {
+		var inp = document.getElementById('titlo-auto-q');
+		if (!inp) return;
+		var timer = null;
+		function runSearch() {
+			timer = null;
 			page = 1;
 			loadList();
 		}
-	};
+		inp.addEventListener('input', function () {
+			if (timer) clearTimeout(timer);
+			timer = setTimeout(runSearch, 350);
+		});
+		inp.addEventListener('keydown', function (e) {
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				if (timer) clearTimeout(timer);
+				page = 1;
+				loadList();
+			}
+		});
+		inp.addEventListener('focus', function () {
+			if (window.TitloSectionBranch && typeof TitloSectionBranch.close === 'function') {
+				TitloSectionBranch.close();
+			}
+		});
+	})();
 
 	document.getElementById('titlo-auto-enqueue').onclick = function () {
 		var ids = Object.keys(selected).filter(function (k) { return selected[k]; }).map(function (k) { return parseInt(k, 10); });

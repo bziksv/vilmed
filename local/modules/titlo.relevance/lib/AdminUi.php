@@ -58,7 +58,8 @@ class AdminUi
 					aria-haspopup="listbox" aria-expanded="false"><?= htmlspecialcharsbx($btnLabel) ?></button>
 				<div class="titlo-section-ms__panel" id="titlo-section-ms-panel" hidden>
 					<input type="text" id="titlo-auto-section-q" class="adm-input titlo-section-ms__search"
-						placeholder="Поиск раздела…" autocomplete="off" spellcheck="false">
+						placeholder="Фильтр списка разделов…" autocomplete="off" spellcheck="false"
+						aria-label="Фильтр разделов (не поиск товаров)">
 					<div class="titlo-section-ms__list" id="titlo-section-ms-list" role="listbox" aria-multiselectable="true">
 						<?php foreach ($tree as $sec): ?>
 							<?php
