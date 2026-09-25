@@ -49,20 +49,40 @@
 			return out;
 		}
 
-		function setMainFromHref(href) {
+		function setMainFromHref(href, opts) {
+			opts = opts || {};
 			var mainA = gallery.querySelector(".detail_picture a.catalog-detail-images, .catalog-detail-picture a.catalog-detail-images");
 			if (!mainA) { return; }
 			mainA.setAttribute("href", href);
-			var pic = mainA.querySelector("picture");
+
+			// Не трогаем <picture>/webp на первом рендере — иначе вместо 390.webp
+			// подставляется полный /upload/iblock/*.jpg (700px).
+			if (!opts.replaceImage) {
+				syncActiveThumb(href);
+				return;
+			}
+
 			var img = mainA.querySelector("img");
+			var pic = mainA.querySelector("picture");
+			var webpHref = href.replace(/\.(jpe?g|png)$/i, ".webp");
 			if (pic) {
-				var source = pic.querySelector("source");
-				if (source) { source.removeAttribute("srcset"); }
+				var source = pic.querySelector('source[type="image/webp"]') || pic.querySelector("source");
+				if (!source) {
+					source = document.createElement("source");
+					source.setAttribute("type", "image/webp");
+					pic.insertBefore(source, img || null);
+				}
+				source.setAttribute("type", "image/webp");
+				source.setAttribute("srcset", webpHref);
 			}
 			if (img) {
 				img.setAttribute("src", href);
 				img.removeAttribute("srcset");
 			}
+			syncActiveThumb(href);
+		}
+
+		function syncActiveThumb(href) {
 			var thumbs = gallery.querySelectorAll(".more_photo li:not(.catalog-detail-video)");
 			for (var i = 0; i < thumbs.length; i++) {
 				var ta = thumbs[i].querySelector("a.catalog-detail-images");
@@ -212,13 +232,14 @@
 			var inMore = a.closest && a.closest(".more_photo");
 			var inMain = a.closest && (a.closest(".detail_picture") || a.closest(".catalog-detail-picture"));
 			if (inMore && !inMain) {
-				setMainFromHref(href);
+				setMainFromHref(href, { replaceImage: true });
 				return;
 			}
 			open(href);
 		}, true);
 
+		// Только подсветка активной миниатюры — картинку из PHP (webp 390) не трогаем.
 		var mainA = gallery.querySelector(".detail_picture a.catalog-detail-images, .catalog-detail-picture a.catalog-detail-images");
-		if (mainA) { setMainFromHref(mainA.getAttribute("href") || ""); }
+		if (mainA) { setMainFromHref(mainA.getAttribute("href") || "", { replaceImage: false }); }
 	});
 })();
