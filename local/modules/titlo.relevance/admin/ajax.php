@@ -605,6 +605,7 @@ try {
 				'q' => (string) ($_POST['q'] ?? ''),
 				'filter' => (string) ($_POST['filter'] ?? 'empty'),
 				'active' => (string) ($_POST['active'] ?? 'Y'),
+				'section_ids' => $_POST['section_ids'] ?? ($_POST['section_id'] ?? 0),
 			];
 			$list = $entityType === 'S'
 				? CatalogRepository::listSectionsForPhraseCheck($params)
@@ -753,7 +754,8 @@ try {
 				(string) ($_POST['q'] ?? ''),
 				(int) ($_POST['limit'] ?? PhraseBulk::DEFAULT_LIMIT),
 				(int) ($_POST['prompt_id'] ?? 0),
-				(string) ($_POST['entity_type'] ?? 'E')
+				(string) ($_POST['entity_type'] ?? 'E'),
+				$_POST['section_ids'] ?? ($_POST['section_id'] ?? null)
 			);
 			titlo_json($res, !empty($res['ok']) ? 200 : 422);
 

@@ -106,7 +106,14 @@ class PhraseBulk
 	/**
 	 * @return array{ok:bool,batch_id?:int,total?:int,error?:string,capped?:bool}
 	 */
-	public static function start(string $filter, string $q, int $limit, int $promptId = 0, string $entityType = 'E'): array
+	public static function start(
+		string $filter,
+		string $q,
+		int $limit,
+		int $promptId = 0,
+		string $entityType = 'E',
+		$sectionIds = null
+	): array
 	{
 		self::ensureTables();
 		global $DB;
@@ -132,6 +139,7 @@ class PhraseBulk
 			'filter' => $filter,
 			'q' => $q,
 			'limit' => $limit,
+			'section_ids' => $sectionIds,
 		];
 		$filterTotal = $entityType === 'S'
 			? CatalogRepository::countSectionsForPhraseBulk($filterParams)
@@ -148,6 +156,7 @@ class PhraseBulk
 			'entity_type' => $entityType,
 			'filter' => $filter,
 			'q' => $q,
+			'section_ids' => CatalogRepository::normalizeSectionIds($sectionIds),
 			'limit' => $limit,
 			'prompt_id' => $promptId,
 			'total' => count($items),

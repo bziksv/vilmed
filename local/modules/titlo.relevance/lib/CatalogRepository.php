@@ -400,6 +400,12 @@ class CatalogRepository
 			$where[] = CountryInName::sqlNameHasCountry('BE.NAME', $DB);
 		}
 
+		$sectionIds = self::sectionIdsFromParams($params);
+		$branchSql = self::sqlElementInAnySectionSubtree('BE', $sectionIds, $iblockId);
+		if ($branchSql !== null) {
+			$where[] = $branchSql;
+		}
+
 		$whereSql = implode(' AND ', $where);
 		$offset = ($page - 1) * $pageSize;
 
@@ -528,6 +534,12 @@ class CatalogRepository
 			$where[] = CountryInName::sqlNameHasCountry('BE.NAME', $DB);
 		}
 
+		$sectionIds = self::sectionIdsFromParams($params);
+		$branchSql = self::sqlElementInAnySectionSubtree('BE', $sectionIds, $iblockId);
+		if ($branchSql !== null) {
+			$where[] = $branchSql;
+		}
+
 		return [implode(' AND ', $where), $uts];
 	}
 
@@ -637,6 +649,12 @@ class CatalogRepository
 
 		if ($filterMode === 'country' || $filterMode === 'country_todo') {
 			$where[] = CountryInName::sqlNameHasCountry('BS.NAME', $DB);
+		}
+
+		$sectionIds = self::sectionIdsFromParams($params);
+		$branchSql = self::sqlSectionInAnySubtree($sectionIds);
+		if ($branchSql !== null) {
+			$where[] = $branchSql;
 		}
 
 		$whereSql = implode(' AND ', $where);
@@ -763,6 +781,12 @@ class CatalogRepository
 
 		if ($filterMode === 'country' || $filterMode === 'country_todo') {
 			$where[] = CountryInName::sqlNameHasCountry('BS.NAME', $DB);
+		}
+
+		$sectionIds = self::sectionIdsFromParams($params);
+		$branchSql = self::sqlSectionInAnySubtree($sectionIds);
+		if ($branchSql !== null) {
+			$where[] = $branchSql;
 		}
 
 		return [implode(' AND ', $where), $uts];

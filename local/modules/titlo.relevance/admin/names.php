@@ -41,6 +41,9 @@ $filter = (string) ($_GET['filter'] ?? 'todo');
 $q = (string) ($_GET['q'] ?? '');
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $phraseMaxLen = (int) UserFields::PHRASE_MAX_LEN;
+$sectionIds = CatalogRepository::normalizeSectionIds(
+	$_GET['section_ids'] ?? ($_GET['section_id'] ?? [])
+);
 ?>
 
 <?php AdminUi::renderCss(); ?>
@@ -97,6 +100,11 @@ $phraseMaxLen = (int) UserFields::PHRASE_MAX_LEN;
 					(например <code>https://vilmed.ru/product/…/</code>).
 				</li>
 				<li>
+					<strong>Ветка каталога</strong> — сузить список до выбранных разделов
+					(и вложенных), чтобы прорабатывать группу по очереди.
+					Пачка «Сгенерировать» тоже берёт только эту ветку.
+				</li>
+				<li>
 					Галочка <strong>«не надо»</strong>
 					(<code><?= htmlspecialcharsbx(UserFields::SKIP_FIELD) ?></code>)
 					убирает из рабочих фильтров.
@@ -115,6 +123,7 @@ $phraseMaxLen = (int) UserFields::PHRASE_MAX_LEN;
 	</details>
 
 	<div class="filters">
+		<?php AdminUi::renderSectionBranchFilter($sectionIds, $isSection ? 'категории' : 'товары'); ?>
 		<label>Фильтр:
 			<select id="titlo-filter">
 				<option value="todo" <?= $filter === 'todo' ? 'selected' : '' ?>>Нужно проработать (длинные без фразы)</option>
@@ -127,7 +136,7 @@ $phraseMaxLen = (int) UserFields::PHRASE_MAX_LEN;
 				<option value="all" <?= $filter === 'all' ? 'selected' : '' ?>>Все</option>
 			</select>
 		</label>
-		<input type="text" id="titlo-q" class="adm-input" placeholder="ID / название / код / URL" value="<?= htmlspecialcharsbx($q) ?>" style="width:360px"
+		<input type="text" id="titlo-q" class="adm-input" placeholder="ID / название / код / URL" value="<?= htmlspecialcharsbx($q) ?>" style="width:280px"
 			title="Можно вставить полный URL страницы товара или категории">
 		<input type="button" id="titlo-reload" class="adm-btn" value="Показать">
 		<span id="titlo-list-status" class="status"></span>
@@ -295,11 +304,24 @@ $phraseMaxLen = (int) UserFields::PHRASE_MAX_LEN;
 		return st;
 	}
 
+	function currentSectionIds() {
+		if (window.TitloSectionBranch && typeof TitloSectionBranch.getIds === 'function') {
+			return TitloSectionBranch.getIds();
+		}
+		return [];
+	}
+
 	function load() {
 		var filter = document.getElementById('titlo-filter').value;
 		var q = document.getElementById('titlo-q').value;
 		document.getElementById('titlo-list-status').textContent = 'Загрузка…';
-		post('list_names', {filter: filter, q: q, page: page, page_size: 25}).then(function (res) {
+		post('list_names', {
+			filter: filter,
+			q: q,
+			page: page,
+			page_size: 25,
+			section_ids: currentSectionIds().join(',')
+		}).then(function (res) {
 			var body = document.getElementById('titlo-names-body');
 			if (!res.ok) {
 				body.innerHTML = '<tr><td colspan="5">' + escapeHtml(res.error || 'Ошибка') + '</td></tr>';
@@ -521,6 +543,7 @@ $phraseMaxLen = (int) UserFields::PHRASE_MAX_LEN;
 			q: q,
 			limit: limit,
 			prompt_id: (document.getElementById('titlo-prompt-batch') || {}).value || 0,
+			section_ids: currentSectionIds().join(','),
 			confirm: '1'
 		}).then(function (res) {
 			if (!res.ok) {
@@ -575,6 +598,12 @@ $phraseMaxLen = (int) UserFields::PHRASE_MAX_LEN;
 		page = 1;
 		load();
 	});
+	if (window.TitloSectionBranch) {
+		TitloSectionBranch.bind(function () {
+			page = 1;
+			load();
+		});
+	}
 
 	post('bulk_phrase_status', {}).then(function (res) {
 		if (res.batch) setBulkUi(res.batch);
