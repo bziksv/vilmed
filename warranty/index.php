@@ -12,7 +12,7 @@ $APPLICATION->SetTitle("Гарантия");?><p>
 </p>
 <div style=" display: flex; justify-content: space-between; padding-right:60px; padding-left:60px;">
 	<div style="text-align: center; width: 25%;">
- <img width="50% alt=" src="/upload/medialibrary/782/7820ccdd0557764ba58462a8f7e5614d.jpg" производство.jpg"="" title="производство.jpg">
+ <img width="50%" alt="производство.jpg" src="/upload/medialibrary/782/7820ccdd0557764ba58462a8f7e5614d.jpg" title="производство.jpg">
 		<p>
 			 Работаем напрямую с производителями
 		</p>
@@ -31,7 +31,7 @@ $APPLICATION->SetTitle("Гарантия");?><p>
 	</div>
 	<div style="text-align: center;width: 25%;">
  <img width="50%" alt="Гарантия.jpg" src="/upload/medialibrary/bbf/bbf308dc970cc380b07b3bc0a9c5c733.jpg" title="Гарантия.jpg">
-		<p s="">
+		<p>
 			 На большинство продукции гарантия 1 год
 		</p>
 	</div>

@@ -31,8 +31,8 @@ use \Bitrix\Main\Localization\Loc;?>
 	</div>
 	<?//ITEM_TITLE//?>
 	<div class="item-all-title">
-		<a class="item-title" href="<?=$arElement['DETAIL_PAGE_URL']?>" title="<?=str_replace(['&', ';', 'amp', 'quot'], '', html_entity_decode($arElement['NAME']));?>">
-			<?=str_replace(['&', ';', 'amp', 'quot'], '', html_entity_decode($arElement['NAME']));?>
+		<a class="item-title" href="<?=$arElement['DETAIL_PAGE_URL']?>" title="<?=htmlspecialcharsbx($arElement['NAME'])?>">
+			<?=htmlspecialcharsbx($arElement['NAME'])?>
 		</a>
 	</div>
 	<?//ARTICLE_RATING//

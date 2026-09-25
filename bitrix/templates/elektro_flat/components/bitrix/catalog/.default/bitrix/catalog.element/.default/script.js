@@ -345,7 +345,7 @@
 					BX.bind(this.obQuantity, "change", BX.delegate(this.QuantityChange, this));
 
 				if(!!this.visual.POPUP_BTN_ID) {
-					popupBtnItems = BX.findChildren(this.obProduct, {attribute: {id: this.visual.POPUP_BTN_ID}}, true);
+					popupBtnItems = this.findPopupBtnNodes(this.obProduct);
 					if(!!popupBtnItems && 0 < popupBtnItems.length) {
 						for(i = 0; i < popupBtnItems.length; i++) {
 							BX.bind(popupBtnItems[i], "click", BX.delegate(this.OpenFormPopup, this));
@@ -380,7 +380,7 @@
 						quantityDownItems = BX.findChildren(this.obProduct, {tagName: "a", className: "minus"}, true);
 						quantityItems = BX.findChildren(this.obProduct, {tagName: "input", className: "quantity"}, true);
 						if(!!this.visual.POPUP_BTN_ID)
-							popupBtnItems = BX.findChildren(this.obProduct, {attribute: {id: this.visual.POPUP_BTN_ID}}, true);
+							popupBtnItems = this.findPopupBtnNodes(this.obProduct);
 						buyBtnItems = BX.findChildren(this.obProduct, {tagName: "button", attribute: {name: "add2basket"}}, true);
 						zoomItems = BX.findChildren(this.obProduct, {className: "catalog-item"}, true);
 					}
@@ -434,6 +434,21 @@
 
 				break;
 		}
+	};
+
+	/** Popup buttons share prefix POPUP_BTN_ID with suffixes (_boc, _cheaper, _offerId). */
+	window.JCCatalogElement.prototype.findPopupBtnNodes = function(root) {
+		var result = [], nodes, i, id, prefix;
+		if(!root || !this.visual.POPUP_BTN_ID)
+			return result;
+		prefix = this.visual.POPUP_BTN_ID;
+		nodes = root.getElementsByTagName("*");
+		for(i = 0; i < nodes.length; i++) {
+			id = nodes[i].id;
+			if(id && (id === prefix || id.indexOf(prefix + "_") === 0))
+				result.push(nodes[i]);
+		}
+		return result;
 	};
 
 	window.JCCatalogElement.prototype.initConfig = function() {

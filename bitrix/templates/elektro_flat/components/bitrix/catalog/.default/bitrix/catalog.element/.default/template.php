@@ -1099,7 +1099,7 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
                                                             </form>
                                                             <?//OFFERS_BUY_ONE_CLICK//
                                                             if($inBtnBoc) {?>
-                                                                <button id="<?=$arItemIDs['POPUP_BTN']?>" class="btn_buy boc_anch" data-action="boc"><i class="fa fa-bolt"></i><span><?=GetMessage('CATALOG_ELEMENT_BOC')?></span></button>
+                                                                <button id="<?=$arItemIDs['POPUP_BTN'].'_boc_'.$arOffer['ID']?>" class="btn_buy boc_anch" data-action="boc"><i class="fa fa-bolt"></i><span><?=GetMessage('CATALOG_ELEMENT_BOC')?></span></button>
                                                             <?}
                                                             //OFFERS_CHEAPER
                                                             if($inBtnCheaper) {?>
@@ -1107,7 +1107,7 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
                                                                     <input type="hidden" name="ACTION" value="cheaper" />
                                                                     <input type="hidden" name="NAME" value="<?=$elementName?>" />
                                                                     <input type="hidden" name="PRICE" value="<?=$arOffer['MIN_PRICE']['PRINT_RATIO_PRICE']?>" />
-                                                                    <button type="button" id="<?=$arItemIDs['POPUP_BTN']?>" class="btn_buy apuo cheaper_anch"><i class="fa fa-commenting-o"></i><span><?=GetMessage('CATALOG_ELEMENT_CHEAPER')?></span></button>
+                                                                    <button type="button" id="<?=$arItemIDs['POPUP_BTN'].'_cheaper_'.$arOffer['ID']?>" class="btn_buy apuo cheaper_anch" data-action="cheaper"><i class="fa fa-commenting-o"></i><span><?=GetMessage('CATALOG_ELEMENT_CHEAPER')?></span></button>
                                                                 </form>
                                                             <?}?>
                                                         </div>
@@ -1117,7 +1117,7 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
                                                     <form action="javascript:void(0)" class="apuo_form">
                                                         <input type="hidden" name="ACTION" value="under_order" />
                                                         <input type="hidden" name="NAME" value="<?=$elementName?>" />
-                                                        <button type="button" id="<?=$arItemIDs['POPUP_BTN']?>" class="btn_buy apuo_detail"><i class="fa fa-clock-o"></i><span class="short"><?=GetMessage("CATALOG_ELEMENT_UNDER_ORDER")?></span></button>
+                                                        <button type="button" id="<?=$arItemIDs['POPUP_BTN'].'_under_'.$arOffer['ID']?>" class="btn_buy apuo_detail" data-action="under_order"><i class="fa fa-clock-o"></i><span class="short"><?=GetMessage("CATALOG_ELEMENT_UNDER_ORDER")?></span></button>
                                                     </form>
                                                 <?}?>
                                             </div>
@@ -1213,16 +1213,16 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
                                                 </form>
                                                 <?//DETAIL_BUY_ONE_CLICK//
                                                 if($inBtnBoc && !$arResult["COLLECTION"]["THIS"]) {?>
-                                                    <button id="<?=$arItemIDs['POPUP_BTN']?>" class="btn_buy boc_anch" data-action="boc"><i class="fa fa-bolt"></i><span><?=GetMessage('CATALOG_ELEMENT_BOC')?></span></button>
+                                                    <button id="<?=$arItemIDs['POPUP_BTN']?>_boc" class="btn_buy boc_anch" data-action="boc"><i class="fa fa-bolt"></i><span><?=GetMessage('CATALOG_ELEMENT_BOC')?></span></button>
                                                 <?}
                                                 //DETAIL_CHEAPER
                                                 if($inBtnCheaper) {?>
-                                                    <a id="<?=$arItemIDs['POPUP_BTN']?>" class="btn_buy apuo cheaper_anch" href="javascript:void(0)" rel="nofollow" data-action="cheaper"><i class="fa fa-commenting-o"></i><span><?=GetMessage('CATALOG_ELEMENT_CHEAPER')?></span></a>
+                                                    <a id="<?=$arItemIDs['POPUP_BTN']?>_cheaper" class="btn_buy apuo cheaper_anch" href="javascript:void(0)" rel="nofollow" data-action="cheaper"><i class="fa fa-commenting-o"></i><span><?=GetMessage('CATALOG_ELEMENT_CHEAPER')?></span></a>
                                                 <?}
                                             }
                                         } elseif(!$arResult["CAN_BUY"]) {
                                             //DETAIL_UNDER_ORDER//?>
-                                            <a id="<?=$arItemIDs['POPUP_BTN']?>" class="btn_buy apuo_detail" href="javascript:void(0)" rel="nofollow" data-action="under_order"><i class="fa fa-clock-o"></i><span><?=GetMessage("CATALOG_ELEMENT_UNDER_ORDER")?></span></a>
+                                            <a id="<?=$arItemIDs['POPUP_BTN']?>_under" class="btn_buy apuo_detail" href="javascript:void(0)" rel="nofollow" data-action="under_order"><i class="fa fa-clock-o"></i><span><?=GetMessage("CATALOG_ELEMENT_UNDER_ORDER")?></span></a>
                                         <?}?>
                                     </div>
                                 <?}?>
@@ -1851,7 +1851,7 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 												$properties = implode("; ", $properties);
 												$elementName = !empty($properties) ? $offerName." (".$properties.")" : $offerName;?>
 												<input type="hidden" name="NAME" value="<?=$elementName?>" />
-												<button type="button" id="<?=$arItemIDs['POPUP_BTN']?>" class="btn_buy apuo"><i class="fa fa-comment-o"></i><span class="short"><?=GetMessage("CATALOG_ELEMENT_ASK_PRICE_SHORT")?></span></button>
+												<button type="button" id="<?=$arItemIDs['POPUP_BTN'].'_ask_'.$arOffer['ID']?>" class="btn_buy apuo" data-action="ask_price"><i class="fa fa-comment-o"></i><span class="short"><?=GetMessage("CATALOG_ELEMENT_ASK_PRICE_SHORT")?></span></button>
 											</form>
 										<?} else {
 											$props = array();
@@ -1894,7 +1894,7 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 												</form>
 												<?//OFFERS_LIST_BUY_ONE_CLICK//?>
 												<?if($inBtnBoc){?>
-													<button id="<?=$arItemIDs['POPUP_BTN']?>" class="btn_buy boc_anch" data-action="boc"><i class="fa fa-bolt"></i><span><?=GetMessage("CATALOG_ELEMENT_BOC_SHORT")?></span></button>
+													<button id="<?=$arItemIDs['POPUP_BTN'].'_boc_'.$arOffer['ID']?>" class="btn_buy boc_anch" data-action="boc"><i class="fa fa-bolt"></i><span><?=GetMessage("CATALOG_ELEMENT_BOC_SHORT")?></span></button>
 												<?}?>
 											</div>
 										<?}
@@ -1910,7 +1910,7 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 											$properties = implode("; ", $properties);
 											$elementName = !empty($properties) ? $offerName." (".$properties.")" : $offerName;?>
 											<input type="hidden" name="NAME" value="<?=$elementName?>" />
-											<button type="button" id="<?=$arItemIDs['POPUP_BTN']?>" class="btn_buy apuo"><i class="fa fa-clock-o"></i><span class="short"><?=GetMessage("CATALOG_ELEMENT_UNDER_ORDER_SHORT")?></span></button>
+											<button type="button" id="<?=$arItemIDs['POPUP_BTN'].'_under_'.$arOffer['ID']?>" class="btn_buy apuo" data-action="under_order"><i class="fa fa-clock-o"></i><span class="short"><?=GetMessage("CATALOG_ELEMENT_UNDER_ORDER_SHORT")?></span></button>
 										</form>
 									<?}?>
 								</div>

@@ -54,8 +54,8 @@ $arElement['DETAIL_PAGE_URL'] = "/product/".$arElement['CODE']."/";
 	<div class="catalog-item-desc">
 		<?//ITEM_TITLE//?>
 		<div class="catalog-item-title">
-			<a href="<?=$arElement['DETAIL_PAGE_URL']?>" title="<?=$arElement['NAME']?>" itemprop="url">
-				<span itemprop="name"><?=str_replace(['&amp;', 'amp;', 'quot;'], '', html_entity_decode($arElement['IPROPERTY_VALUES']['ELEMENT_PAGE_TITLE']))?></span>
+			<a href="<?=$arElement['DETAIL_PAGE_URL']?>" title="<?=htmlspecialcharsbx($arElement['NAME'])?>" itemprop="url">
+				<span itemprop="name"><?=htmlspecialcharsbx($arElement['IPROPERTY_VALUES']['ELEMENT_PAGE_TITLE'] ?: $arElement['NAME'])?></span>
 			</a>
 		</div>
 		<?//ITEM_PREVIEW_TEXT//

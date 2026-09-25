@@ -105,8 +105,8 @@ use \Bitrix\Main\Localization\Loc;?>
 	</a>	
 	<?//ITEM_TITLE//?>
 	<div class="item-all-title">
-		<a class="item-title" href="<?=$arElement['DETAIL_PAGE_URL']?>" title="<?=$arElement['NAME']?>" itemprop="url">
-			<span itemprop="name"><?=$arElement['NAME']?></span>
+		<a class="item-title" href="<?=$arElement['DETAIL_PAGE_URL']?>" title="<?=htmlspecialcharsbx($arElement['NAME'])?>" itemprop="url">
+			<span itemprop="name"><?=htmlspecialcharsbx($arElement['NAME'])?></span>
 		</a>
 	</div>
 	<?//ITEM_PREVIEW_TEXT//
