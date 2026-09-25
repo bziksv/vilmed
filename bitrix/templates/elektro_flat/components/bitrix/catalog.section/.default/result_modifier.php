@@ -274,13 +274,23 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 		$arResult["ITEMS"][$key]["CURRENT_DISCOUNT"] = current($arDiscounts);
 	}
 
-	//PREVIEW_PICTURE//
-	$imgW = (int)($arParams["DISPLAY_IMG_WIDTH"] ?? 280);
-	$imgH = (int)($arParams["DISPLAY_IMG_HEIGHT"] ?? 280);
-	if($arParams["TYPE"] != "collections" && is_array($arElement["PREVIEW_PICTURE"])) {
-		$arResult["ITEMS"][$key]["PREVIEW_PICTURE"] = vilmedOptimizePicture($arElement["PREVIEW_PICTURE"], $imgW, $imgH);
-	} elseif(is_array($arElement["DETAIL_PICTURE"])) {
-		$arResult["ITEMS"][$key]["PREVIEW_PICTURE"] = vilmedOptimizePicture($arElement["DETAIL_PICTURE"], $imgW, $imgH);
+	//PREVIEW_PICTURE// — берём больший из PREVIEW/DETAIL (превью часто 178×178, detail ~700)
+	$imgW = (int)($arParams["DISPLAY_IMG_WIDTH"] ?? 360);
+	$imgH = (int)($arParams["DISPLAY_IMG_HEIGHT"] ?? 360);
+	if (($arParams["TYPE"] ?? "") != "collections") {
+		if ($imgW < 360) {
+			$imgW = 360;
+		}
+		if ($imgH < 360) {
+			$imgH = 360;
+		}
+	}
+	$source = vilmedPickLargerPicture(
+		is_array($arElement["PREVIEW_PICTURE"] ?? null) ? $arElement["PREVIEW_PICTURE"] : null,
+		is_array($arElement["DETAIL_PICTURE"] ?? null) ? $arElement["DETAIL_PICTURE"] : null
+	);
+	if (is_array($source)) {
+		$arResult["ITEMS"][$key]["PREVIEW_PICTURE"] = vilmedOptimizePicture($source, $imgW, $imgH);
 	}
 
 	//MANUFACTURER//

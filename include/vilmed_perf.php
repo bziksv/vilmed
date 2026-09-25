@@ -248,9 +248,43 @@ if (!function_exists('vilmedResizePicture')) {
 	}
 }
 
+if (!function_exists('vilmedPictureMaxSide')) {
+	function vilmedPictureMaxSide($picture): int
+	{
+		if (!is_array($picture) || empty($picture['SRC'])) {
+			return 0;
+		}
+
+		return max((int)($picture['WIDTH'] ?? 0), (int)($picture['HEIGHT'] ?? 0));
+	}
+}
+
+if (!function_exists('vilmedPickLargerPicture')) {
+	/**
+	 * Prefer DETAIL when PREVIEW is a tiny thumbnail (common: 178×178 preview + 700×700 detail).
+	 */
+	function vilmedPickLargerPicture($preview, $detail = null): ?array
+	{
+		$previewOk = is_array($preview) && !empty($preview['SRC']);
+		$detailOk = is_array($detail) && !empty($detail['SRC']);
+
+		if (!$previewOk && !$detailOk) {
+			return null;
+		}
+		if (!$previewOk) {
+			return $detail;
+		}
+		if (!$detailOk) {
+			return $preview;
+		}
+
+		return vilmedPictureMaxSide($detail) > vilmedPictureMaxSide($preview) ? $detail : $preview;
+	}
+}
+
 if (!function_exists('vilmedOptimizePicture')) {
-	/** Catalog list/card preview — target 280×280 for PSI «properly size images». */
-	function vilmedOptimizePicture($picture, int $width = 280, int $height = 280): array
+	/** Catalog list/card preview — 360×360 covers 178 CSS @2x retina. */
+	function vilmedOptimizePicture($picture, int $width = 360, int $height = 360): array
 	{
 		$fallback = [
 			'SRC' => SITE_TEMPLATE_PATH . '/images/no-photo.jpg',
