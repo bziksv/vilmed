@@ -2319,6 +2319,30 @@ class CatalogRepository
 		$html = preg_replace('/(["\'])\s*;\s+(?=[a-zA-Z_][\w:-]*=)/', '$1 ', $html) ?? $html;
 		// `</br>` → `<br>` (иначе Unexpected end tag : br)
 		$html = preg_replace('#</br\s*>#i', '<br>', $html) ?? $html;
+		// `<h2Title</h2>` без `>` после имени тега
+		$html = preg_replace('#<h([1-6])([^>\s/][^<]*)</h\1>#u', '<h$1>$2</h$1>', $html) ?? $html;
+		// лишний `</p>` сразу после списка
+		$html = preg_replace('#</ul>\s*</p>#i', '</ul>', $html) ?? $html;
+		$html = preg_replace('#</ol>\s*</p>#i', '</ol>', $html) ?? $html;
+		// «Заголовок</p><ul>» без открывающего <p>
+		$html = preg_replace('#(^|[\n>])([А-ЯA-Z][^<\n]{1,80})</p>(\s*<ul)#u', '$1<p>$2</p>$3', $html) ?? $html;
+		// `<ul></li>текст` — </li> вместо <li>
+		$html = preg_replace_callback('#<ul>(.*?)</ul>#is', static function (array $m): string {
+			$inner = $m[1];
+			if (!preg_match('#^\s*</li>#u', $inner)) {
+				return $m[0];
+			}
+			$inner = preg_replace_callback(
+				'#</li>([^<]+?)(?=</li>|<li>|</ul>|$)#us',
+				static function (array $mm): string {
+					$text = rtrim($mm[1]);
+					return $text === '' ? '' : '<li>' . $text . '</li>';
+				},
+				$inner
+			) ?? $inner;
+			$inner = preg_replace('#</li>\s*</li>#u', '</li>', $inner) ?? $inner;
+			return '<ul>' . $inner . '</ul>';
+		}, $html) ?? $html;
 
 		// Lucide-иконки: <div class="ic"><circle/…> без <svg> → W3C «Tag circle invalid»
 		$html = preg_replace_callback(
