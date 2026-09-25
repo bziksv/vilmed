@@ -14,25 +14,32 @@ if(isProductDetail()){
 }
 
 $JS_HIDE = explode("\r\n", str_replace([' ', '.'], '', $arResult['PROPERTIES']['UF_DELETE_INDEX']));
-?>
 
-<style>
-<? foreach($arResult as $vilmedKey => &$arItem): ?>
-	<? if(in_array($arItem["PARAMS"]["ID"], $JS_HIDE) || $moveTextInAttr): ?>
-	<? // VILMED: CODE из сегмента пути не уникален (orders vs orders?filter_history,
-	   //  cart vs cart?delay → одинаковый show_orders/show_cart). Один и тот же CSS-селектор
-	   //  :before объявлялся дважды, побеждало последнее правило → «Текущие заказы» подписывался
-	   //  как «Архив заказов», «Моя корзина» как «Отложенные товары». Делаем класс уникальным. ?>
-	<? $arItem["CODE"] = explode('/',$arItem["LINK"])[2].'_'.$vilmedKey; ?>
-	
-		.show_<?=$arItem["CODE"]?>:before{
-					content:'<?=$arItem["TEXT"]?>';
+$vilmedMenuCss = '';
+foreach ($arResult as $vilmedKey => &$arItem) {
+	if (in_array($arItem["PARAMS"]["ID"], $JS_HIDE) || $moveTextInAttr) {
+		// VILMED: CODE из сегмента пути не уникален (orders vs orders?filter_history,
+		//  cart vs cart?delay → одинаковый show_orders/show_cart). Один и тот же CSS-селектор
+		//  :before объявлялся дважды, побеждало последнее правило → «Текущие заказы» подписывался
+		//  как «Архив заказов», «Моя корзина» как «Отложенные товары». Делаем класс уникальным.
+		$arItem["CODE"] = explode('/', $arItem["LINK"])[2] . '_' . $vilmedKey;
+		$text = (string)$arItem["TEXT"];
+		if ($text !== '') {
+			// CSS string: экранируем кавычки и управляющие символы
+			$cssText = str_replace(
+				["\\", "'", "\n", "\r", "\t"],
+				["\\\\", "\\'", "\\A ", "", " "],
+				$text
+			);
+			$vilmedMenuCss .= '.show_' . $arItem["CODE"] . ":before{content:'" . $cssText . "';}\n";
 		}
-	<? endif; ?>
-<? endforeach; ?>
-<? unset($arItem); // VILMED: гасим висячую ссылку foreach-by-reference — иначе следующий
-                   //  foreach($arResult as $arItem) перезаписывает последний пункт меню и он дублируется ?>
-</style>
+	}
+}
+unset($arItem);
+if ($vilmedMenuCss !== '' && is_object($GLOBALS['APPLICATION'])) {
+	$GLOBALS['APPLICATION']->AddHeadString('<style id="vilmed-left-menu-labels">' . $vilmedMenuCss . '</style>', true);
+}
+?>
 
 <ul class="left-menu">
 	<?$previousLevel = 0;

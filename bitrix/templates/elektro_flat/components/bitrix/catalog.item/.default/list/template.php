@@ -5,7 +5,7 @@ use \Bitrix\Main\Localization\Loc;
 $arElement['DETAIL_PAGE_URL'] = "/product/".$arElement['CODE']."/";
 ?>
 
-<div class="catalog-item-info">
+<div class="catalog-item-info" itemscope itemtype="https://schema.org/Product">
 	<?//QUICK_VIEW?>
 	<?if($inQuickView){?>
 	    <button type="button" id="<?=$itemIds['QUICK_VIEW'];?>" class="quick_view"  data-action="view" name="quick_view">

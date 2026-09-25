@@ -1236,6 +1236,24 @@ if (!function_exists('vilmedEncodeTextHtmlTemplates')) {
 	}
 }
 
+if (!function_exists('vilmedStripInvalidCss')) {
+	/**
+	 * W3C CSS Parse Error на каждой странице: Bitrix popup CSS с IE filter:alpha(...).
+	 * Также убираем пустые <style> в body (левое меню раньше писало style внутрь div).
+	 */
+	function vilmedStripInvalidCss(string &$content): void
+	{
+		if ($content === '') {
+			return;
+		}
+		if (stripos($content, 'filter:alpha') !== false) {
+			$content = preg_replace('/;?\s*filter\s*:\s*alpha\([^)]*\)\s*;?/i', ';', $content) ?? $content;
+		}
+		// пустые / whitespace-only style в body
+		$content = preg_replace('#<style\b[^>]*>\s*</style>#i', '', $content) ?? $content;
+	}
+}
+
 if (!function_exists('vilmedOnEndBufferContent')) {
 	function vilmedOnEndBufferContent(string &$content): void
 	{
@@ -1257,6 +1275,7 @@ if (!function_exists('vilmedOnEndBufferContent')) {
 		vilmedFixVmdMarkup($content);
 		vilmedEncodeTextHtmlTemplates($content);
 		vilmedEscapeScriptHtmlEndTags($content);
+		vilmedStripInvalidCss($content);
 		vilmedNormalizeNoindexTags($content);
 	}
 }

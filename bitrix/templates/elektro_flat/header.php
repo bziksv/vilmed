@@ -15,10 +15,15 @@ Loc::loadMessages(__FILE__);
     <meta property="og:description" content="<?=$APPLICATION->ShowProperty("description");?>"/>
     <meta property="og:type" content="<?=$APPLICATION->ShowProperty("ogtype");?>"/>
     <meta property="og:url" content= "<?=(CMain::IsHTTPS() ? 'https' : 'http' ) . "://" . SITE_SERVER_NAME . $APPLICATION->GetCurPage();?>" />
-    <meta property="og:image" content="<?=$APPLICATION->ShowProperty("ogimage");?>">
+	<meta property="og:image" content="<?=$APPLICATION->ShowProperty("ogimage");?>">
 	<meta property='og:image:width' content="<?=$APPLICATION->ShowProperty("ogimagewidth");?>" />
 	<meta property='og:image:height' content="<?=$APPLICATION->ShowProperty("ogimageheight");?>" />
-	<link rel='image_src' href="<?=$APPLICATION->ShowProperty("ogimage")?>" />
+	<?php
+	// W3C: href="" на <link> запрещён — выводим image_src только при непустом ogimage
+	$vilmedOgImage = trim((string)$APPLICATION->GetProperty("ogimage"));
+	if ($vilmedOgImage !== ''): ?>
+	<link rel="image_src" href="<?=htmlspecialcharsbx($vilmedOgImage)?>" />
+	<?php endif; ?>
 	<?$APPLICATION->SetPageProperty("ogtype", "website");
 	$APPLICATION->ShowProperty('google_prev_next');
 	$APPLICATION->SetPageProperty("ogimagewidth", "144");

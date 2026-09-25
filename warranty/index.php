@@ -12,25 +12,25 @@ $APPLICATION->SetTitle("Гарантия");?><p>
 </p>
 <div style=" display: flex; justify-content: space-between; padding-right:60px; padding-left:60px;">
 	<div style="text-align: center; width: 25%;">
- <img width="50%" alt="производство.jpg" src="/upload/medialibrary/782/7820ccdd0557764ba58462a8f7e5614d.jpg" title="производство.jpg">
+ <img alt="производство.jpg" src="/upload/medialibrary/782/7820ccdd0557764ba58462a8f7e5614d.jpg" style="width: 50%;" title="производство.jpg">
 		<p>
 			 Работаем напрямую с производителями
 		</p>
 	</div>
 	<div style="text-align: center;width: 25%;">
- <img width="50%" alt="проверка.jpg" src="/upload/medialibrary/074/0741fa7f0b3e8a74d01cf1ac11554aed.jpg" title="проверка.jpg">
+ <img alt="проверка.jpg" src="/upload/medialibrary/074/0741fa7f0b3e8a74d01cf1ac11554aed.jpg" style="width: 50%;" title="проверка.jpg">
 		<p>
 			 Вся продукция сертифицирована
 		</p>
 	</div>
 	<div style="text-align: center;width: 25%;">
- <img width="50%" alt="склад.jpg" src="/upload/medialibrary/040/040a411c2a74df5f8e5f3f1096efd64e.jpg" title="склад.jpg">
+ <img alt="склад.jpg" src="/upload/medialibrary/040/040a411c2a74df5f8e5f3f1096efd64e.jpg" style="width: 50%;" title="склад.jpg">
 		<p>
 			 Проверка товаров перед отправкой с нашего склада
 		</p>
 	</div>
 	<div style="text-align: center;width: 25%;">
- <img width="50%" alt="Гарантия.jpg" src="/upload/medialibrary/bbf/bbf308dc970cc380b07b3bc0a9c5c733.jpg" title="Гарантия.jpg">
+ <img alt="Гарантия.jpg" src="/upload/medialibrary/bbf/bbf308dc970cc380b07b3bc0a9c5c733.jpg" style="width: 50%;" title="Гарантия.jpg">
 		<p>
 			 На большинство продукции гарантия 1 год
 		</p>

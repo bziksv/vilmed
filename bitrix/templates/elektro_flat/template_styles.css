@@ -1633,7 +1633,7 @@ ul.new_leader_disc li a .icon:after{
 	padding:0px 0px 41px 0px;
 }
 
-button[name="banners-main__item-button"]{
+.banners-main__item-cta{
 	height:31px;
 	margin:0px;
 	padding:0px 27px 0px 17px;
@@ -1643,12 +1643,12 @@ button[name="banners-main__item-button"]{
 	opacity:0;
 }
 
-.banners-main__item:hover button[name="banners-main__item-button"]{
+.banners-main__item:hover .banners-main__item-cta{
 	bottom:0px;
 	opacity:1;
 }
 
-button[name="banners-main__item-button"]:after{
+.banners-main__item-cta:after{
 	position:absolute;
 	right:14px;
 	top:50%;
@@ -5094,7 +5094,7 @@ transform: translateX(-8px);
 		display:block;
 	}
 
-	button[name="banners-main__item-button"]{
+	.banners-main__item-cta{
 		display:none;
 	}
 

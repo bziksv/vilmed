@@ -12,7 +12,7 @@ if(count($arResult["ITEMS"]) < 1)
 			continue;
 		if($width == 0)
 			echo "<div class='banners-main__row'>";?>
-		<a class="banners-main__item" href="<?=(!empty($arItem['DISPLAY_PROPERTIES']['URL']) ? $arItem['DISPLAY_PROPERTIES']['URL']['VALUE'] : 'javascript:void(0)');?>"<?=(!empty($arItem["DISPLAY_PROPERTIES"]["WIDTH"]) ? " style='width:".$arItem["DISPLAY_PROPERTIES"]["WIDTH"]["VALUE"]."%;'" : "");?>>
+		<a class="banners-main__item" href="<?=(!empty($arItem['DISPLAY_PROPERTIES']['URL']) ? htmlspecialcharsbx($arItem['DISPLAY_PROPERTIES']['URL']['VALUE']) : '#');?>"<?=(!empty($arItem["DISPLAY_PROPERTIES"]["WIDTH"]) ? " style='width:".$arItem["DISPLAY_PROPERTIES"]["WIDTH"]["VALUE"]."%;'" : "");?>>
 			<?php
 			$bannerImgSrc = is_array($arItem["PREVIEW_PICTURE"]) ? $arItem["PREVIEW_PICTURE"]["SRC"] : "";
 			if ($bannerImgSrc !== '' && function_exists('vilmedBestImageSrc')) {
@@ -27,7 +27,7 @@ if(count($arResult["ITEMS"]) < 1)
 					<?endif;?>
 					<span class="banners-main__item-text<?=($arItem['DISPLAY_PROPERTIES']['WIDTH']['VALUE'] == '25' ? ' small' : '');?>"><?=$arItem["NAME"]?></span>
 					<?if(!empty($arItem["DISPLAY_PROPERTIES"]["BUTTON_TEXT"])):?>
-						<button name="banners-main__item-button" class="btn_buy"><?=$arItem["DISPLAY_PROPERTIES"]["BUTTON_TEXT"]["VALUE"]?></button>
+						<span class="banners-main__item-cta btn_buy"><?=htmlspecialcharsbx($arItem["DISPLAY_PROPERTIES"]["BUTTON_TEXT"]["VALUE"])?></span>
 						</span>
 					<?endif;?>
 				</span>
@@ -40,6 +40,6 @@ if(count($arResult["ITEMS"]) < 1)
 		endif;
 	endforeach;
 	if($width > 0 && $width < 100):
-		echo "<a class='banners-main__item' href='javascript:void(0)'></a></div>";
+		echo "<a class='banners-main__item' href='#'></a></div>";
 	endif;?>
 </div>

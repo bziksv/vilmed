@@ -1305,7 +1305,7 @@ a.banners-main__item{
 	line-height:18px;
 }
 
-button[name="banners-main__item-button"]:after{
+.banners-main__item-cta:after{
 	content:"";
 	border-top:4px solid transparent;
 	border-bottom:4px solid transparent;
@@ -1316,7 +1316,7 @@ button[name="banners-main__item-button"]:after{
 	transition:all 0.15s ease 0s;
 }
 
-button[name="banners-main__item-button"]:hover:after{
+.banners-main__item-cta:hover:after{
 	border-left-color:#fff;
 }
 

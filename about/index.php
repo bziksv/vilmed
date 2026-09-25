@@ -18,7 +18,7 @@ $APPLICATION->SetTitle("О Компании");?><p>
 </p>
 <div style="display: flex; justify-content: space-around; flex-wrap: wrap;">
 	<div style="width: 190px; margin-bottom: 10px;">
- <img width="172px" alt="плокаты.png" src="/upload/medialibrary/80d/zpeau2nqbnzeghcbzplreyv1o4rbg8tq.png" height="172px" style=" padding: 7px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; width: 172px; height: 172px;" title="plakaty.png">
+ <img width="172" alt="плокаты.png" src="/upload/medialibrary/80d/zpeau2nqbnzeghcbzplreyv1o4rbg8tq.png" height="172" style=" padding: 7px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; width: 172px; height: 172px;" title="plakaty.png">
 	</div>
 	<div style="width: 190px; margin-bottom: 10px;">
  <img width="700" alt="plakaty2.png" src="/upload/medialibrary/35d/yx8kkua07r0puilvl7qk22ncvujv3a6d.png" height="700" style=" padding: 7px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px; width:172px; height: 172px;" title="plakaty2.png">
