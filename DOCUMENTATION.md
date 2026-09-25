@@ -388,7 +388,7 @@ ID инфоблоков зашиты в коде компонентов и inclu
 > `VMD_RANDOM` → не затронут. Подробности: `.local/performance/SLOW-QUERY-ANALYSIS.md`.
 - `sections.php`, `vendors_bottom.php` — каталог и бренды
 - `form_*.php` — формы (обратный звонок, дешевле, под заказ и др.)
-- `geolocation.php` — блок геолокации
+- `geolocation.php` — блок геолокации (`COMPOSITE_FRAME_MODE=Y` / `DYNAMIC`: иначе статичный композит без cookie снова открывает «Ваш город?» на каждом заходе; плюс JS-guard по `GEOLOCATION_CITY` / `GEOLOCATION_CONFIRMED`)
 - `header_search.php` — поиск в шапке
 
 ---

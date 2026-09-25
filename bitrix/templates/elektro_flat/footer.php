@@ -435,7 +435,7 @@ Loc::loadMessages(__FILE__);?>
 		window.__vilmedAdd2BasketBound = true;
 
 		document.addEventListener("click", function(e) {
-			var btn = e.target.closest('a[name="add2basket"], button[name="add2basket"]');
+			var btn = e.target.closest('a[data-add2basket], a[name="add2basket"], button[name="add2basket"]');
 			if (!btn || btn.disabled || btn.classList.contains("ppp")) {
 				return;
 			}
@@ -575,5 +575,11 @@ Loc::loadMessages(__FILE__);?>
 </script>
 <!-- Roistat Counter End -->
 
+<?php
+// Cookie-баннер до </body> (не в OnEpilog после </html> — иначе W3C: unexpected end tag)
+if (class_exists('CNigesCookiesAcceptPublic', false) || CModule::IncludeModule('niges.cookiesaccept')) {
+	CNigesCookiesAcceptPublic::renderBanner();
+}
+?>
 </body>
 </html>

@@ -1193,7 +1193,7 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
                                                         <input type="hidden" name="SELECT_PROPS" id="select_props_<?=$arItemIDs['ID']?>" value="" />
                                                     <?}?>
                                                     <?if(!$arResult["COLLECTION"]["THIS"]) {?>
-                                                    <a href="javascript:void(0)" id="<?=$arItemIDs['BTN_BUY']?>" class="btn_buy detail btn_href_detail" name="add2basket">
+                                                    <a href="javascript:void(0)" id="<?=$arItemIDs['BTN_BUY']?>" class="btn_buy detail btn_href_detail" data-add2basket="1">
                                                         <i class="fa fa-shopping-cart"></i>
                                                         <span><?=($arSetting["NAME_BUTTON_TO_CART"]["VALUE"] ? $arSetting["NAME_BUTTON_TO_CART"]["VALUE"] : GetMessage("CATALOG_ELEMENT_ADD_TO_CART"))?></span>
                                                     </a>

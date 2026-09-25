@@ -119,7 +119,14 @@ BX.CityConfirm = function(not_defined) {
 				name: "cityConfirmYes",
 				className: "btn_buy popdef",
 				events: {
-					click: BX.delegate(BX.CityConfirm.popup.close, BX.CityConfirm.popup)
+					click: function() {
+						// Запоминаем согласие — даже если композит снова отдаст geo-init
+						try {
+							var maxAge = 60 * 60 * 24 * 400;
+							document.cookie = "GEOLOCATION_CONFIRMED=Y; path=/; max-age=" + maxAge + "; SameSite=Lax";
+						} catch (e) {}
+						BX.CityConfirm.popup.close();
+					}
 				}
 			}),
 			new CityConfirmButton({
@@ -204,7 +211,11 @@ BX.Geolocation = function(geolocation) {
 			function(result) {
 				var json = JSON.parse(result);
 				$(".geolocation__value").html(json.city);
-				if(BX.message("GEOLOCATION_SHOW_CONFIRM") == "Y") {
+				var confirmed = false;
+				try {
+					confirmed = /(?:^|; )GEOLOCATION_CONFIRMED=Y(?:;|$)/.test(document.cookie);
+				} catch (e) {}
+				if(BX.message("GEOLOCATION_SHOW_CONFIRM") == "Y" && !confirmed) {
 					BX.CityConfirm();
 					$(".your-city__val").html(json.city + "?");
 				}
@@ -222,7 +233,11 @@ BX.Geolocation = function(geolocation) {
 		);
 	} else {
 		$(".geolocation__value").html(BX.message("GEOLOCATION_NOT_DEFINED"));
-		if(BX.message("GEOLOCATION_SHOW_CONFIRM") == "Y") {
+		var confirmed = false;
+		try {
+			confirmed = /(?:^|; )GEOLOCATION_CONFIRMED=Y(?:;|$)/.test(document.cookie);
+		} catch (e) {}
+		if(BX.message("GEOLOCATION_SHOW_CONFIRM") == "Y" && !confirmed) {
 			BX.CityConfirm(true);
 			$(".your-city__val").html(BX.message("GEOLOCATION_NOT_DEFINED"));
 		}

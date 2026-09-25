@@ -447,7 +447,7 @@ $arElement['DETAIL_PAGE_URL'] = "/product/".$arElement['CODE']."/";
                                     <input type="hidden" name="PROPS" value="<?=$props?>" />
                                 <?}
                             }?>
-                            <a href="javascript:void(0)" id="<?=(isset($arElement['SELECT_PROPS']) && !empty($arElement['SELECT_PROPS']) ? $itemIds['PROPS_BTN'] : $itemIds['BTN_BUY']);?>" class="btn_buy btn_href" name="add2basket">
+                            <a href="javascript:void(0)" id="<?=(isset($arElement['SELECT_PROPS']) && !empty($arElement['SELECT_PROPS']) ? $itemIds['PROPS_BTN'] : $itemIds['BTN_BUY']);?>" class="btn_buy btn_href" data-add2basket="1">
                                 <i class="fa fa-shopping-cart"></i>
                                 <? if($arElement["SHOW_BUY_BTN"]): ?>
 									<span><?=($arSetting["NAME_BUTTON_TO_CART"] ? $arSetting["NAME_BUTTON_TO_CART"] : Loc::getMessage("CT_BCS_ELEMENT_ADD_TO_CART"))?></span>

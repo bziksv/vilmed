@@ -14,8 +14,10 @@ $APPLICATION->IncludeComponent(
 		"CACHE_TIME" => "36000000",
 		"COOKIE_TIME" => "36000000",
 		"COMPONENT_TEMPLATE" => ".default",
-		"COMPOSITE_FRAME_MODE" => "A",
-		"COMPOSITE_FRAME_TYPE" => "AUTO",
+		// VILMED: AUTO клал блок в статику композита без cookie → JS «определить город»
+		// снова показывал CityConfirm на каждом заходе. DYNAMIC читает cookie на хите.
+		"COMPOSITE_FRAME_MODE" => "Y",
+		"COMPOSITE_FRAME_TYPE" => "DYNAMIC",
 		"MODE_OPERATION" => "YANDEX",
 	),
 	false

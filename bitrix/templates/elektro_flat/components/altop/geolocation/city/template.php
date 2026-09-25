@@ -1,12 +1,13 @@
 <?if(!defined("B_PROLOG_INCLUDED")||B_PROLOG_INCLUDED!==true)die();
 
-//$frame = $this->createFrame("geolocation")->begin("");
-
 use Bitrix\Main\Localization\Loc;
+
+// Динамическая область композита — город/телефон зависят от cookie
+$frame = $this->createFrame("geolocation", false)->begin();
 
 if($arParams["USE_GEOLOCATION"] == "Y"):?>
 	<div id="geolocation" class="geolocation">
-		<a id="geolocationChangeCity" class="geolocation__link" href="javascript:void(0);"><i class="fa fa-map-marker" aria-hidden="true"></i><span class="geolocation__value"><?=(!empty($arParams["GEOLOCATION_CITY"]) ? $arParams["GEOLOCATION_CITY"] : Loc::getMessage("GEOLOCATION_POSITIONING"));?></span></a>
+		<a id="geolocationChangeCity" class="geolocation__link" href="javascript:void(0);"><i class="fa fa-map-marker" aria-hidden="true"></i><span class="geolocation__value"><?=(!empty($arParams["GEOLOCATION_CITY"]) ? htmlspecialcharsbx($arParams["GEOLOCATION_CITY"]) : Loc::getMessage("GEOLOCATION_POSITIONING"));?></span></a>
 	</div>
 	<div class="telephone"><?=(!empty($arResult["CONTACTS"]) ? $arResult["CONTACTS"] : "");?></div>
 
@@ -25,17 +26,45 @@ if($arParams["USE_GEOLOCATION"] == "Y"):?>
 			GEOLOCATION_SHOW_CONFIRM: "<?=$arParams['SHOW_CONFIRM']?>"
 		});
 
-		<?if(empty($arParams["GEOLOCATION_CITY"]) && !$arResult['is_bot']) {?>
-			//GEOLOCATION//
+		(function() {
+			function vilmedGetCookie(name) {
+				var m = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/([.$?*|{}()[\]\\/+^])/g, "\\$1") + "=([^;]*)"));
+				return m ? decodeURIComponent(m[1].replace(/\+/g, " ")) : "";
+			}
+
+			function vilmedApplyCityFromCookie() {
+				var city = vilmedGetCookie("GEOLOCATION_CITY");
+				if (!city) {
+					return false;
+				}
+				var el = document.querySelector("#geolocation .geolocation__value");
+				if (el) {
+					el.textContent = city;
+				}
+				return true;
+			}
+
+			// Уже выбрали город — не гоняем Yandex/Bitrix geo и не показываем CityConfirm
+			// (иначе композит-статика снова открывает попап на каждом хите).
+			if (vilmedApplyCityFromCookie()) {
+				BX.bind(BX("geolocationChangeCity"), "click", BX.delegate(BX.CityChange, BX));
+				return;
+			}
+
+			<?if(!$arResult['is_bot']) {?>
 			<?if($arParams["MODE_OPERATION"] == "BITRIX") {?>
 				var geolocation = {
 					country: <?=CUtil::PhpToJSObject($arResult["countryName"])?>,
 					region: <?=CUtil::PhpToJSObject($arResult["regionName"])?>,
 					city: <?=CUtil::PhpToJSObject($arResult["cityName"])?>
 				};
-				// VILMED perf: defer geolocation XHR off the critical path (city + delivery still resolve).
 				(function() {
-					var run = function() { BX.Geolocation(geolocation); };
+					var run = function() {
+						if (vilmedApplyCityFromCookie()) {
+							return;
+						}
+						BX.Geolocation(geolocation);
+					};
 					var schedule = function() {
 						if ("requestIdleCallback" in window) {
 							requestIdleCallback(run, {timeout: 3000});
@@ -50,16 +79,19 @@ if($arParams["USE_GEOLOCATION"] == "Y"):?>
 					}
 				})();
 			<?} else {?>
-				window.addEventListener('load', function() {
+				window.addEventListener("load", function() {
+					if (vilmedApplyCityFromCookie()) {
+						return;
+					}
 					BX.loadYandexMaps(function() {
 						ymaps.ready(BX.GeolocationYandex);
 					});
 				});
 			<?}?>
-		<?}?>
+			<?}?>
 
-		//CHANGE_CITY//
-		BX.bind(BX("geolocationChangeCity"), "click", BX.delegate(BX.CityChange, BX));
+			BX.bind(BX("geolocationChangeCity"), "click", BX.delegate(BX.CityChange, BX));
+		})();
 	</script>
 
     <div class="geolocation__popup" id="geolocation__popup">
@@ -69,5 +101,5 @@ if($arParams["USE_GEOLOCATION"] == "Y"):?>
 	<div class="telephone"><?=(!empty($arResult["CONTACTS"]) ? $arResult["CONTACTS"] : "");?></div>
 <?endif;
 
-//$frame->end();
+$frame->end();
 ?>

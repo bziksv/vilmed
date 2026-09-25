@@ -2412,6 +2412,31 @@ class CatalogRepository
 				continue;
 			}
 
+			// SVG-примитивы только внутри <svg> — иначе W3C: Tag circle/rect/… invalid
+			static $svgOnly = [
+				'path' => true, 'circle' => true, 'line' => true, 'polyline' => true,
+				'polygon' => true, 'rect' => true, 'g' => true, 'defs' => true,
+				'use' => true, 'clippath' => true, 'lineargradient' => true, 'stop' => true,
+			];
+			if (isset($svgOnly[$tag])) {
+				$inSvg = false;
+				$walk = $child->parentNode;
+				while ($walk instanceof \DOMElement) {
+					if (strtolower($walk->tagName) === 'svg') {
+						$inSvg = true;
+						break;
+					}
+					$walk = $walk->parentNode;
+				}
+				if (!$inSvg) {
+					while ($child->firstChild) {
+						$node->insertBefore($child->firstChild, $child);
+					}
+					$toRemove[] = $child;
+					continue;
+				}
+			}
+
 			$attrs = [];
 			if ($child->hasAttributes()) {
 				foreach (iterator_to_array($child->attributes) as $attr) {

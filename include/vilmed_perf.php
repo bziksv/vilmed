@@ -1058,6 +1058,21 @@ if (!function_exists('vilmedInjectHomeDeferredLoader')) {
 	}
 }
 
+if (!function_exists('vilmedNormalizeNoindexTags')) {
+	/**
+	 * Yandex <noindex> is not valid HTML5 — validators flag it on every page.
+	 * Convert to HTML comments (Yandex still honors <!--noindex-->…<!--/noindex-->).
+	 */
+	function vilmedNormalizeNoindexTags(string &$content): void
+	{
+		if ($content === '' || stripos($content, 'noindex') === false) {
+			return;
+		}
+		$content = preg_replace('/<\s*noindex\s*>/i', '<!--noindex-->', $content) ?? $content;
+		$content = preg_replace('/<\s*\/\s*noindex\s*>/i', '<!--/noindex-->', $content) ?? $content;
+	}
+}
+
 if (!function_exists('vilmedOnEndBufferContent')) {
 	function vilmedOnEndBufferContent(string &$content): void
 	{
@@ -1076,6 +1091,7 @@ if (!function_exists('vilmedOnEndBufferContent')) {
 		vilmedStripPullOnStorefront($content);
 		vilmedResequenceCoreScripts($content);
 		vilmedInjectHomeDeferredLoader($content);
+		vilmedNormalizeNoindexTags($content);
 	}
 }
 

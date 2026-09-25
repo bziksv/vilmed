@@ -36,11 +36,16 @@ $JS_HIDE = explode("\r\n", str_replace([' ', '.'], '', $arResult['PROPERTIES']['
 
 <ul class="left-menu">
 	<?$previousLevel = 0;
+	// Считаем реально открытые <ul class="submenu"> — DEPTH_LEVEL из menu_ext
+	// иногда выше фактической вложенности → лишние </ul></li> (W3C unexpected end tag li/ul).
+	$openSubmenus = 0;
 	foreach($arResult as $arItem):
         $more = ($arItem["DEPTH_LEVEL"] == 2 && ($arSetting["CATALOG_VIEW"]["VALUE"] == "THREE_LEVELS" || $arSetting["CATALOG_VIEW"]["VALUE"] == "FOUR_LEVELS"));
 
 		if($previousLevel && $arItem["DEPTH_LEVEL"] < $previousLevel):
-			echo str_repeat("</ul></li>", ($previousLevel - $arItem["DEPTH_LEVEL"]));
+			$closeCount = min($openSubmenus, $previousLevel - $arItem["DEPTH_LEVEL"]);
+			echo str_repeat("</ul></li>", $closeCount);
+			$openSubmenus -= $closeCount;
 		endif;
 		if($arItem["IS_PARENT"]):?>
 			<li class="parent<?if($arItem['SELECTED']):?> selected<?endif?>">
@@ -59,6 +64,7 @@ $JS_HIDE = explode("\r\n", str_replace([' ', '.'], '', $arResult['PROPERTIES']['
 
 				<?if($arSetting["CATALOG_LOCATION"]["VALUE"] == "HEADER"):?><span class="arrow"></span><?endif;?>
 				<ul class="submenu">
+				<?$openSubmenus++;?>
 		<?else:
 			if($arItem["PERMISSION"] > "D"):?>
 				<li<?if($arItem["SELECTED"]):?> class="selected"<?endif?>>
@@ -72,8 +78,8 @@ $JS_HIDE = explode("\r\n", str_replace([' ', '.'], '', $arResult['PROPERTIES']['
 		endif;
 		$previousLevel = $arItem["DEPTH_LEVEL"];
 	endforeach;
-	if($previousLevel > 1):
-		echo str_repeat("</ul></li>", ($previousLevel-1) );
+	if($openSubmenus > 0):
+		echo str_repeat("</ul></li>", $openSubmenus);
 	endif;?>
 </ul>
 <script type="text/javascript">

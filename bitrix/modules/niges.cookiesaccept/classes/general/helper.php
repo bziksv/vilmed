@@ -220,6 +220,13 @@ class CNigesCookiesAcceptHelper
 			return '';
 		}
 
+		// В опциях иногда лежит уже entity-encoded HTML (&lt;a…&gt;) —
+		// без decode ссылка уходит текстом (&amp;lt;a… на витрине).
+		$charset = defined('SITE_CHARSET') ? SITE_CHARSET : 'UTF-8';
+		if (strpos($html, '&lt;') !== false || strpos($html, '&gt;') !== false || strpos($html, '&quot;') !== false) {
+			$html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, $charset);
+		}
+
 		if (class_exists('CBXSanitizer')) {
 			$sanitizer = new CBXSanitizer();
 			$sanitizer->AddTags(array(

@@ -303,7 +303,7 @@ use \Bitrix\Main\Localization\Loc;?>
                                         <input type="hidden" name="PROPS" value="<?=$props?>" />
                                     <?}
                                 }?>
-                                <a href="javascript:void(0)" id="<?=(isset($arElement['SELECT_PROPS']) && !empty($arElement['SELECT_PROPS']) ? $itemIds['PROPS_BTN'] : $itemIds['BTN_BUY']);?>" class="btn_buy btn_href" name="add2basket"><i class="fa fa-shopping-cart"></i></a>
+                                <a href="javascript:void(0)" id="<?=(isset($arElement['SELECT_PROPS']) && !empty($arElement['SELECT_PROPS']) ? $itemIds['PROPS_BTN'] : $itemIds['BTN_BUY']);?>" class="btn_buy btn_href" data-add2basket="1"><i class="fa fa-shopping-cart"></i></a>
                             </form>
                         </div>
                     <?}
