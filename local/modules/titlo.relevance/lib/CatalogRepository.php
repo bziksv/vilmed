@@ -2315,6 +2315,43 @@ class CatalogRepository
 			return '';
 		}
 
+		// W3C: «error parsing attribute name» — `src="…"; title="…"` (лишняя `;` между атрибутами)
+		$html = preg_replace('/(["\'])\s*;\s+(?=[a-zA-Z_][\w:-]*=)/', '$1 ', $html) ?? $html;
+		// `</br>` → `<br>` (иначе Unexpected end tag : br)
+		$html = preg_replace('#</br\s*>#i', '<br>', $html) ?? $html;
+
+		// Lucide-иконки: <div class="ic"><circle/…> без <svg> → W3C «Tag circle invalid»
+		$html = preg_replace_callback(
+			'#(<div\b[^>]*\bclass="[^"]*\bic\b[^"]*"[^>]*>)(.*?)(</div>)#is',
+			static function (array $m): string {
+				$inner = $m[2];
+				if (stripos($inner, '<svg') !== false) {
+					return $m[0];
+				}
+				if (!preg_match('#<(?:circle|rect|path|line|polyline|polygon|g)\b#i', $inner)) {
+					return $m[0];
+				}
+
+				return $m[1]
+					. '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+					. $inner
+					. '</svg>'
+					. $m[3];
+			},
+			$html
+		) ?? $html;
+
+		// FAQ: голый <summary> + .vmd-faq__a → <details>
+		$html = preg_replace(
+			'#<summary>(.*?)</summary>\s*(<div\b[^>]*\bclass="[^"]*\bvmd-faq__a\b[^"]*"[^>]*>.*?</div>)#is',
+			'<details><summary>$1</summary>$2</details>',
+			$html
+		) ?? $html;
+
+		// Старые HTML4-чекеры ругаются на <mark>
+		$html = preg_replace('#<mark\b([^>]*)>#i', '<span class="vmd-mark"$1>', $html) ?? $html;
+		$html = preg_replace('#</mark>#i', '</span>', $html) ?? $html;
+
 		$allowedTags = [
 			'article' => true, 'section' => true, 'header' => true, 'footer' => true,
 			'div' => true, 'span' => true, 'p' => true, 'br' => true, 'hr' => true,
@@ -2413,6 +2450,7 @@ class CatalogRepository
 			}
 
 			// SVG-примитивы только внутри <svg> — иначе W3C: Tag circle/rect/… invalid
+			// (обёртка .ic → <svg> делается в sanitizeCatalogHtml до DOM)
 			static $svgOnly = [
 				'path' => true, 'circle' => true, 'line' => true, 'polyline' => true,
 				'polygon' => true, 'rect' => true, 'g' => true, 'defs' => true,
@@ -2429,10 +2467,17 @@ class CatalogRepository
 					$walk = $walk->parentNode;
 				}
 				if (!$inSvg) {
-					while ($child->firstChild) {
-						$node->insertBefore($child->firstChild, $child);
-					}
-					$toRemove[] = $child;
+					// Последний шанс: обернуть одиночный примитив в svg
+					$svg = $child->ownerDocument->createElement('svg');
+					$svg->setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+					$svg->setAttribute('viewBox', '0 0 24 24');
+					$svg->setAttribute('fill', 'none');
+					$svg->setAttribute('stroke', 'currentColor');
+					$svg->setAttribute('stroke-width', '2');
+					$svg->setAttribute('aria-hidden', 'true');
+					$node->insertBefore($svg, $child);
+					$svg->appendChild($child);
+					self::sanitizeDomNode($svg, $allowedTags, $allowedAttrs);
 					continue;
 				}
 			}

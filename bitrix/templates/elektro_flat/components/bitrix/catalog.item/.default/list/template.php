@@ -61,7 +61,7 @@ $arElement['DETAIL_PAGE_URL'] = "/product/".$arElement['CODE']."/";
 		<?//ITEM_PREVIEW_TEXT//
 		if($inPreviewText) {?>
 		<div class="catalog-item-preview-text" itemprop="description">
-			<?=$arElement["PREVIEW_TEXT"]?>
+			<?=htmlspecialcharsbx(trim(preg_replace('/\s+/u', ' ', strip_tags((string)$arElement['PREVIEW_TEXT']))))?>
 		</div>
 		<?}
 		//ARTICLE_RATING//

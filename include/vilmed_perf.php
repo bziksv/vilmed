@@ -1069,9 +1069,13 @@ if (!function_exists('vilmedInjectHomeDeferredLoader')) {
 		if (empty($GLOBALS['vilmedIsHome']) && empty($GLOBALS['vilmedIsCatalogLike'])) {
 			return;
 		}
-		if (stripos($content, 'vilmed-deferred-images') !== false) {
-			return;
-		}
+
+		// Снять прошлые инъекции (двойной OnEndBufferContent / композит)
+		$content = preg_replace(
+			'/<script\b[^>]*\bid=["\']vilmed-deferred-images["\'][^>]*>.*?<\/script>/is',
+			'',
+			$content
+		) ?? $content;
 
 		$script = '<script id="vilmed-deferred-images">'
 			. 'window.vilmedLoadDeferredImages=function(r){var s=r||document;'
@@ -1087,7 +1091,7 @@ if (!function_exists('vilmedInjectHomeDeferredLoader')) {
 			. '});</script>';
 
 		if (stripos($content, '</body>') !== false) {
-			$content = str_replace('</body>', $script . '</body>', $content);
+			$content = preg_replace('/<\/body>/i', $script . '</body>', $content, 1) ?? $content;
 		}
 	}
 }
@@ -1104,6 +1108,89 @@ if (!function_exists('vilmedNormalizeNoindexTags')) {
 		}
 		$content = preg_replace('/<\s*noindex\s*>/i', '<!--noindex-->', $content) ?? $content;
 		$content = preg_replace('/<\s*\/\s*noindex\s*>/i', '<!--/noindex-->', $content) ?? $content;
+	}
+}
+
+if (!function_exists('vilmedFixVmdMarkup')) {
+	/** Runtime: SVG primitives in .ic + orphan FAQ summary (уже сохранённый DETAIL_TEXT). */
+	function vilmedFixVmdMarkup(string &$content): void
+	{
+		if ($content === '') {
+			return;
+		}
+
+		// ; между атрибутами (AI-контент)
+		if (strpos($content, '";') !== false || strpos($content, "';") !== false) {
+			$content = preg_replace('/(["\'])\s*;\s+(?=[a-zA-Z_][\w:-]*=)/', '$1 ', $content) ?? $content;
+		}
+		if (stripos($content, '</br') !== false) {
+			$content = preg_replace('#</br\s*>#i', '<br>', $content) ?? $content;
+		}
+
+		if (stripos($content, 'class="ic"') === false && stripos($content, 'vmd-faq') === false && stripos($content, '<mark') === false) {
+			return;
+		}
+
+		$content = preg_replace_callback(
+			'#(<div\b[^>]*\bclass="[^"]*\bic\b[^"]*"[^>]*>)(.*?)(</div>)#is',
+			static function (array $m): string {
+				$inner = $m[2];
+				if (stripos($inner, '<svg') !== false) {
+					return $m[0];
+				}
+				if (!preg_match('#<(?:circle|rect|path|line|polyline|polygon|g)\b#i', $inner)) {
+					return $m[0];
+				}
+
+				return $m[1]
+					. '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+					. $inner
+					. '</svg>'
+					. $m[3];
+			},
+			$content
+		) ?? $content;
+
+		$content = preg_replace(
+			'#<summary>(.*?)</summary>\s*(<div\b[^>]*\bclass="[^"]*\bvmd-faq__a\b[^"]*"[^>]*>.*?</div>)#is',
+			'<details><summary>$1</summary>$2</details>',
+			$content
+		) ?? $content;
+
+		$content = preg_replace('#<mark\b([^>]*)>#i', '<span class="vmd-mark"$1>', $content) ?? $content;
+		$content = preg_replace('#</mark>#i', '</span>', $content) ?? $content;
+	}
+}
+
+if (!function_exists('vilmedEscapeScriptHtmlEndTags')) {
+	/**
+	 * Наивные HTML-чекеры считают </div></i></span> внутри JS как разметку страницы.
+	 * В JS-строках экранируем как <\/…> (значение для браузера то же).
+	 * type="text/html" (Bitrix-шаблоны) не трогаем.
+	 */
+	function vilmedEscapeScriptHtmlEndTags(string &$content): void
+	{
+		if ($content === '' || stripos($content, '<script') === false) {
+			return;
+		}
+
+		$content = preg_replace_callback(
+			'#<script(\b[^>]*)>(.*?)</script>#is',
+			static function (array $m): string {
+				$attrs = $m[1];
+				$body = $m[2];
+				if (preg_match('/\bsrc\s*=/i', $attrs)) {
+					return $m[0];
+				}
+				if (preg_match('/\btype\s*=\s*["\']?\s*text\/(?:html|template)/i', $attrs)) {
+					return $m[0];
+				}
+				$body = preg_replace('#</(div|i|span)>#i', '<\\/$1>', $body) ?? $body;
+
+				return '<script' . $attrs . '>' . $body . '</script>';
+			},
+			$content
+		) ?? $content;
 	}
 }
 
@@ -1125,6 +1212,8 @@ if (!function_exists('vilmedOnEndBufferContent')) {
 		vilmedStripPullOnStorefront($content);
 		vilmedResequenceCoreScripts($content);
 		vilmedInjectHomeDeferredLoader($content);
+		vilmedFixVmdMarkup($content);
+		vilmedEscapeScriptHtmlEndTags($content);
 		vilmedNormalizeNoindexTags($content);
 	}
 }
