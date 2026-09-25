@@ -124,22 +124,29 @@ $sectionIds = CatalogRepository::normalizeSectionIds(
 
 	<div class="filters">
 		<?php AdminUi::renderSectionBranchFilter($sectionIds, $isSection ? 'категории' : 'товары'); ?>
-		<label>Фильтр:
-			<select id="titlo-filter">
-				<option value="todo" <?= $filter === 'todo' ? 'selected' : '' ?>>Нужно проработать (длинные без фразы)</option>
-				<option value="filled" <?= $filter === 'filled' ? 'selected' : '' ?>>Проработанные (есть короткая фраза)</option>
-				<option value="country_todo" <?= $filter === 'country_todo' ? 'selected' : '' ?>>Страна в названии — без фразы</option>
-				<option value="country" <?= $filter === 'country' ? 'selected' : '' ?>>Страна в названии (все)</option>
-				<option value="empty" <?= $filter === 'empty' ? 'selected' : '' ?>>Без короткой фразы</option>
-				<option value="long" <?= $filter === 'long' ? 'selected' : '' ?>>NAME длиннее 50</option>
-				<option value="skip" <?= $filter === 'skip' ? 'selected' : '' ?>>Не прорабатывать</option>
-				<option value="all" <?= $filter === 'all' ? 'selected' : '' ?>>Все</option>
-			</select>
-		</label>
-		<input type="text" id="titlo-q" class="adm-input" placeholder="ID / название / код / URL" value="<?= htmlspecialcharsbx($q) ?>" style="width:280px"
-			title="Можно вставить полный URL страницы товара или категории">
-		<input type="button" id="titlo-reload" class="adm-btn" value="Показать">
-		<span id="titlo-list-status" class="status"></span>
+		<div class="titlo-list-scope">
+			<div class="titlo-list-scope__head">
+				<span class="titlo-list-scope__title">Список</span>
+			</div>
+			<div class="titlo-list-scope__row">
+				<label>Фильтр:
+					<select id="titlo-filter">
+						<option value="todo" <?= $filter === 'todo' ? 'selected' : '' ?>>Нужно проработать (длинные без фразы)</option>
+						<option value="filled" <?= $filter === 'filled' ? 'selected' : '' ?>>Проработанные (есть короткая фраза)</option>
+						<option value="country_todo" <?= $filter === 'country_todo' ? 'selected' : '' ?>>Страна в названии — без фразы</option>
+						<option value="country" <?= $filter === 'country' ? 'selected' : '' ?>>Страна в названии (все)</option>
+						<option value="empty" <?= $filter === 'empty' ? 'selected' : '' ?>>Без короткой фразы</option>
+						<option value="long" <?= $filter === 'long' ? 'selected' : '' ?>>NAME длиннее 50</option>
+						<option value="skip" <?= $filter === 'skip' ? 'selected' : '' ?>>Не прорабатывать</option>
+						<option value="all" <?= $filter === 'all' ? 'selected' : '' ?>>Все</option>
+					</select>
+				</label>
+				<input type="text" id="titlo-q" class="adm-input" placeholder="ID / название / код / URL" value="<?= htmlspecialcharsbx($q) ?>" style="width:280px"
+					title="Можно вставить полный URL страницы товара или категории">
+				<input type="button" id="titlo-reload" class="adm-btn" value="Показать">
+				<span id="titlo-list-status" class="status"></span>
+			</div>
+		</div>
 	</div>
 
 	<div class="bulk-bar">

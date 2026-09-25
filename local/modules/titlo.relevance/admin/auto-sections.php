@@ -111,37 +111,44 @@ if ($sort !== 'id_desc') {
 
 	<div class="filters">
 		<?php AdminUi::renderSectionBranchFilter($sectionIds, 'категории'); ?>
-		<label>Фильтр
-			<span class="titlo-help" tabindex="0" aria-label="Фильтр списка">?
-				<span class="titlo-help__tip">
-					Все варианты — только категории с короткой фразой (без неё в автомат не берём).<br>
-					<b>Ещё без автопроработки</b> — в колонке «Автопроработка» пусто: полный цикл ещё не отмечали.<br>
-					<b>Уже есть балл анализа</b> — был анализ, цифры в «Балл» есть; дата автопроработки при этом может быть пустой.<br>
-					<b>Прошли автопроработку</b> — стоит дата: либо сгенерировали текст, либо отметили без генерации (политика «описание уже есть»). Это не «есть текст в разделе», а именно отметка автомата.<br>
-					<b>Все с короткой фразой</b> — весь пул, из которого можно ставить в очередь.
-				</span>
-			</span>:
-			<select id="titlo-auto-filter">
-				<option value="todo" <?= $filter === 'todo' ? 'selected' : '' ?>>Ещё без автопроработки</option>
-				<option value="scored" <?= $filter === 'scored' ? 'selected' : '' ?>>Уже есть балл анализа</option>
-				<option value="done" <?= $filter === 'done' ? 'selected' : '' ?>>Прошли автопроработку</option>
-				<option value="all" <?= $filter === 'all' ? 'selected' : '' ?>>Все с короткой фразой</option>
-			</select>
-		</label>
-		<label>Сортировка
-			<span class="titlo-help" tabindex="0" aria-label="Сортировка">?
-				<span class="titlo-help__tip"><b>Балл ↑</b> — сначала самые слабые по последнему анализу (удобно выбирать, кого прогонять дальше).<br><b>ID ↓</b> — свежие категории сверху.</span>
-			</span>:
-			<select id="titlo-auto-sort">
-				<option value="score_asc" <?= $sort === 'score_asc' ? 'selected' : '' ?>>Балл ↑ (низкий сверху)</option>
-				<option value="id_desc" <?= $sort === 'id_desc' ? 'selected' : '' ?>>ID ↓</option>
-			</select>
-		</label>
-		<input type="search" id="titlo-auto-q" class="adm-input" placeholder="ID / название категории"
-			value="<?= htmlspecialcharsbx($q) ?>" style="width:200px" autocomplete="off" spellcheck="false"
-			title="Быстрый поиск по ID или частям названия">
-		<input type="button" id="titlo-auto-reload" class="adm-btn" value="Показать">
-		<span id="titlo-auto-list-status" class="status"></span>
+		<div class="titlo-list-scope">
+			<div class="titlo-list-scope__head">
+				<span class="titlo-list-scope__title">Список</span>
+			</div>
+			<div class="titlo-list-scope__row">
+				<label>Фильтр
+					<span class="titlo-help" tabindex="0" aria-label="Фильтр списка">?
+						<span class="titlo-help__tip">
+							Все варианты — только категории с короткой фразой (без неё в автомат не берём).<br>
+							<b>Ещё без автопроработки</b> — в колонке «Автопроработка» пусто: полный цикл ещё не отмечали.<br>
+							<b>Уже есть балл анализа</b> — был анализ, цифры в «Балл» есть; дата автопроработки при этом может быть пустой.<br>
+							<b>Прошли автопроработку</b> — стоит дата: либо сгенерировали текст, либо отметили без генерации (политика «описание уже есть»). Это не «есть текст в разделе», а именно отметка автомата.<br>
+							<b>Все с короткой фразой</b> — весь пул, из которого можно ставить в очередь.
+						</span>
+					</span>:
+					<select id="titlo-auto-filter">
+						<option value="todo" <?= $filter === 'todo' ? 'selected' : '' ?>>Ещё без автопроработки</option>
+						<option value="scored" <?= $filter === 'scored' ? 'selected' : '' ?>>Уже есть балл анализа</option>
+						<option value="done" <?= $filter === 'done' ? 'selected' : '' ?>>Прошли автопроработку</option>
+						<option value="all" <?= $filter === 'all' ? 'selected' : '' ?>>Все с короткой фразой</option>
+					</select>
+				</label>
+				<label>Сортировка
+					<span class="titlo-help" tabindex="0" aria-label="Сортировка">?
+						<span class="titlo-help__tip"><b>Балл ↑</b> — сначала самые слабые по последнему анализу (удобно выбирать, кого прогонять дальше).<br><b>ID ↓</b> — свежие категории сверху.</span>
+					</span>:
+					<select id="titlo-auto-sort">
+						<option value="score_asc" <?= $sort === 'score_asc' ? 'selected' : '' ?>>Балл ↑ (низкий сверху)</option>
+						<option value="id_desc" <?= $sort === 'id_desc' ? 'selected' : '' ?>>ID ↓</option>
+					</select>
+				</label>
+				<input type="search" id="titlo-auto-q" class="adm-input" placeholder="ID / название категории"
+					value="<?= htmlspecialcharsbx($q) ?>" style="width:200px" autocomplete="off" spellcheck="false"
+					title="Быстрый поиск по ID или частям названия">
+				<input type="button" id="titlo-auto-reload" class="adm-btn" value="Показать">
+				<span id="titlo-auto-list-status" class="status"></span>
+			</div>
+		</div>
 	</div>
 
 	<div class="bulk-bar">
