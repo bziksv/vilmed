@@ -71,7 +71,19 @@ if(!$_REQUEST["PAGEN_1"] || empty($_REQUEST["PAGEN_1"]) || $_REQUEST["PAGEN_1"] 
         </div>
     <? endif; ?>
     <div class="catalog_description">
-        <?=($arCurVendor["PREVIEW_TEXT"]) ?: $arCurVendor["DETAIL_TEXT"];?>
+        <?php
+		$vendorDescHtml = (string)(($arCurVendor["PREVIEW_TEXT"]) ?: $arCurVendor["DETAIL_TEXT"]);
+		$vendorPageTitle = !empty($arCurVendor["IPROPERTY_VALUES"]["ELEMENT_PAGE_TITLE"])
+			? (string)$arCurVendor["IPROPERTY_VALUES"]["ELEMENT_PAGE_TITLE"]
+			: ('Оборудование компании ' . (string)$arCurVendor["NAME"]);
+		if ($vendorDescHtml !== '' && class_exists('\\Titlo\\Relevance\\CatalogRepository')) {
+			$vendorDescHtml = \Titlo\Relevance\CatalogRepository::stripLeadingHeadingIfEquals(
+				$vendorDescHtml,
+				$vendorPageTitle
+			);
+		}
+		echo $vendorDescHtml;
+		?>
     </div>
 <?}
 

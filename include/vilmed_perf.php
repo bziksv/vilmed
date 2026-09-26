@@ -1397,6 +1397,42 @@ if (!function_exists('vilmedEncodeCatalogSearchHrefs')) {
 	}
 }
 
+if (!function_exists('vilmedDropH2MatchingPageH1')) {
+	/**
+	 * SEO: если первый H2 = текст page H1 — убрать (типично vendors «Оборудование компании X»).
+	 */
+	function vilmedDropH2MatchingPageH1(string &$content): void
+	{
+		if ($content === '' || !preg_match('#<h1\b[^>]*>([\s\S]*?)</h1>#i', $content, $m)) {
+			return;
+		}
+		$h1 = trim(preg_replace('/\s+/u', ' ', strip_tags($m[1])) ?? '');
+		if ($h1 === '') {
+			return;
+		}
+		$h1Norm = function_exists('mb_strtolower') ? mb_strtolower($h1, 'UTF-8') : strtolower($h1);
+		$done = false;
+		$content = preg_replace_callback(
+			'#<h2\b[^>]*>([\s\S]*?)</h2>#i',
+			static function (array $mm) use ($h1Norm, &$done): string {
+				if ($done) {
+					return $mm[0];
+				}
+				$t = trim(preg_replace('/\s+/u', ' ', strip_tags($mm[1])) ?? '');
+				$tNorm = function_exists('mb_strtolower') ? mb_strtolower($t, 'UTF-8') : strtolower($t);
+				if ($tNorm === $h1Norm) {
+					$done = true;
+
+					return '';
+				}
+
+				return $mm[0];
+			},
+			$content
+		) ?? $content;
+	}
+}
+
 if (!function_exists('vilmedNormalizeProductHeadingHierarchy')) {
 	/**
 	 * После page H1: лишние H1→H2; H3/H4 до первого H2 → H2; иначе все H3/H4 → H2.
@@ -1628,6 +1664,7 @@ if (!function_exists('vilmedOnEndBufferContent')) {
 		vilmedInjectHomeDeferredLoader($content);
 		vilmedFixVmdMarkup($content);
 		vilmedFixContentMarkupBuffer($content);
+		vilmedDropH2MatchingPageH1($content);
 		vilmedNormalizeProductHeadingHierarchy($content);
 		vilmedEncodeCatalogSearchHrefs($content);
 		vilmedEncodeTextHtmlTemplates($content);

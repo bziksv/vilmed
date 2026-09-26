@@ -2345,6 +2345,47 @@ class CatalogRepository
 	}
 
 	/**
+	 * Убрать ведущий Hn, если его текст совпадает с page H1 (vendors: «Оборудование компании X»).
+	 * Затем normalizeHeadingHierarchy — чтобы H3 стали H2.
+	 */
+	public static function stripLeadingHeadingIfEquals(string $html, string $title): string
+	{
+		$html = (string) $html;
+		$title = trim(preg_replace('/\s+/u', ' ', strip_tags($title)) ?? $title);
+		if ($html === '' || $title === '') {
+			return $html;
+		}
+		$titleNorm = function_exists('mb_strtolower')
+			? mb_strtolower($title, 'UTF-8')
+			: strtolower($title);
+
+		$html2 = preg_replace_callback(
+			'#^(\s*)<h([1-6])\b[^>]*>([\s\S]*?)</h\2>#iu',
+			static function (array $m) use ($titleNorm): string {
+				$txt = trim(preg_replace('/\s+/u', ' ', strip_tags($m[3])) ?? '');
+				$txtNorm = function_exists('mb_strtolower')
+					? mb_strtolower($txt, 'UTF-8')
+					: strtolower($txt);
+				if ($txtNorm === $titleNorm) {
+					return $m[1];
+				}
+
+				return $m[0];
+			},
+			$html,
+			1
+		);
+
+		if ($html2 !== null && $html2 !== $html) {
+			$html = $html2;
+
+			return self::normalizeHeadingHierarchy($html);
+		}
+
+		return $html;
+	}
+
+	/**
 	 * Лёгкие W3C-фиксы разметки без DOM-allowlist (можно на news/vendors/reviews).
 	 */
 	public static function fixW3cMarkupGlitches(string $html): string
