@@ -1397,6 +1397,53 @@ if (!function_exists('vilmedEncodeCatalogSearchHrefs')) {
 	}
 }
 
+if (!function_exists('vilmedNormalizeProductHeadingHierarchy')) {
+	/**
+	 * После page H1: лишние H1→H2; H3/H4 до первого H2 → H2; иначе все H3/H4 → H2.
+	 * Только карточка товара.
+	 */
+	function vilmedNormalizeProductHeadingHierarchy(string &$content): void
+	{
+		if ($content === '' || empty($GLOBALS['vilmedIsProduct'])) {
+			return;
+		}
+		if (!preg_match('#<h1\b[^>]*>[\s\S]*?</h1>#i', $content, $m, PREG_OFFSET_CAPTURE)) {
+			return;
+		}
+		$end = (int)$m[0][1] + strlen($m[0][0]);
+		$head = substr($content, 0, $end);
+		$tail = substr($content, $end);
+		if ($tail === '' || !preg_match('#<h[1-6]\b#i', $tail)) {
+			return;
+		}
+
+		if (class_exists('\\Titlo\\Relevance\\CatalogRepository')
+			&& method_exists('\\Titlo\\Relevance\\CatalogRepository', 'normalizeHeadingHierarchy')
+		) {
+			$tail = \Titlo\Relevance\CatalogRepository::normalizeHeadingHierarchy($tail);
+		} else {
+			$tail = preg_replace('#<h1(\b[^>]*)>#i', '<h2$1>', $tail) ?? $tail;
+			$tail = preg_replace('#</h1>#i', '</h2>', $tail) ?? $tail;
+			if (preg_match('#<h2\b#i', $tail)) {
+				$parts = preg_split('#(?=<h2\b)#i', $tail, 2);
+				if (is_array($parts) && isset($parts[0], $parts[1])) {
+					$before = preg_replace('#<h([34])(\b[^>]*)>#i', '<h2$2>', $parts[0]) ?? $parts[0];
+					$before = preg_replace('#</h[34]>#i', '</h2>', $before) ?? $before;
+					$tail = $before . $parts[1];
+				}
+			} elseif (preg_match('#<h3\b#i', $tail)) {
+				$tail = preg_replace('#<h3(\b[^>]*)>#i', '<h2$1>', $tail) ?? $tail;
+				$tail = preg_replace('#</h3>#i', '</h2>', $tail) ?? $tail;
+			} elseif (preg_match('#<h4\b#i', $tail)) {
+				$tail = preg_replace('#<h4(\b[^>]*)>#i', '<h2$1>', $tail) ?? $tail;
+				$tail = preg_replace('#</h4>#i', '</h2>', $tail) ?? $tail;
+			}
+		}
+
+		$content = $head . $tail;
+	}
+}
+
 if (!function_exists('vilmedFixContentMarkupBuffer')) {
 	/**
 	 * Runtime W3C fixes for already-saved DETAIL_TEXT (lists/headings/imgs).
@@ -1504,6 +1551,7 @@ if (!function_exists('vilmedOnEndBufferContent')) {
 		vilmedInjectHomeDeferredLoader($content);
 		vilmedFixVmdMarkup($content);
 		vilmedFixContentMarkupBuffer($content);
+		vilmedNormalizeProductHeadingHierarchy($content);
 		vilmedEncodeCatalogSearchHrefs($content);
 		vilmedEncodeTextHtmlTemplates($content);
 		vilmedEscapeScriptHtmlEndTags($content);

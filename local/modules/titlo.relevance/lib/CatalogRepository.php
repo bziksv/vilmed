@@ -2305,6 +2305,39 @@ class CatalogRepository
 	}
 
 	/**
+	 * SEO: в фрагменте описания (без page H1) — H1→H2; H3/H4 до первого H2 → H2;
+	 * если H2 нет — все H3 (иначе H4) → H2.
+	 */
+	public static function normalizeHeadingHierarchy(string $html): string
+	{
+		if ($html === '' || !preg_match('#<h[1-6]\b#i', $html)) {
+			return $html;
+		}
+
+		// H1 в тексте карточки недопустимы (H1 уже в шаблоне)
+		$html = preg_replace('#<h1(\b[^>]*)>#i', '<h2$1>', $html) ?? $html;
+		$html = preg_replace('#</h1>#i', '</h2>', $html) ?? $html;
+
+		if (preg_match('#<h2\b#i', $html)) {
+			$parts = preg_split('#(?=<h2\b)#i', $html, 2);
+			if (is_array($parts) && isset($parts[0], $parts[1])) {
+				$before = $parts[0];
+				$before = preg_replace('#<h([34])(\b[^>]*)>#i', '<h2$2>', $before) ?? $before;
+				$before = preg_replace('#</h[34]>#i', '</h2>', $before) ?? $before;
+				$html = $before . $parts[1];
+			}
+		} elseif (preg_match('#<h3\b#i', $html)) {
+			$html = preg_replace('#<h3(\b[^>]*)>#i', '<h2$1>', $html) ?? $html;
+			$html = preg_replace('#</h3>#i', '</h2>', $html) ?? $html;
+		} elseif (preg_match('#<h4\b#i', $html)) {
+			$html = preg_replace('#<h4(\b[^>]*)>#i', '<h2$1>', $html) ?? $html;
+			$html = preg_replace('#</h4>#i', '</h2>', $html) ?? $html;
+		}
+
+		return $html;
+	}
+
+	/**
 	 * Allowlist HTML перед записью в каталог (DETAIL_TEXT / DESCRIPTION).
 	 * Теги/атрибуты под .vmd-desc; href только http(s)/mailto/#.
 	 */
@@ -2328,6 +2361,8 @@ class CatalogRepository
 		$html = preg_replace('#(^|[\n>])([А-ЯA-Z][^<\n]{1,80})</p>(\s*<ul)#u', '$1<p>$2</p>$3', $html) ?? $html;
 		// typo text.м</ul>
 		$html = preg_replace('#([^>])\.м</ul>#u', '$1.</li></ul>', $html) ?? $html;
+		// SEO: иерархия заголовков в DETAIL_TEXT (H1→H2, H3/H4 до первого H2 → H2)
+		$html = self::normalizeHeadingHierarchy($html);
 		// background-color:none → transparent
 		$html = preg_replace('/background-color\s*:\s*none\b/i', 'background-color:transparent', $html) ?? $html;
 		// <img> без alt
