@@ -28,19 +28,16 @@ foreach ($argv as $arg) {
 
 // Cyrillic «с» in hex colors; double-li; junk attrs; named anchors; heading>div; bare "< "
 $sql = "SELECT ID, IBLOCK_ID, CODE, DETAIL_TEXT, PREVIEW_TEXT FROM b_iblock_element
-	OR DETAIL_TEXT LIKE '%<li>%<p>%'
+	WHERE DETAIL_TEXT LIKE '%<li>%<p>%'
 	   OR DETAIL_TEXT LIKE '%<li><p%'
 	   OR DETAIL_TEXT LIKE '%<li>%<li>%'
 	   OR DETAIL_TEXT LIKE '%</li>%</li>%'
 	   OR DETAIL_TEXT LIKE '% p=\"\"%'
 	   OR DETAIL_TEXT LIKE '% p=\"%'
-	   OR DETAIL_TEXT LIKE '%name=\"%'
 	   OR DETAIL_TEXT LIKE '%<a name%'
 	   OR DETAIL_TEXT LIKE '%#ссс%'
 	   OR DETAIL_TEXT LIKE '%#сссссс%'
 	   OR DETAIL_TEXT LIKE '%\"title=%'
-	   OR DETAIL_TEXT LIKE '%\"alt=%'
-	   OR DETAIL_TEXT LIKE '%\"src=%'
 	   OR DETAIL_TEXT LIKE '%<h3>%<div%'
 	   OR DETAIL_TEXT LIKE '%<h2>%<div%'
 	   OR DETAIL_TEXT LIKE '%< %'
