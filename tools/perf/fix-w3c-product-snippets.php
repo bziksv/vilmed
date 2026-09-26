@@ -42,7 +42,7 @@ if ($all) {
 		OR DETAIL_TEXT LIKE '%<h4%'
 		OR DETAIL_TEXT LIKE '%<img %' AND DETAIL_TEXT NOT LIKE '% alt=%' AND DETAIL_TEXT NOT LIKE '% alt =%'
 		OR DETAIL_TEXT REGEXP '<h[1-6][^>[:space:]/]'
-	) ORDER BY ID';
+	) ORDER BY ID";
 } else {
 	$codes = [
 		'shchelevaya-lampa-lshch2-01-3-kh-pozitsionnaya-s-galogennym-istochnikom-sveta-orion-medik',
