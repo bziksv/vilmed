@@ -155,7 +155,8 @@ Loc::loadMessages(__FILE__);
 		Asset::getInstance()->addCss($vilmedAssetVer($vilmedTplPath."/css/vmd-description.css"));
 		Asset::getInstance()->addJs($vilmedAssetVer($vilmedTplPath."/js/vmd-svg-viewbox.js"));
 	}
-	// Категории: h1 + лид видны сразу, остальное .vmd-desc — за «Подробнее».
+	// Категории: заголовок описания (.vmd-desc h2) + лид видны сразу, остальное — за «Подробнее».
+	// Page H1 остаётся в #pagetitle; в DESCRIPTION не используем второй H1.
 	if (function_exists('isCatalogDir') && isCatalogDir()) {
 		Asset::getInstance()->addJs($vilmedAssetVer($vilmedTplPath."/js/vmd-desc-collapse.js"));
 	}

@@ -40,6 +40,12 @@
 
 /* --- Заголовки h1–h3 --- */
 .vmd-desc h1 { font-size: 28px; line-height: 1.25; font-weight: 800; margin: 0 0 6px; letter-spacing: -.01em; }
+/* Категории: SEO-заголовок описания — h2 (page H1 в #pagetitle); визуально как бывший h1 */
+.catalog_preview .vmd-desc > h2:first-child {
+	font-size: 28px; line-height: 1.25; font-weight: 800; margin: 0 0 6px; letter-spacing: -.01em;
+	padding-bottom: 0;
+}
+.catalog_preview .vmd-desc > h2:first-child::after { display: none; }
 .vmd-desc .vmd-subtitle { font-size: 17px; color: var(--muted); margin: 0 0 26px; font-weight: 400; }
 .vmd-desc.vmd-desc--collapsible > .vmd-subtitle { margin-bottom: 12px; }
 
@@ -149,6 +155,7 @@
 @media (max-width: 680px) {
 	.vmd-desc { font-size: 15.5px; }
 	.vmd-desc h1 { font-size: 23px; }
+	.catalog_preview .vmd-desc > h2:first-child { font-size: 23px; }
 	.vmd-desc h2 { font-size: 19px; }
 	.vmd-desc .vmd-features { grid-template-columns: 1fr; }
 	.vmd-desc .vmd-cta { padding: 20px 18px; }

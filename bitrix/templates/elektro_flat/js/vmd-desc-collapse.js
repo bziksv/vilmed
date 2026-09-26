@@ -1,14 +1,19 @@
 /**
- * Категории: в .catalog_preview .vmd-desc оставляем h1 + .vmd-subtitle,
+ * Категории: в .catalog_preview .vmd-desc оставляем заголовок (h1|первый h2) + .vmd-subtitle,
  * остальное — за кнопкой «Подробнее». На карточке товара не трогаем.
+ * SEO: в описании категории используем h2 (page H1 уже в #pagetitle).
  */
 (function () {
-	function isTeaser(el) {
+	function isTeaser(el, index) {
 		if (!el || el.nodeType !== 1) {
 			return false;
 		}
 		var tag = el.tagName;
 		if (tag === 'H1') {
+			return true;
+		}
+		// после дедупа H1→H2: первый заголовок блока остаётся в тизере
+		if (tag === 'H2' && index === 0) {
 			return true;
 		}
 		if (tag === 'P' && el.classList.contains('vmd-subtitle')) {
@@ -43,7 +48,7 @@
 		}
 
 		var teaserEnd = 0;
-		while (teaserEnd < children.length && isTeaser(children[teaserEnd])) {
+		while (teaserEnd < children.length && isTeaser(children[teaserEnd], teaserEnd)) {
 			teaserEnd++;
 		}
 		if (teaserEnd === 0 || teaserEnd >= children.length) {

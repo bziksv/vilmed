@@ -1397,6 +1397,34 @@ if (!function_exists('vilmedEncodeCatalogSearchHrefs')) {
 	}
 }
 
+if (!function_exists('vilmedDemoteExtraH1')) {
+	/**
+	 * SEO: после page H1 (#pagetitle или первый) все остальные H1 → H2
+	 * (типично .vmd-desc категорий).
+	 */
+	function vilmedDemoteExtraH1(string &$content): void
+	{
+		if ($content === '' || stripos($content, '<h1') === false) {
+			return;
+		}
+		if (preg_match('#<h1\b[^>]*\bid\s*=\s*["\']pagetitle["\'][^>]*>[\s\S]*?</h1>#i', $content, $m, PREG_OFFSET_CAPTURE)) {
+			$end = (int)$m[0][1] + strlen($m[0][0]);
+		} elseif (preg_match('#<h1\b[^>]*>[\s\S]*?</h1>#i', $content, $m, PREG_OFFSET_CAPTURE)) {
+			$end = (int)$m[0][1] + strlen($m[0][0]);
+		} else {
+			return;
+		}
+		$head = substr($content, 0, $end);
+		$tail = substr($content, $end);
+		if ($tail === '' || stripos($tail, '<h1') === false) {
+			return;
+		}
+		$tail = preg_replace('#<h1(\b[^>]*)>#i', '<h2$1>', $tail) ?? $tail;
+		$tail = preg_replace('#</h1>#i', '</h2>', $tail) ?? $tail;
+		$content = $head . $tail;
+	}
+}
+
 if (!function_exists('vilmedDropH2MatchingPageH1')) {
 	/**
 	 * SEO: если первый H2 = текст page H1 — убрать (типично vendors «Оборудование компании X»).
@@ -1688,6 +1716,7 @@ if (!function_exists('vilmedOnEndBufferContent')) {
 		vilmedInjectHomeDeferredLoader($content);
 		vilmedFixVmdMarkup($content);
 		vilmedFixContentMarkupBuffer($content);
+		vilmedDemoteExtraH1($content);
 		vilmedDropH2MatchingPageH1($content);
 		vilmedNormalizeProductHeadingHierarchy($content);
 		vilmedEncodeCatalogSearchHrefs($content);
