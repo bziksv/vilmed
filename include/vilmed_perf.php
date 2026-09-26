@@ -1077,9 +1077,10 @@ if (!function_exists('vilmedDeferCatalogOffscreenImages')) {
 					return $m[0];
 				}
 				$inner = $m[1];
+				// W3C: <source> требует непустой srcset — оставляем placeholder, URL в data-*
 				$inner = preg_replace(
 					'/\ssrcset="([^"]+)"/i',
-					' data-vilmed-srcset="$1"',
+					' srcset="' . $ph . '" data-vilmed-srcset="$1"',
 					$inner
 				);
 				$inner = preg_replace(
@@ -1275,7 +1276,8 @@ if (!function_exists('vilmedStripInvalidCss')) {
 	 * W3C CSS Parse Error на каждой странице:
 	 * - Bitrix popup CSS с IE filter:alpha(...)
 	 * - Bitrix minified @keyframes с «0{» вместо «0%{»
-	 * Также убираем пустые <style> в body (левое меню раньше писало style внутрь div).
+	 * - background-color:none (невалидно) → transparent
+	 * Также убираем пустые <style> в body.
 	 */
 	function vilmedStripInvalidCss(string &$content): void
 	{
@@ -1289,8 +1291,162 @@ if (!function_exists('vilmedStripInvalidCss')) {
 		if (stripos($content, 'keyframes') !== false) {
 			$content = preg_replace('/(@[-a-z]*keyframes[^{]+\{)0\{/i', '${1}0%{', $content) ?? $content;
 		}
+		if (stripos($content, 'background-color') !== false) {
+			$content = preg_replace('/background-color\s*:\s*none\b/i', 'background-color:transparent', $content) ?? $content;
+		}
 		// пустые / whitespace-only style в body
 		$content = preg_replace('#<style\b[^>]*>\s*</style>#i', '', $content) ?? $content;
+	}
+}
+
+if (!function_exists('vilmedHoistBodyStylesToHead')) {
+	/** W3C: <style> нельзя в div/p — переносим из body в </head>. */
+	function vilmedHoistBodyStylesToHead(string &$content): void
+	{
+		if ($content === '' || stripos($content, '<style') === false) {
+			return;
+		}
+		if (!preg_match('/<body\b[^>]*>/i', $content, $bm, PREG_OFFSET_CAPTURE)) {
+			return;
+		}
+		$bodyStart = (int)$bm[0][1] + strlen($bm[0][0]);
+		$headClose = stripos($content, '</head>');
+		if ($headClose === false || $headClose > $bodyStart) {
+			return;
+		}
+
+		$body = substr($content, $bodyStart);
+		$moved = [];
+		$body = preg_replace_callback(
+			'#<style\b[^>]*>.*?</style>#is',
+			static function (array $m) use (&$moved): string {
+				$moved[] = $m[0];
+
+				return '';
+			},
+			$body
+		) ?? $body;
+		if ($moved === []) {
+			return;
+		}
+		$content = substr($content, 0, $headClose)
+			. implode('', $moved)
+			. substr($content, $headClose, $bodyStart - $headClose)
+			. $body;
+	}
+}
+
+if (!function_exists('vilmedEncodeCatalogSearchHrefs')) {
+	/** W3C: пробелы в /catalog/?q=… запрещены — кодируем q. */
+	function vilmedEncodeCatalogSearchHrefs(string &$content): void
+	{
+		if ($content === '' || stripos($content, '/catalog/?q=') === false) {
+			return;
+		}
+		$content = preg_replace_callback(
+			'#\bhref="(/catalog/\?q=)([^"]*)"#u',
+			static function (array $m): string {
+				$prefix = $m[1];
+				$rest = $m[2];
+				if (!preg_match('/^([^&]*)(.*)$/u', $rest, $qm)) {
+					return $m[0];
+				}
+				$q = (string)$qm[1];
+				if ($q === '' || strpos($q, ' ') === false) {
+					return $m[0];
+				}
+				$decoded = rawurldecode(str_replace('+', ' ', $q));
+
+				return 'href="' . $prefix . rawurlencode($decoded) . $qm[2] . '"';
+			},
+			$content
+		) ?? $content;
+	}
+}
+
+if (!function_exists('vilmedFixContentMarkupBuffer')) {
+	/**
+	 * Runtime W3C fixes for already-saved DETAIL_TEXT (lists/headings/imgs).
+	 * Persistent fix: CatalogRepository::sanitizeCatalogHtml + tools/perf/fix-w3c-*.php
+	 */
+	function vilmedFixContentMarkupBuffer(string &$content): void
+	{
+		if ($content === '') {
+			return;
+		}
+		// <img> без alt
+		if (stripos($content, '<img') !== false) {
+			$content = preg_replace('/<img(?![^>]*\balt\s*=)(\s[^>]*)>/i', '<img alt=""$1>', $content) ?? $content;
+		}
+		// <h2>…<ul>…</h2> → <h2>…</h2><ul>…
+		if (preg_match('#<h[1-6]\b[^>]*>[^<]*<(?:ul|ol)\b#i', $content)) {
+			$content = preg_replace_callback(
+				'#<(h[1-6])(\b[^>]*)>([\s\S]*?)</\1>#i',
+				static function (array $m): string {
+					$inner = $m[3];
+					if (!preg_match('#<(?:ul|ol)\b#i', $inner)) {
+						return $m[0];
+					}
+					$parts = preg_split('#(<(?:ul|ol)\b[^>]*>.*?</(?:ul|ol)>)#is', $inner, -1, PREG_SPLIT_DELIM_CAPTURE);
+					$title = '';
+					$lists = '';
+					foreach ($parts as $part) {
+						if ($part === '' || $part === null) {
+							continue;
+						}
+						if (preg_match('#^<(?:ul|ol)\b#i', $part)) {
+							$lists .= $part;
+						} else {
+							$title .= $part;
+						}
+					}
+					$title = trim($title);
+					$out = $title !== '' ? '<' . $m[1] . $m[2] . '>' . $title . '</' . $m[1] . '>' : '';
+
+					return $out . $lists;
+				},
+				$content
+			) ?? $content;
+		}
+		// <ul>/<ol> с прямыми <p> или голым текстом — оборачиваем в <li>
+		foreach (['ul', 'ol'] as $list) {
+			if (stripos($content, '<' . $list) === false) {
+				continue;
+			}
+			$content = preg_replace_callback(
+				'#<' . $list . '(\b[^>]*)>([\s\S]*?)</' . $list . '>#i',
+				static function (array $m) use ($list): string {
+					$inner = $m[2];
+					$changed = false;
+					// <p>…</p> внутри списка → <li>…
+					if (preg_match('#<p\b#i', $inner)) {
+						$inner = preg_replace('#<p\b[^>]*>([\s\S]*?)</p>#i', '<li>$1</li>', $inner) ?? $inner;
+						$changed = true;
+					}
+					// текст сразу после <ul> или </li> без <li>
+					$inner2 = preg_replace_callback(
+						'#(^|</li>)\s*([^<\s][^<]*?)(?=<li>|</' . $list . '>|<(?:ul|ol)\b)#iu',
+						static function (array $mm): string {
+							$text = trim($mm[2]);
+							if ($text === '') {
+								return $mm[0];
+							}
+
+							return $mm[1] . '<li>' . $text . '</li>';
+						},
+						$inner
+					);
+					if ($inner2 !== null && $inner2 !== $inner) {
+						$inner = $inner2;
+						$changed = true;
+					}
+
+					return $changed ? '<' . $list . $m[1] . '>' . $inner . '</' . $list . '>' : $m[0];
+				},
+				$content
+			) ?? $content;
+		}
+		// orphan <li> прямо в <div> — только в sanitizeCatalogHtml / CLI (полный DOM опасен)
 	}
 }
 
@@ -1313,9 +1469,12 @@ if (!function_exists('vilmedOnEndBufferContent')) {
 		vilmedResequenceCoreScripts($content);
 		vilmedInjectHomeDeferredLoader($content);
 		vilmedFixVmdMarkup($content);
+		vilmedFixContentMarkupBuffer($content);
+		vilmedEncodeCatalogSearchHrefs($content);
 		vilmedEncodeTextHtmlTemplates($content);
 		vilmedEscapeScriptHtmlEndTags($content);
 		vilmedStripInvalidCss($content);
+		vilmedHoistBodyStylesToHead($content);
 		vilmedNormalizeNoindexTags($content);
 	}
 }

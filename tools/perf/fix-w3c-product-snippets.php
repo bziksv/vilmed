@@ -30,6 +30,14 @@ if ($all) {
 		OR DETAIL_TEXT LIKE '%<circle%'
 		OR DETAIL_TEXT LIKE '%<details><details%'
 		OR DETAIL_TEXT LIKE '%.м</ul>%'
+		OR DETAIL_TEXT LIKE '%background-color: none%'
+		OR DETAIL_TEXT LIKE '%background-color:none%'
+		OR DETAIL_TEXT LIKE '%<ul>%<%p%'
+		OR DETAIL_TEXT LIKE '%<ol>%<%p%'
+		OR DETAIL_TEXT LIKE '%<h2>%<%ul%'
+		OR DETAIL_TEXT LIKE '%<h2>%<%ol%'
+		OR DETAIL_TEXT LIKE '%<div>%<%li%'
+		OR DETAIL_TEXT LIKE '%<img %' AND DETAIL_TEXT NOT LIKE '% alt=%' AND DETAIL_TEXT NOT LIKE '% alt =%'
 		OR DETAIL_TEXT REGEXP '<h[1-6][^>[:space:]/]'
 	) ORDER BY ID";
 } else {

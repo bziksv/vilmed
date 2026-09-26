@@ -5,17 +5,13 @@ if(!$arParams['ELEMENT_ID'])
 $ElementID = $arParams['ELEMENT_ID'];
 
 $db_old_groups = CIBlockElement::GetElementGroups($ElementID, true, ['NAME', 'CODE']);
-?>
 
-<style>
-    .catalog-detail-section {
-        margin-top: 12px;
-        color: #a0a4bc;
-    }
-    .catalog-detail-section a {
-        color: #a0a4bc;
-    }
-</style>
+global $APPLICATION;
+$APPLICATION->AddHeadString(
+	'<style>.catalog-detail-section{margin-top:12px;color:#a0a4bc}.catalog-detail-section a{color:#a0a4bc}</style>',
+	true
+);
+?>
 
 <? if($count = $db_old_groups->SelectedRowsCount()): ?>
     <div class="catalog-detail-section">

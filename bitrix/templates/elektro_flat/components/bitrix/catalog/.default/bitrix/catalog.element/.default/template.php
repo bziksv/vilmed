@@ -187,11 +187,10 @@ $templateData = array(
 	<?}?>
 </script>
 
-<style>
-    .geolocation-delivery__title {
-        display: none!important;
-    }
-</style>
+<?php
+global $APPLICATION;
+$APPLICATION->AddHeadString('<style>.geolocation-delivery__title{display:none!important}</style>', true);
+?>
 
 <?//NEW_HIT_DISCOUNT_TIME_BUY//
 $sticker = "";
@@ -351,8 +350,9 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TI
 				// иначе справа «висит» похожий кадр и кажется дублем главного.
 				$vilmedShowMoreStrip = !empty($arResult["PROPERTIES"]["VIDEO"]["VALUE"]) || count($arResult["MORE_PHOTO"]) > 0 || $isDetailImg;
 				if($vilmedShowMoreStrip && (count($arResult["MORE_PHOTO"]) > 0 || !empty($arResult["PROPERTIES"]["VIDEO"]["VALUE"]))) {?>
-					<?/* JS задаёт высоту по .price_buy_detail; этот стиль только снимает старый max-height:390 из кеша */?>
-					<style id="vilmed-more-photo-stretch">@media (min-width:992px){.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo{max-height:none!important}}</style>
+					<?php
+					$APPLICATION->AddHeadString('<style id="vilmed-more-photo-stretch">@media (min-width:992px){.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo{max-height:none!important}}</style>', true);
+					?>
 					<div class="clr"></div>
 					<div class="more_photo" data-more-photo-slider>
 						<button type="button" class="more_photo__nav more_photo__nav--prev" aria-label="Предыдущие фото" hidden>

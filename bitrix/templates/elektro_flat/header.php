@@ -460,8 +460,12 @@ Loc::loadMessages(__FILE__);
                                                         <? endif; ?>
                                                         <? foreach($ar_resultTag['UF_TAGS_LIST_BAR'] as $inc => $tag):
                                                             $tag = explode('@', $tag);
+                                                            $tagHref = (string)($tag[1] ?? '');
+                                                            if (preg_match('#^(/catalog/\?q=)([^&]*)(.*)$#u', $tagHref, $tm) && strpos($tm[2], ' ') !== false) {
+                                                                $tagHref = $tm[1] . rawurlencode(rawurldecode(str_replace('+', ' ', $tm[2]))) . $tm[3];
+                                                            }
                                                             ?>
-                                                            <a href="<?=$tag[1]?>" class="<?=($inc < 5) ? 'active' : ''?>"><?=$tag[0]?></a>
+                                                            <a href="<?=htmlspecialcharsbx($tagHref)?>" class="<?=($inc < 5) ? 'active' : ''?>"><?=$tag[0]?></a>
                                                             <? if($inc == 4): ?>
                                                                 <a href="javascript:void(0)" class="active" onclick="$(this).closest('.tag_menu').find('a').css('display', 'block'); $(this).hide();" style="text-align: center">Показать все</a>
                                                             <? endif; ?>

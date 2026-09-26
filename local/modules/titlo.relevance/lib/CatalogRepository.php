@@ -2328,6 +2328,85 @@ class CatalogRepository
 		$html = preg_replace('#(^|[\n>])([А-ЯA-Z][^<\n]{1,80})</p>(\s*<ul)#u', '$1<p>$2</p>$3', $html) ?? $html;
 		// typo text.м</ul>
 		$html = preg_replace('#([^>])\.м</ul>#u', '$1.</li></ul>', $html) ?? $html;
+		// background-color:none → transparent
+		$html = preg_replace('/background-color\s*:\s*none\b/i', 'background-color:transparent', $html) ?? $html;
+		// <img> без alt
+		$html = preg_replace('/<img(?![^>]*\balt\s*=)(\s[^>]*)>/i', '<img alt=""$1>', $html) ?? $html;
+		// голый «< » (не тег) → &lt;
+		$html = preg_replace('/<(?=\s)/', '&lt;', $html) ?? $html;
+		// <h2>…<ul>…</h2>
+		$html = preg_replace_callback(
+			'#<(h[1-6])(\b[^>]*)>([\s\S]*?)</\1>#i',
+			static function (array $m): string {
+				$inner = $m[3];
+				if (!preg_match('#<(?:ul|ol)\b#i', $inner)) {
+					return $m[0];
+				}
+				$parts = preg_split('#(<(?:ul|ol)\b[^>]*>.*?</(?:ul|ol)>)#is', $inner, -1, PREG_SPLIT_DELIM_CAPTURE);
+				$title = '';
+				$lists = '';
+				foreach ($parts as $part) {
+					if ($part === '' || $part === null) {
+						continue;
+					}
+					if (preg_match('#^<(?:ul|ol)\b#i', $part)) {
+						$lists .= $part;
+					} else {
+						$title .= $part;
+					}
+				}
+				$title = trim($title);
+				$out = $title !== '' ? '<' . $m[1] . $m[2] . '>' . $title . '</' . $m[1] . '>' : '';
+
+				return $out . $lists;
+			},
+			$html
+		) ?? $html;
+		// <ul>/<ol> с <p> или голым текстом
+		foreach (['ul', 'ol'] as $list) {
+			$html = preg_replace_callback(
+				'#<' . $list . '(\b[^>]*)>([\s\S]*?)</' . $list . '>#i',
+				static function (array $m) use ($list): string {
+					$inner = $m[2];
+					$changed = false;
+					if (preg_match('#<p\b#i', $inner)) {
+						$inner = preg_replace('#<p\b[^>]*>([\s\S]*?)</p>#i', '<li>$1</li>', $inner) ?? $inner;
+						$changed = true;
+					}
+					$inner2 = preg_replace_callback(
+						'#(^|</li>)\s*([^<\s][^<]*?)(?=<li>|</' . $list . '>|<(?:ul|ol)\b)#iu',
+						static function (array $mm): string {
+							$text = trim($mm[2]);
+							if ($text === '') {
+								return $mm[0];
+							}
+
+							return $mm[1] . '<li>' . $text . '</li>';
+						},
+						$inner
+					);
+					if ($inner2 !== null && $inner2 !== $inner) {
+						$inner = $inner2;
+						$changed = true;
+					}
+
+					return $changed ? '<' . $list . $m[1] . '>' . $inner . '</' . $list . '>' : $m[0];
+				},
+				$html
+			) ?? $html;
+		}
+		// <div>…<li>… без ul — обернуть
+		$html = preg_replace_callback(
+			'#<div(\b[^>]*)>(\s*<li\b[\s\S]*?)</div>#i',
+			static function (array $m): string {
+				if (preg_match('#<(?:ul|ol)\b#i', $m[2])) {
+					return $m[0];
+				}
+
+				return '<div' . $m[1] . '><ul>' . $m[2] . '</ul></div>';
+			},
+			$html
+		) ?? $html;
 		// <li>заголовок:</li><ul>…</ul> → <li>заголовок:<ul>…</ul></li>
 		$html = preg_replace(
 			'#<li>([^<]*)</li>\s*(<(?:ul|ol)\b[^>]*>.*?</(?:ul|ol)>)#is',
