@@ -2399,6 +2399,26 @@ class CatalogRepository
 		$html = preg_replace('/(["\'])(?=[a-zA-Z_:][\w:-]*=)/', '$1 ', $html) ?? $html;
 		// мусорные `p=""` на img/span
 		$html = preg_replace('/\s+\bp\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html) ?? $html;
+		// Word/кривой HTML: `6=""` / `margin-bottom:15px;=""` / `7px;"="` как атрибуты
+		$html = preg_replace('/\s+\d+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/', '', $html) ?? $html;
+		$html = preg_replace(
+			'/\s+[^\s=<>]*\d+px;?[\"”\'\"]*\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/u',
+			'',
+			$html
+		) ?? $html;
+		$html = preg_replace(
+			'/\s+(?:margin|padding)[^\s=<>]*\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i',
+			'',
+			$html
+		) ?? $html;
+		// `align` на figure (и прочих блоках) — убрать
+		$html = preg_replace('/<(figure|div|p|table|img)(\s[^>]*?)\s+align\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)([^>]*)>/i', '<$1$2$3>', $html) ?? $html;
+		// mso-* в style
+		$html = preg_replace('/\s*mso-[a-z0-9-]+:[^;"]*;?/i', '', $html) ?? $html;
+		// пустые <tr></tr>
+		$html = preg_replace('#<tr\b[^>]*>\s*</tr>#i', '', $html) ?? $html;
+		// двойной </p>
+		$html = preg_replace('#(?:</p>\s*){2,}#i', '</p>', $html) ?? $html;
 		// `#ссс` (кириллическая «с») → `#ccc`
 		$html = preg_replace_callback('/#([сcСC]{3}|[сcСC]{6})\b/u', static function (array $m): string {
 			$len = function_exists('mb_strlen') ? mb_strlen($m[1], 'UTF-8') : strlen($m[1]);
@@ -2424,18 +2444,44 @@ class CatalogRepository
 			'<$1$2>$3</$1>',
 			$html
 		) ?? $html;
+		// heading внутри heading: `<h2>…<h2>` → закрыть первый
+		$html = preg_replace(
+			'#<(h[1-6])(\b[^>]*)>([^<]*?)\s*<(h[1-6])\b#i',
+			'<$1$2>$3</$1><$4',
+			$html
+		) ?? $html;
+		// `<h2>…<p>…</p></h2>` → `<h2>…</h2><p>…</p>`
+		$html = preg_replace_callback(
+			'#<(h[1-6])(\b[^>]*)>([\s\S]*?)</\1>#i',
+			static function (array $m): string {
+				if (!preg_match('#<p\b#i', $m[3])) {
+					return $m[0];
+				}
+				$title = trim(preg_replace('#<p\b[^>]*>[\s\S]*$#i', '', $m[3]) ?? $m[3]);
+				$rest = '';
+				if (preg_match('#(<p\b[\s\S]*)$#i', $m[3], $mm)) {
+					$rest = $mm[1];
+				}
+				$title = trim(strip_tags($title, '<br><strong><b><em><i><span><a>'));
+
+				return ($title !== '' ? '<' . $m[1] . $m[2] . '>' . $title . '</' . $m[1] . '>' : '') . $rest;
+			},
+			$html
+		) ?? $html;
 		// двойной `<li><li>…</li></li>`
 		$html = preg_replace('#<li(\b[^>]*)>\s*<li\b[^>]*>#i', '<li$1>', $html) ?? $html;
 		$html = preg_replace('#</li>\s*</li>#i', '</li>', $html) ?? $html;
-		// `<li><p>…</p></li>` → `<li>…</li>` (источник; buffer раньше превращал p→li)
+		// `<li><p>…</p></li>` → `<li>…</li>`
 		$html = preg_replace(
 			'#(<li\b[^>]*>)\s*<p\b[^>]*>([\s\S]*?)</p>\s*(</li>)#i',
 			'$1$2$3',
 			$html
 		) ?? $html;
-		// пустые <li> и списки-заглушки; </li><ul> → вложить ul в предыдущий li (не ol>ul)
+		// заголовок / br / p / текст прямо в ul|ol — разрезать список
+		$html = self::fixListInnerBlocks($html);
+		// пустые <li> и списки-заглушки; </li><ul> → вложить ul в предыдущий li
 		$html = self::fixNestedListMarkup($html);
-		// `<b><span><h2>…</h2></span></b>` / `<span><h2>…</h2></span>` — heading не в inline
+		// `<span>…<p>` / `<b><span><h2>` — block не в inline
 		$html = preg_replace(
 			'#<(?:b|strong)>\s*<span\b[^>]*>\s*(<h[1-6]\b[^>]*>[\s\S]*?</h[1-6]>)\s*</span>\s*</(?:b|strong)>#i',
 			'$1',
@@ -2446,10 +2492,110 @@ class CatalogRepository
 			'$1',
 			$html
 		) ?? $html;
+		$html = preg_replace(
+			'#<span\b[^>]*>\s*(?:<(?:b|strong)>\s*</(?:b|strong)>\s*)*(<p\b[^>]*>[\s\S]*?</p>)\s*</span>#i',
+			'$1',
+			$html
+		) ?? $html;
+		$html = preg_replace(
+			'#<span\b[^>]*>\s*(<(?:ul|ol)\b[^>]*>[\s\S]*?</(?:ul|ol)>)\s*</span>#i',
+			'$1',
+			$html
+		) ?? $html;
+		// `<td>…<li>` без ul
+		$html = preg_replace_callback(
+			'#<(td|th|div)(\b[^>]*)>(\s*<li\b[\s\S]*?)</\1>#i',
+			static function (array $m): string {
+				if (preg_match('#<(?:ul|ol)\b#i', $m[3])) {
+					return $m[0];
+				}
+
+				return '<' . $m[1] . $m[2] . '><ul>' . $m[3] . '</ul></' . $m[1] . '>';
+			},
+			$html
+		) ?? $html;
 		// голые `<li>` вне ul/ol → обернуть в <ul>
 		$html = self::wrapOrphanListItems($html);
-		// голый «< » (не тег) → &lt; — только в контентных полях, не на полном HTML
+		// голый «< » (не тег) → &lt; — только в контентных полях
 		$html = preg_replace('/<(?=\s)/', '&lt;', $html) ?? $html;
+
+		return $html;
+	}
+
+	/**
+	 * W3C: внутри ul/ol нельзя hN/br/p/голый текст/соседний ul|ol без li —
+	 * разрезать список или обернуть.
+	 */
+	public static function fixListInnerBlocks(string $html): string
+	{
+		if ($html === '' || !preg_match('#<(?:ul|ol)\b#i', $html)) {
+			return $html;
+		}
+		foreach (['ul', 'ol'] as $list) {
+			$html = preg_replace_callback(
+				'#<' . $list . '(\b[^>]*)>([\s\S]*?)</' . $list . '>#i',
+				static function (array $m) use ($list): string {
+					$inner = $m[2];
+					if (!preg_match('#<(?:h[1-6]|br|p|ul|ol)\b#i', $inner)
+						&& !preg_match('#^[^<\s]#u', trim($inner))) {
+						return $m[0];
+					}
+					// убрать <br> между пунктами
+					$inner = preg_replace('#</li>\s*<br\s*/?>#i', '</li>', $inner) ?? $inner;
+					$inner = preg_replace('#<br\s*/?>\s*(?=<li\b)#i', '', $inner) ?? $inner;
+					$inner = preg_replace('#<br\s*/?>#i', '', $inner) ?? $inner;
+					// вынести hN / p / вложенный список без li
+					$parts = preg_split(
+						'#(<(?:h[1-6]|p)\b[^>]*>[\s\S]*?</(?:h[1-6]|p)>|<(?:ul|ol)\b[^>]*>[\s\S]*?</(?:ul|ol)>)#i',
+						$inner,
+						-1,
+						PREG_SPLIT_DELIM_CAPTURE
+					);
+					if (!is_array($parts)) {
+						return '<' . $list . $m[1] . '>' . $inner . '</' . $list . '>';
+					}
+					$out = '';
+					$buf = '';
+					$flush = static function () use (&$buf, &$out, $list, $m): void {
+						$buf = trim($buf);
+						if ($buf === '') {
+							return;
+						}
+						// только li?
+						if (preg_match('#<li\b#i', $buf)) {
+							$out .= '<' . $list . $m[1] . '>' . $buf . '</' . $list . '>';
+						} else {
+							$text = trim(strip_tags($buf));
+							if ($text !== '') {
+								$out .= '<' . $list . $m[1] . '><li>' . $buf . '</li></' . $list . '>';
+							}
+						}
+						$buf = '';
+					};
+					foreach ($parts as $part) {
+						if ($part === '' || $part === null) {
+							continue;
+						}
+						if (preg_match('#^<(?:h[1-6]|p)\b#i', $part)) {
+							$flush();
+							$out .= $part;
+							continue;
+						}
+						if (preg_match('#^<(?:ul|ol)\b#i', $part)) {
+							$flush();
+							// соседний список → в li
+							$out .= '<' . $list . $m[1] . '><li>' . $part . '</li></' . $list . '>';
+							continue;
+						}
+						$buf .= $part;
+					}
+					$flush();
+
+					return $out !== '' ? $out : $m[0];
+				},
+				$html
+			) ?? $html;
+		}
 
 		return $html;
 	}

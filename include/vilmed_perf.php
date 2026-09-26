@@ -1463,12 +1463,12 @@ if (!function_exists('vilmedDropH2MatchingPageH1')) {
 
 if (!function_exists('vilmedNormalizeProductHeadingHierarchy')) {
 	/**
-	 * После page H1: лишние H1→H2; H3/H4 до первого H2 → H2; иначе все H3/H4 → H2.
-	 * Только карточка товара.
+	 * После page H1: лишние H1→H2; H3/H4 до первого H2 → H2.
+	 * Карточки и категории (.vmd-desc).
 	 */
 	function vilmedNormalizeProductHeadingHierarchy(string &$content): void
 	{
-		if ($content === '' || empty($GLOBALS['vilmedIsProduct'])) {
+		if ($content === '') {
 			return;
 		}
 		if (!preg_match('#<h1\b[^>]*>[\s\S]*?</h1>#i', $content, $m, PREG_OFFSET_CAPTURE)) {
@@ -1576,16 +1576,50 @@ if (!function_exists('vilmedFixContentMarkupBuffer')) {
 				$content
 			) ?? $content;
 		}
-		// orphan <li> вне ul + починка ol>ul
-		if (stripos($content, '<li') !== false
+		// orphan <li> вне ul + починка ol>ul / h2 в ul / br в ol
+		if ((stripos($content, '<li') !== false || stripos($content, '<ol') !== false || stripos($content, '<ul') !== false)
 			&& class_exists('\\Titlo\\Relevance\\CatalogRepository')
 		) {
+			if (method_exists('\\Titlo\\Relevance\\CatalogRepository', 'fixListInnerBlocks')) {
+				$content = \Titlo\Relevance\CatalogRepository::fixListInnerBlocks($content);
+			}
 			if (method_exists('\\Titlo\\Relevance\\CatalogRepository', 'fixNestedListMarkup')) {
 				$content = \Titlo\Relevance\CatalogRepository::fixNestedListMarkup($content);
 			}
 			if (method_exists('\\Titlo\\Relevance\\CatalogRepository', 'wrapOrphanListItems')) {
 				$content = \Titlo\Relevance\CatalogRepository::wrapOrphanListItems($content);
 			}
+		}
+		// пустые tr / мусорные атрибуты / mso
+		if (stripos($content, '<tr') !== false) {
+			$content = preg_replace('#<tr\b[^>]*>\s*</tr>#i', '', $content) ?? $content;
+		}
+		if (preg_match('/\s\d+\s*=/', $content) || preg_match('/\d+px/u', $content)) {
+			$content = preg_replace('/\s+\d+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/', '', $content) ?? $content;
+			$content = preg_replace(
+				'/\s+[^\s=<>]*\d+px;?[\"”\'\"]*\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/u',
+				'',
+				$content
+			) ?? $content;
+			$content = preg_replace(
+				'/\s+(?:margin|padding)[^\s=<>]*\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i',
+				'',
+				$content
+			) ?? $content;
+		}
+		if (stripos($content, 'mso-') !== false) {
+			$content = preg_replace('/\s*mso-[a-z0-9-]+:[^;"]*;?/i', '', $content) ?? $content;
+		}
+		if (stripos($content, 'align=') !== false) {
+			$content = preg_replace('/<(figure|div|p|table)(\s[^>]*?)\s+align\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)([^>]*)>/i', '<$1$2$3>', $content) ?? $content;
+		}
+		// heading-in-heading
+		if (preg_match('#<h[1-6]\b[^>]*>[^<]*<h[1-6]\b#i', $content)) {
+			$content = preg_replace(
+				'#<(h[1-6])(\b[^>]*)>([^<]*?)\s*<(h[1-6])\b#i',
+				'<$1$2>$3</$1><$4',
+				$content
+			) ?? $content;
 		}
 		// голый «< » только в sanitizeCatalogHtml / CLI — на полном HTML ломает JS (`a < b`)
 		// безопасный вариант: «< » перед цифрой в тексте свойств (`мин. < 3`)

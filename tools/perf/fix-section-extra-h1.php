@@ -19,6 +19,10 @@ $dry = in_array('--dry', $argv, true);
 $res = $m->query(
 	"SELECT ID, CODE, DESCRIPTION FROM b_iblock_section
 	 WHERE DESCRIPTION LIKE '%<h1%' OR DESCRIPTION LIKE '%<H1%'
+	    OR DESCRIPTION LIKE '%<h3%'
+	    OR DESCRIPTION LIKE '%margin-%'
+	    OR DESCRIPTION LIKE '%7px%'
+	    OR DESCRIPTION LIKE '%<li%'
 	 ORDER BY ID"
 );
 if (!$res) {
