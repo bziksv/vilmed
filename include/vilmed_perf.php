@@ -575,6 +575,39 @@ if (!function_exists('vilmedInjectBackgroundWebp')) {
 	}
 }
 
+if (!function_exists('vilmedInjectFancyboxWebpHrefs')) {
+	/**
+	 * Product gallery lightbox: href="/upload/….jpg" → .webp when sibling exists.
+	 * Fancybox loads href into <img>; modern browsers show WebP.
+	 */
+	function vilmedInjectFancyboxWebpHrefs(string &$content): void
+	{
+		if ($content === '') {
+			return;
+		}
+		if (stripos($content, 'fancybox') === false && stripos($content, 'catalog-detail-images') === false) {
+			return;
+		}
+
+		$content = preg_replace_callback(
+			'#<a\b([^>]*\b(?:class|rel)=[^>]*\b(?:fancybox|lightbox|catalog-detail-images)\b[^>]*)>#i',
+			static function (array $m): string {
+				$tag = $m[0];
+				if (!preg_match('/\bhref="(\/upload\/[^"?]+\.(?:jpe?g|png))"/i', $tag, $hm)) {
+					return $tag;
+				}
+				$webp = vilmedEnsureWebpSrc($hm[1]);
+				if ($webp === null) {
+					return $tag;
+				}
+
+				return str_replace($hm[0], 'href="' . htmlspecialcharsbx($webp, ENT_QUOTES) . '"', $tag);
+			},
+			$content
+		) ?? $content;
+	}
+}
+
 if (!function_exists('vilmedIsMobileClient')) {
 	function vilmedIsMobileClient(): bool
 	{
@@ -1458,6 +1491,7 @@ if (!function_exists('vilmedOnEndBufferContent')) {
 		vilmedInjectWebpImages($content);
 		vilmedInjectLcpPreload($content);
 		vilmedInjectBackgroundWebp($content);
+		vilmedInjectFancyboxWebpHrefs($content);
 		vilmedFixFontDisplay($content);
 		vilmedDeferHomeStylesheets($content);
 		vilmedDeferCatalogStylesheets($content);
