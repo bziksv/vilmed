@@ -1533,6 +1533,23 @@ if (!function_exists('vilmedFixContentMarkupBuffer')) {
 if (!function_exists('vilmedOnEndBufferContent')) {
 	function vilmedOnEndBufferContent(string &$content): void
 	{
+		// Никогда не трогаем админку / служебные URL Bitrix — иначе белый экран / битый JS
+		if ((defined('ADMIN_SECTION') && ADMIN_SECTION) || defined('BX_CRONTAB')) {
+			return;
+		}
+		$uri = (string)($_SERVER['REQUEST_URI'] ?? '');
+		if ($uri !== '' && (
+			strncmp($uri, '/bitrix/admin/', 14) === 0
+			|| strncmp($uri, '/bitrix/tools/', 14) === 0
+			|| strncmp($uri, '/bitrix/services/', 17) === 0
+			|| strncmp($uri, '/bitrix/components/', 19) === 0
+		)) {
+			return;
+		}
+		if ($content === '' || stripos($content, '<html') === false) {
+			return;
+		}
+
 		vilmedInjectCriticalHomeCss($content);
 		vilmedInjectLazyImages($content);
 		vilmedInjectWebpImages($content);
