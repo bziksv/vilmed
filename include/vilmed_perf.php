@@ -1544,7 +1544,17 @@ if (!function_exists('vilmedFixContentMarkupBuffer')) {
 				static function (array $m) use ($list): string {
 					$inner = $m[2];
 					$changed = false;
-					// <p>…</p> внутри списка → <li>…
+					// <li><p>…</p></li> → <li>…</li> (иначе p→li даёт <li><li>)
+					$inner2 = preg_replace(
+						'#(<li\b[^>]*>)\s*<p\b[^>]*>([\s\S]*?)</p>\s*(</li>)#i',
+						'$1$2$3',
+						$inner
+					);
+					if ($inner2 !== null && $inner2 !== $inner) {
+						$inner = $inner2;
+						$changed = true;
+					}
+					// оставшиеся <p>…</p> внутри списка → <li>…
 					if (preg_match('#<p\b#i', $inner)) {
 						$inner = preg_replace('#<p\b[^>]*>([\s\S]*?)</p>#i', '<li>$1</li>', $inner) ?? $inner;
 						$changed = true;

@@ -28,7 +28,9 @@ foreach ($argv as $arg) {
 
 // Cyrillic «с» in hex colors; double-li; junk attrs; named anchors; heading>div; bare "< "
 $sql = "SELECT ID, IBLOCK_ID, CODE, DETAIL_TEXT, PREVIEW_TEXT FROM b_iblock_element
-	WHERE DETAIL_TEXT LIKE '%<li>%<li>%'
+	OR DETAIL_TEXT LIKE '%<li>%<p>%'
+	   OR DETAIL_TEXT LIKE '%<li><p%'
+	   OR DETAIL_TEXT LIKE '%<li>%<li>%'
 	   OR DETAIL_TEXT LIKE '%</li>%</li>%'
 	   OR DETAIL_TEXT LIKE '% p=\"\"%'
 	   OR DETAIL_TEXT LIKE '% p=\"%'

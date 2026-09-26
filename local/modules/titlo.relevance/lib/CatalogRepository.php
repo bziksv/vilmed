@@ -2386,6 +2386,12 @@ class CatalogRepository
 		// двойной `<li><li>…</li></li>`
 		$html = preg_replace('#<li(\b[^>]*)>\s*<li\b[^>]*>#i', '<li$1>', $html) ?? $html;
 		$html = preg_replace('#</li>\s*</li>#i', '</li>', $html) ?? $html;
+		// `<li><p>…</p></li>` → `<li>…</li>` (источник; buffer раньше превращал p→li)
+		$html = preg_replace(
+			'#(<li\b[^>]*>)\s*<p\b[^>]*>([\s\S]*?)</p>\s*(</li>)#i',
+			'$1$2$3',
+			$html
+		) ?? $html;
 		// голый «< » (не тег) → &lt; — только в контентных полях, не на полном HTML
 		$html = preg_replace('/<(?=\s)/', '&lt;', $html) ?? $html;
 
@@ -2459,6 +2465,16 @@ class CatalogRepository
 				static function (array $m) use ($list): string {
 					$inner = $m[2];
 					$changed = false;
+					// <li><p>…</p></li> → <li>…</li>
+					$inner2 = preg_replace(
+						'#(<li\b[^>]*>)\s*<p\b[^>]*>([\s\S]*?)</p>\s*(</li>)#i',
+						'$1$2$3',
+						$inner
+					);
+					if ($inner2 !== null && $inner2 !== $inner) {
+						$inner = $inner2;
+						$changed = true;
+					}
 					if (preg_match('#<p\b#i', $inner)) {
 						$inner = preg_replace('#<p\b[^>]*>([\s\S]*?)</p>#i', '<li>$1</li>', $inner) ?? $inner;
 						$changed = true;
