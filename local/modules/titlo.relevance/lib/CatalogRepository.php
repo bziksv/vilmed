@@ -2433,10 +2433,54 @@ class CatalogRepository
 			'$1$2$3',
 			$html
 		) ?? $html;
+		// `<b><span><h2>…</h2></span></b>` / `<span><h2>…</h2></span>` — heading не в inline
+		$html = preg_replace(
+			'#<(?:b|strong)>\s*<span\b[^>]*>\s*(<h[1-6]\b[^>]*>[\s\S]*?</h[1-6]>)\s*</span>\s*</(?:b|strong)>#i',
+			'$1',
+			$html
+		) ?? $html;
+		$html = preg_replace(
+			'#<span\b[^>]*>\s*(<h[1-6]\b[^>]*>[\s\S]*?</h[1-6]>)\s*</span>#i',
+			'$1',
+			$html
+		) ?? $html;
+		// голые `<li>` вне ul/ol → обернуть в <ul>
+		$html = self::wrapOrphanListItems($html);
 		// голый «< » (не тег) → &lt; — только в контентных полях, не на полном HTML
 		$html = preg_replace('/<(?=\s)/', '&lt;', $html) ?? $html;
 
 		return $html;
+	}
+
+	/**
+	 * Последовательности <li>…</li> вне существующих <ul>/<ol> → <ul>…</ul>.
+	 */
+	public static function wrapOrphanListItems(string $html): string
+	{
+		if ($html === '' || !preg_match('#<li\b#i', $html)) {
+			return $html;
+		}
+		$parts = preg_split('#(<(?:ul|ol)\b[^>]*>.*?</(?:ul|ol)>)#is', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
+		if (!is_array($parts)) {
+			return $html;
+		}
+		$out = '';
+		foreach ($parts as $part) {
+			if ($part === '' || $part === null) {
+				continue;
+			}
+			if (preg_match('#^<(?:ul|ol)\b#i', $part)) {
+				$out .= $part;
+				continue;
+			}
+			$out .= preg_replace(
+				'#((?:(?:\s|<br\s*/?>)*<li\b[^>]*>[\s\S]*?</li>)+)#i',
+				'<ul>$1</ul>',
+				$part
+			) ?? $part;
+		}
+
+		return $out;
 	}
 
 	/**

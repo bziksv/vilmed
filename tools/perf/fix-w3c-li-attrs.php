@@ -42,6 +42,9 @@ $sql = "SELECT ID, IBLOCK_ID, CODE, DETAIL_TEXT, PREVIEW_TEXT FROM b_iblock_elem
 	   OR DETAIL_TEXT LIKE '%<h2>%<div%'
 	   OR DETAIL_TEXT LIKE '%< %'
 	   OR DETAIL_TEXT LIKE '%; title=%'
+	   OR DETAIL_TEXT LIKE '%<span>%<h2%'
+	   OR DETAIL_TEXT LIKE '%<span>%<h1%'
+	   OR (DETAIL_TEXT LIKE '%<li%' AND DETAIL_TEXT NOT LIKE '%<ul%' AND DETAIL_TEXT NOT LIKE '%<ol%')
 	   OR PREVIEW_TEXT LIKE '%<li>%<li>%'
 	ORDER BY ID";
 if ($limit > 0) {

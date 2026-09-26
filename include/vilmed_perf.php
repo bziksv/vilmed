@@ -1535,6 +1535,26 @@ if (!function_exists('vilmedFixContentMarkupBuffer')) {
 			$content = preg_replace('#<li(\b[^>]*)>\s*<li\b[^>]*>#i', '<li$1>', $content) ?? $content;
 			$content = preg_replace('#</li>\s*</li>#i', '</li>', $content) ?? $content;
 		}
+		// `<span><h2>…</h2></span>` / `<b><span><h2>`
+		if (preg_match('#<span\b[^>]*>\s*<h[1-6]\b#i', $content)) {
+			$content = preg_replace(
+				'#<(?:b|strong)>\s*<span\b[^>]*>\s*(<h[1-6]\b[^>]*>[\s\S]*?</h[1-6]>)\s*</span>\s*</(?:b|strong)>#i',
+				'$1',
+				$content
+			) ?? $content;
+			$content = preg_replace(
+				'#<span\b[^>]*>\s*(<h[1-6]\b[^>]*>[\s\S]*?</h[1-6]>)\s*</span>#i',
+				'$1',
+				$content
+			) ?? $content;
+		}
+		// orphan <li> вне ul (контент; существующие ul/ol не трогаем)
+		if (stripos($content, '<li') !== false
+			&& class_exists('\\Titlo\\Relevance\\CatalogRepository')
+			&& method_exists('\\Titlo\\Relevance\\CatalogRepository', 'wrapOrphanListItems')
+		) {
+			$content = \Titlo\Relevance\CatalogRepository::wrapOrphanListItems($content);
+		}
 		// голый «< » только в sanitizeCatalogHtml / CLI — на полном HTML ломает JS (`a < b`)
 		// безопасный вариант: «< » перед цифрой в тексте свойств (`мин. < 3`)
 		if (preg_match('/<\s+\d/', $content)) {
