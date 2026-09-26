@@ -2305,8 +2305,8 @@ class CatalogRepository
 	}
 
 	/**
-	 * SEO: в фрагменте описания (без page H1) — H1→H2; H3/H4 до первого H2 → H2;
-	 * если H2 нет — все H3 (иначе H4) → H2.
+	 * SEO: в фрагменте описания (без page H1) — H3/H4 до первого H2 → H2;
+	 * все H1 → H2; если H2 нет — все H3 (иначе H4) → H2.
 	 */
 	public static function normalizeHeadingHierarchy(string $html): string
 	{
@@ -2314,17 +2314,20 @@ class CatalogRepository
 			return $html;
 		}
 
-		// H1 в тексте карточки недопустимы (H1 уже в шаблоне)
-		$html = preg_replace('#<h1(\b[^>]*)>#i', '<h2$1>', $html) ?? $html;
-		$html = preg_replace('#</h1>#i', '</h2>', $html) ?? $html;
+		$promote34to2 = static function (string $chunk): string {
+			$chunk = preg_replace('#<h([34])(\b[^>]*)>#i', '<h2$2>', $chunk) ?? $chunk;
+			$chunk = preg_replace('#</h[34]>#i', '</h2>', $chunk) ?? $chunk;
+			$chunk = preg_replace('#<h1(\b[^>]*)>#i', '<h2$1>', $chunk) ?? $chunk;
+			$chunk = preg_replace('#</h1>#i', '</h2>', $chunk) ?? $chunk;
+
+			return $chunk;
+		};
 
 		if (preg_match('#<h2\b#i', $html)) {
+			// Сначала правим зону до первого уже существующего H2 (не после понижения H1)
 			$parts = preg_split('#(?=<h2\b)#i', $html, 2);
 			if (is_array($parts) && isset($parts[0], $parts[1])) {
-				$before = $parts[0];
-				$before = preg_replace('#<h([34])(\b[^>]*)>#i', '<h2$2>', $before) ?? $before;
-				$before = preg_replace('#</h[34]>#i', '</h2>', $before) ?? $before;
-				$html = $before . $parts[1];
+				$html = $promote34to2($parts[0]) . $parts[1];
 			}
 		} elseif (preg_match('#<h3\b#i', $html)) {
 			$html = preg_replace('#<h3(\b[^>]*)>#i', '<h2$1>', $html) ?? $html;
@@ -2333,6 +2336,10 @@ class CatalogRepository
 			$html = preg_replace('#<h4(\b[^>]*)>#i', '<h2$1>', $html) ?? $html;
 			$html = preg_replace('#</h4>#i', '</h2>', $html) ?? $html;
 		}
+
+		// Оставшиеся H1 в тексте карточки
+		$html = preg_replace('#<h1(\b[^>]*)>#i', '<h2$1>', $html) ?? $html;
+		$html = preg_replace('#</h1>#i', '</h2>', $html) ?? $html;
 
 		return $html;
 	}
