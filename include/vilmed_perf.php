@@ -1548,12 +1548,16 @@ if (!function_exists('vilmedFixContentMarkupBuffer')) {
 				$content
 			) ?? $content;
 		}
-		// orphan <li> вне ul (контент; существующие ul/ol не трогаем)
+		// orphan <li> вне ul + починка ol>ul
 		if (stripos($content, '<li') !== false
 			&& class_exists('\\Titlo\\Relevance\\CatalogRepository')
-			&& method_exists('\\Titlo\\Relevance\\CatalogRepository', 'wrapOrphanListItems')
 		) {
-			$content = \Titlo\Relevance\CatalogRepository::wrapOrphanListItems($content);
+			if (method_exists('\\Titlo\\Relevance\\CatalogRepository', 'fixNestedListMarkup')) {
+				$content = \Titlo\Relevance\CatalogRepository::fixNestedListMarkup($content);
+			}
+			if (method_exists('\\Titlo\\Relevance\\CatalogRepository', 'wrapOrphanListItems')) {
+				$content = \Titlo\Relevance\CatalogRepository::wrapOrphanListItems($content);
+			}
 		}
 		// голый «< » только в sanitizeCatalogHtml / CLI — на полном HTML ломает JS (`a < b`)
 		// безопасный вариант: «< » перед цифрой в тексте свойств (`мин. < 3`)

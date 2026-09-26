@@ -2433,6 +2433,8 @@ class CatalogRepository
 			'$1$2$3',
 			$html
 		) ?? $html;
+		// пустые <li> и списки-заглушки; </li><ul> → вложить ul в предыдущий li (не ol>ul)
+		$html = self::fixNestedListMarkup($html);
 		// `<b><span><h2>…</h2></span></b>` / `<span><h2>…</h2></span>` — heading не в inline
 		$html = preg_replace(
 			'#<(?:b|strong)>\s*<span\b[^>]*>\s*(<h[1-6]\b[^>]*>[\s\S]*?</h[1-6]>)\s*</span>\s*</(?:b|strong)>#i',
@@ -2481,6 +2483,50 @@ class CatalogRepository
 		}
 
 		return $out;
+	}
+
+	/**
+	 * W3C: ul/ol не могут быть прямым ребёнком ul/ol — только внутри li.
+	 * Убирает пустые li/списки-заглушки и вкладывает «</li><ul>» в предыдущий li.
+	 */
+	public static function fixNestedListMarkup(string $html): string
+	{
+		if ($html === '' || !preg_match('#<(?:ul|ol)\b#i', $html)) {
+			return $html;
+		}
+		for ($i = 0; $i < 4; $i++) {
+			$prev = $html;
+			$html = preg_replace('#<li\b[^>]*>\s*</li>#i', '', $html) ?? $html;
+			$html = preg_replace(
+				'#<(?:ul|ol)\b[^>]*>\s*(?:<li\b[^>]*>\s*</li>\s*)*</(?:ul|ol)>#i',
+				'',
+				$html
+			) ?? $html;
+			if ($html === $prev) {
+				break;
+			}
+		}
+		// </li><ul>…</ul> → <ul>…</ul></li> (вложить в предыдущий пункт)
+		$html = preg_replace(
+			'#</li>\s*(<(?:ul|ol)\b[^>]*>.*?</(?:ul|ol)>)#is',
+			'$1</li>',
+			$html
+		) ?? $html;
+		// <ol><ul> / <ul><ol> без li — обернуть вложенный список в li
+		$html = preg_replace(
+			'#(<(?:ul|ol)\b[^>]*>)\s*(<(?:ul|ol)\b)#i',
+			'$1<li>$2',
+			$html
+		) ?? $html;
+		// закрыть автоматически добавленный li перед концом родителя, если открыли выше
+		// (простой случай: <li><ul>…</ul></ol> без </li>)
+		$html = preg_replace(
+			'#(<(?:ul|ol)\b[^>]*>\s*<li>\s*<(?:ul|ol)\b[^>]*>.*?</(?:ul|ol)>)\s*(</(?:ul|ol)>)#is',
+			'$1</li>$2',
+			$html
+		) ?? $html;
+
+		return $html;
 	}
 
 	/**
