@@ -1454,6 +1454,52 @@ if (!function_exists('vilmedFixContentMarkupBuffer')) {
 		if ($content === '') {
 			return;
 		}
+		// `src="…"; title=` / `height:auto"title=`
+		if (strpos($content, ';') !== false || preg_match('/["\'][a-zA-Z_:]/', $content)) {
+			$content = preg_replace('/(["\'])\s*;\s+(?=[a-zA-Z_][\w:-]*=)/', '$1 ', $content) ?? $content;
+			$content = preg_replace('/(["\'])(?=[a-zA-Z_:][\w:-]*=)/', '$1 ', $content) ?? $content;
+		}
+		// `p=""` на img/span
+		if (stripos($content, ' p=') !== false || stripos($content, "\tp=") !== false) {
+			$content = preg_replace('/\s+\bp\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $content) ?? $content;
+		}
+		// `#ссс` (кириллица) → `#ccc`
+		if (preg_match('/#[сcСC]{3}/u', $content)) {
+			$content = preg_replace_callback('/#([сcСC]{3}|[сcСC]{6})\b/u', static function (array $m): string {
+				$len = function_exists('mb_strlen') ? mb_strlen($m[1], 'UTF-8') : strlen($m[1]);
+				return '#' . str_repeat('c', $len === 6 ? 6 : 3);
+			}, $content) ?? $content;
+		}
+		// `<a name="x"></a>` → id на следующем заголовке / удалить
+		if (stripos($content, 'name=') !== false) {
+			$content = preg_replace_callback(
+				'#<a\s+name\s*=\s*["\']?([^"\'>\s]+)["\']?\s*>\s*</a>\s*<(h[1-6])(\b[^>]*)>#i',
+				static function (array $m): string {
+					$tag = '<' . $m[2] . $m[3] . '>';
+					if (preg_match('/\bid\s*=/i', $m[3])) {
+						return $tag;
+					}
+
+					return '<' . $m[2] . $m[3] . ' id="' . htmlspecialchars($m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8') . '">';
+				},
+				$content
+			) ?? $content;
+			$content = preg_replace('#<a\s+name\s*=\s*["\']?([^"\'>\s]+)["\']?\s*>\s*</a>#i', '', $content) ?? $content;
+		}
+		// `<hN><div>…</div></hN>`
+		if (preg_match('#<h[1-6]\b[^>]*>\s*<div\b#i', $content)) {
+			$content = preg_replace(
+				'#<(h[1-6])(\b[^>]*)>\s*<div\b[^>]*>([\s\S]*?)</div>\s*</\1>#i',
+				'<$1$2>$3</$1>',
+				$content
+			) ?? $content;
+		}
+		// двойной `<li><li>…</li></li>` (контент; меню даёт `</ul></li>`, не `</li></li>`)
+		if (preg_match('#<li\b[^>]*>\s*<li\b#i', $content) || preg_match('#</li>\s*</li>#i', $content)) {
+			$content = preg_replace('#<li(\b[^>]*)>\s*<li\b[^>]*>#i', '<li$1>', $content) ?? $content;
+			$content = preg_replace('#</li>\s*</li>#i', '</li>', $content) ?? $content;
+		}
+		// голый «< » только в sanitizeCatalogHtml / CLI — на полном HTML ломает JS (`a < b`)
 		// <img> без alt
 		if (stripos($content, '<img') !== false) {
 			$content = preg_replace('/<img(?![^>]*\balt\s*=)(\s[^>]*)>/i', '<img alt=""$1>', $content) ?? $content;

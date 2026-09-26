@@ -2345,6 +2345,54 @@ class CatalogRepository
 	}
 
 	/**
+	 * Лёгкие W3C-фиксы разметки без DOM-allowlist (можно на news/vendors/reviews).
+	 */
+	public static function fixW3cMarkupGlitches(string $html): string
+	{
+		$html = (string) $html;
+		if ($html === '') {
+			return '';
+		}
+		// `src="…"; title=` / `height:auto"title=`
+		$html = preg_replace('/(["\'])\s*;\s+(?=[a-zA-Z_][\w:-]*=)/', '$1 ', $html) ?? $html;
+		$html = preg_replace('/(["\'])(?=[a-zA-Z_:][\w:-]*=)/', '$1 ', $html) ?? $html;
+		// мусорные `p=""` на img/span
+		$html = preg_replace('/\s+\bp\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html) ?? $html;
+		// `#ссс` (кириллическая «с») → `#ccc`
+		$html = preg_replace_callback('/#([сcСC]{3}|[сcСC]{6})\b/u', static function (array $m): string {
+			$len = function_exists('mb_strlen') ? mb_strlen($m[1], 'UTF-8') : strlen($m[1]);
+			return '#' . str_repeat('c', $len === 6 ? 6 : 3);
+		}, $html) ?? $html;
+		// `<a name="x"></a><hN>` → `<hN id="x">` (если id уже есть — только убрать якорь)
+		$html = preg_replace_callback(
+			'#<a\s+name\s*=\s*["\']?([^"\'>\s]+)["\']?\s*>\s*</a>\s*<(h[1-6])(\b[^>]*)>#i',
+			static function (array $m): string {
+				$tag = '<' . $m[2] . $m[3] . '>';
+				if (preg_match('/\bid\s*=/i', $m[3])) {
+					return $tag;
+				}
+
+				return '<' . $m[2] . $m[3] . ' id="' . htmlspecialchars($m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8') . '">';
+			},
+			$html
+		) ?? $html;
+		$html = preg_replace('#<a\s+name\s*=\s*["\']?([^"\'>\s]+)["\']?\s*>\s*</a>#i', '', $html) ?? $html;
+		// `<h3><div>…</div></h3>` → `<h3>…</h3>`
+		$html = preg_replace(
+			'#<(h[1-6])(\b[^>]*)>\s*<div\b[^>]*>([\s\S]*?)</div>\s*</\1>#i',
+			'<$1$2>$3</$1>',
+			$html
+		) ?? $html;
+		// двойной `<li><li>…</li></li>`
+		$html = preg_replace('#<li(\b[^>]*)>\s*<li\b[^>]*>#i', '<li$1>', $html) ?? $html;
+		$html = preg_replace('#</li>\s*</li>#i', '</li>', $html) ?? $html;
+		// голый «< » (не тег) → &lt; — только в контентных полях, не на полном HTML
+		$html = preg_replace('/<(?=\s)/', '&lt;', $html) ?? $html;
+
+		return $html;
+	}
+
+	/**
 	 * Allowlist HTML перед записью в каталог (DETAIL_TEXT / DESCRIPTION).
 	 * Теги/атрибуты под .vmd-desc; href только http(s)/mailto/#.
 	 */
@@ -2356,7 +2404,7 @@ class CatalogRepository
 		}
 
 		// W3C: «error parsing attribute name» — `src="…"; title="…"` (лишняя `;` между атрибутами)
-		$html = preg_replace('/(["\'])\s*;\s+(?=[a-zA-Z_][\w:-]*=)/', '$1 ', $html) ?? $html;
+		$html = self::fixW3cMarkupGlitches($html);
 		// `</br>` → `<br>` (иначе Unexpected end tag : br)
 		$html = preg_replace('#</br\s*>#i', '<br>', $html) ?? $html;
 		// `<h2Title</h2>` без `>` после имени тега
