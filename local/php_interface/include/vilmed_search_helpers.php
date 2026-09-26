@@ -585,8 +585,10 @@ function vilmedSearchEnrichProduct(int $productId, int $iblockId): array
     $arPrice = CCatalogProduct::GetOptimalPrice($productId, 1, $groups, 'N');
     if (!empty($arPrice['RESULT_PRICE'])) {
         $rp = $arPrice['RESULT_PRICE'];
-        $meta['PRICE_VALUE'] = (float)$rp['DISCOUNT_PRICE'];
-        if (CModule::IncludeModule('currency')) {
+        $priceValue = (float)$rp['DISCOUNT_PRICE'];
+        $meta['PRICE_VALUE'] = $priceValue;
+        // Цена 0 / «по запросу» — не печатать «0 руб.», фронт покажет «Цена по запросу»
+        if ($priceValue > 0 && CModule::IncludeModule('currency')) {
             $formatted = CCurrencyLang::CurrencyFormat(
                 $rp['DISCOUNT_PRICE'],
                 $rp['CURRENCY'],

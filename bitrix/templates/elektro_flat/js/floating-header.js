@@ -781,8 +781,13 @@
 		}
 
 		function renderProductItem(it) {
-			var priceHtml = it.PRICE_PRINT
-				? '<span class="vilmed-fh__sitem-price">' + escapeHtml(it.PRICE_PRINT) + "</span>"
+			var pricePrint = (it.PRICE_PRINT || "").replace(/\s+/g, " ").trim();
+			var priceValue = Number(it.PRICE_VALUE);
+			var hasPrice = pricePrint !== ""
+				&& !(priceValue === 0 || (isFinite(priceValue) && priceValue <= 0))
+				&& !/^0([.,]0+)?\s*(руб\.?|₽)?$/i.test(pricePrint.replace(/\s/g, " "));
+			var priceHtml = hasPrice
+				? '<span class="vilmed-fh__sitem-price">' + escapeHtml(pricePrint) + "</span>"
 				: '<span class="vilmed-fh__sitem-price vilmed-fh__sitem-price--empty">Цена по запросу</span>';
 			var actionHtml = "";
 			if (it.NEED_SKU) {
