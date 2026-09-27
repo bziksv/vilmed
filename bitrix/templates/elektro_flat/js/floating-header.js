@@ -1503,18 +1503,9 @@
 			else if (mq.addListener) { mq.addListener(apply); }
 		})();
 
-		// --- product card: pull the article number into the price block ----
-		//     (rating stars are hidden via CSS; the lonely "Артикул: …" line
-		//     reads better integrated right above the price.) ----------------
-		(function placeArticleInPrice() {
-			var article = document.querySelector(".catalog-detail .catalog-detail-article");
-			var price = document.querySelector(".catalog-detail .catalog-detail-price");
-			if (!article || !price || article.closest(".catalog-detail-price")) { return; }
-			var wrap = article.closest(".article_rating");
-			article.classList.add("vilmed-article-inprice");
-			price.insertBefore(article, price.firstChild);
-			if (wrap) { wrap.style.display = "none"; }
-		})();
+		// Артикул на детальной: не кладём внутрь .catalog-detail-price
+		// (у SKU float уводил «Артикул» в одну строку с «Цена»).
+		// Размещение под ценой — в IIFE arrange() ниже (vmd-article-below).
 
 		// --- mirror live counts (cart / compare / favorites) to both clusters ---
 		function readLineCount(rootSel) {
@@ -1706,33 +1697,32 @@
 			if (price.closest(".vmd-price-row")) continue;
 
 			var root = price.closest(".catalog-detail") || price.parentNode;
-
-			// Товары с торговыми предложениями (SKU) пропускаем: блок цены/покупки
-			// перерисовывается при смене предложения и содержит несколько .qnt_cont,
-			// перенос количества сломал бы переключение.
 			var buy = root.querySelector(".catalog-detail-buy");
 			var qntCount = buy ? buy.querySelectorAll(".qnt_cont").length : 0;
-			if (root.querySelector(".catalog-detail-offers-cont") ||
+			// SKU: не переносим .qnt_cont (ломает смену предложения), но артикул
+			// всё равно ставим строкой под ценой — как на простых карточках.
+			var isSku = !!(root.querySelector(".catalog-detail-offers-cont") ||
 				root.querySelector(".catalog-detail-offers") ||
-				qntCount > 1) {
-				continue;
+				qntCount > 1);
+
+			var anchor = price;
+			if (!isSku) {
+				var row = document.createElement("div");
+				row.className = "vmd-price-row";
+				price.parentNode.insertBefore(row, price);
+				row.appendChild(price);
+				var qnt = buy ? buy.querySelector(".qnt_cont") : null;
+				if (qnt) row.appendChild(qnt);
+				anchor = row;
 			}
 
-			// ряд «цена + количество»
-			var row = document.createElement("div");
-			row.className = "vmd-price-row";
-			price.parentNode.insertBefore(row, price);
-			row.appendChild(price);
-
-			var qnt = buy ? buy.querySelector(".qnt_cont") : null;
-			if (qnt) row.appendChild(qnt);
-
-			// артикул строкой под ценой (именно .catalog-detail-article;
-			// .article_rating на детальной держит только рейтинг — его не трогаем)
 			var art = root.querySelector(".catalog-detail-article");
 			if (art) {
+				var wrap = art.closest(".article_rating");
 				art.classList.add("vmd-article-below");
-				row.parentNode.insertBefore(art, row.nextSibling);
+				art.classList.remove("vilmed-article-inprice");
+				anchor.parentNode.insertBefore(art, anchor.nextSibling);
+				if (wrap) { wrap.style.display = "none"; }
 			}
 		}
 	}
