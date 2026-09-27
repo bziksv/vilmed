@@ -456,19 +456,42 @@ class CElektroinstrument {
 
     function SetCannonicalURL($param) {
 
-        global $APPLICATION;		
-		$arSetting = self::GetFrontParametrsValues($SITE_ID);		
-		$inGoogleAtr = in_array("GOOGLE_PREV_NEXT", $arSetting["GENERAL_SETTINGS"]);		
-        $query_str = parse_url($param);		
-		$pieces=explode('/',$query_str["path"]);	   
-		
-		if(strlen($pieces[2])>0 && $inGoogleAtr ) {		
-		}else{		
-            parse_str($query_str['query'], $query_params);
-            if (!empty($query_params)) {
-                $APPLICATION->AddHeadString("<link rel='canonical' href='" . (CMain::IsHTTPS() ? 'https' : 'http') . "://" . SITE_SERVER_NAME . $query_str["path"] . "'>", true);
-            }
+        global $APPLICATION;
+		static $done = false;
+		if ($done) {
+			return;
 		}
+		$SITE_ID = defined('SITE_ID') ? SITE_ID : 's1';
+		$arSetting = self::GetFrontParametrsValues($SITE_ID);
+		$inGoogleAtr = in_array("GOOGLE_PREV_NEXT", $arSetting["GENERAL_SETTINGS"]);
+        $query_str = parse_url($param);
+		$path = isset($query_str["path"]) ? $query_str["path"] : '/';
+		if ($path === '') {
+			$path = '/';
+		}
+		$pieces = explode('/', $path);
+
+		// google_prev_next сам задаёт canonical на пагинации разделов
+		if (strlen($pieces[2] ?? '') > 0 && $inGoogleAtr) {
+			return;
+		}
+
+		$query = isset($query_str['query']) ? (string)$query_str['query'] : '';
+		parse_str($query, $query_params);
+		// canonical нужен при query (utm и т.п.); на «чистом» URL — тоже один тег на главную
+		$need = !empty($query_params) || $path === '/' || $path === SITE_DIR;
+		if (!$need) {
+			return;
+		}
+		// уже задан через page property / другой AddHeadString
+		$existing = (string)$APPLICATION->GetPageProperty('canonical');
+		if ($existing !== '') {
+			return;
+		}
+		$host = SITE_SERVER_NAME ?: ($_SERVER['HTTP_HOST'] ?? 'vilmed.ru');
+		$href = (CMain::IsHTTPS() ? 'https' : 'http') . '://' . $host . $path;
+		$APPLICATION->AddHeadString("<link rel='canonical' href='" . htmlspecialcharsbx($href) . "'>", true);
+		$done = true;
     }
 
 

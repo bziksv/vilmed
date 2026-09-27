@@ -17,17 +17,5 @@ if(in_array("CONTENT", $arSetting["HOME_PAGE"]["VALUE"])):?><h1>Интернет
  <br>
  Наши клиенты: врачи частной практики, крупные компании медицинской направленности, так и организации, в которых организована врачебная поддержка работникам предприятий.<br>
 <?endif;
-    //CANONICAL
-    $pageUrl = $APPLICATION->GetCurPageParam();
-    $query_str = parse_url($pageUrl);
-    
-    if(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
-    $protocol = 'https://';
-    else
-    $protocol = 'http://';
-    
-    parse_str($query_str['query'], $query_params);
-    if(!empty($query_params)){
-        $APPLICATION->AddHeadString("<link rel='canonical' href='".$protocol.$_SERVER['HTTP_HOST'].$query_str["path"]."'>");
-    }
+// canonical — один раз в header.php (CElektroinstrument::SetCannonicalURL)
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>

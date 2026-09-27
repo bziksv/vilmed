@@ -169,13 +169,13 @@ Loc::loadMessages(__FILE__);
 	Asset::getInstance()->addJs("/bitrix/components/altop/forms/templates/.default/script.js");
 	Asset::getInstance()->addJs("/bitrix/components/altop/buy.one.click/templates/.default/script.js");
 
-	$APPLICATION->ShowHead();?>
-
-	<?if(CModule::IncludeModule("altop.elektroinstrument")) {
-	    CElektroinstrument::getBackground(SITE_ID);
-        CElektroinstrument::SetCannonicalURL($APPLICATION->GetCurPageParam());
-    }?>
-	<?
+	<?php
+	// canonical до ShowHead — один тег на страницу (не дублировать в index.php)
+	if (CModule::IncludeModule("altop.elektroinstrument")) {
+		CElektroinstrument::getBackground(SITE_ID);
+		CElektroinstrument::SetCannonicalURL($APPLICATION->GetCurPageParam());
+	}
+	$APPLICATION->ShowHead();
 	$vilmedIncutJs = SITE_TEMPLATE_PATH . "/js/incut.js";
 	$vilmedIncutCss = SITE_TEMPLATE_PATH . "/css/incut.css";
 	$APPLICATION->AddHeadString("<script>window.addEventListener('load',function(){var l=document.createElement('link');l.rel='stylesheet';l.href='{$vilmedIncutCss}';document.head.appendChild(l);var s=document.createElement('script');s.src='{$vilmedIncutJs}';document.body.appendChild(s);});</script>", true);
