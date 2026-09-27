@@ -169,8 +169,7 @@ Loc::loadMessages(__FILE__);
 	Asset::getInstance()->addJs("/bitrix/components/altop/forms/templates/.default/script.js");
 	Asset::getInstance()->addJs("/bitrix/components/altop/buy.one.click/templates/.default/script.js");
 
-	<?php
-	// canonical до ShowHead — один тег на страницу (не дублировать в index.php)
+	// canonical до ShowHead — один тег (не дублировать в index.php)
 	if (CModule::IncludeModule("altop.elektroinstrument")) {
 		CElektroinstrument::getBackground(SITE_ID);
 		CElektroinstrument::SetCannonicalURL($APPLICATION->GetCurPageParam());
