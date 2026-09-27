@@ -1678,13 +1678,26 @@
 
 /* ============================================================
    VILMED: страница товара — цена и выбор количества в один ряд,
-   артикул выводим строкой ПОД ценой.
+   артикул выводим строкой ПОД ценой (и для простых, и для SKU).
    Кнопки −/+ навешиваются через BX.bind на конкретные узлы по ID,
    а «Купить» читает количество по id="quantity_<id>" — поэтому
    перенос .qnt_cont из .catalog-detail-buy к цене безопасен
    (слушатели остаются на узле при перемещении в DOM).
+   При нескольких ТП все .qnt_cont переносятся в слот; видимость
+   синхронизируется с .buy_more_detail.hidden (смена предложения).
    ============================================================ */
 (function () {
+	function syncQntVisibility(slot) {
+		if (!slot) return;
+		var qs = slot.querySelectorAll(".qnt_cont[data-vmd-buy-id]");
+		for (var j = 0; j < qs.length; j++) {
+			var blk = document.getElementById(qs[j].getAttribute("data-vmd-buy-id"));
+			if (!blk) continue;
+			if (blk.classList.contains("hidden")) qs[j].classList.add("hidden");
+			else qs[j].classList.remove("hidden");
+		}
+	}
+
 	function arrange() {
 		// Якорь — .catalog-detail-price (уникальный узел). На странице бывает
 		// два вложенных .catalog-detail (внешний/внутренний), поэтому от цены
@@ -1698,24 +1711,38 @@
 
 			var root = price.closest(".catalog-detail") || price.parentNode;
 			var buy = root.querySelector(".catalog-detail-buy");
-			var qntCount = buy ? buy.querySelectorAll(".qnt_cont").length : 0;
-			// SKU: не переносим .qnt_cont (ломает смену предложения), но артикул
-			// всё равно ставим строкой под ценой — как на простых карточках.
-			var isSku = !!(root.querySelector(".catalog-detail-offers-cont") ||
-				root.querySelector(".catalog-detail-offers") ||
-				qntCount > 1);
 
-			var anchor = price;
-			if (!isSku) {
-				var row = document.createElement("div");
-				row.className = "vmd-price-row";
-				price.parentNode.insertBefore(row, price);
-				row.appendChild(price);
-				var qnt = buy ? buy.querySelector(".qnt_cont") : null;
-				if (qnt) row.appendChild(qnt);
-				anchor = row;
+			var row = document.createElement("div");
+			row.className = "vmd-price-row";
+			price.parentNode.insertBefore(row, price);
+			row.appendChild(price);
+
+			var qnts = buy ? buy.querySelectorAll(".qnt_cont") : [];
+			if (qnts.length === 1) {
+				row.appendChild(qnts[0]);
+			} else if (qnts.length > 1) {
+				var slot = document.createElement("div");
+				slot.className = "vmd-qnt-slot";
+				row.appendChild(slot);
+				for (var qi = 0; qi < qnts.length; qi++) {
+					var q = qnts[qi];
+					var parentBuy = q.closest(".buy_more_detail");
+					if (parentBuy && parentBuy.id) {
+						q.setAttribute("data-vmd-buy-id", parentBuy.id);
+						if (parentBuy.classList.contains("hidden")) q.classList.add("hidden");
+						else q.classList.remove("hidden");
+					}
+					slot.appendChild(q);
+				}
+				if (window.MutationObserver && buy) {
+					var mo = new MutationObserver(function () {
+						syncQntVisibility(slot);
+					});
+					mo.observe(buy, { attributes: true, attributeFilter: ["class"], subtree: true });
+				}
 			}
 
+			var anchor = row;
 			var art = root.querySelector(".catalog-detail-article");
 			if (art) {
 				var wrap = art.closest(".article_rating");

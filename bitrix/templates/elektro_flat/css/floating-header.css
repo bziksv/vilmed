@@ -2186,6 +2186,15 @@ html.vilmed-drawer-lock {
 	align-items: center;
 	height: 36px;
 }
+.catalog-detail .vmd-price-row .vmd-qnt-slot {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	height: 36px;
+}
+.catalog-detail .vmd-price-row .vmd-qnt-slot .qnt_cont.hidden {
+	display: none !important;
+}
 .catalog-detail .vmd-price-row .qnt_cont a.minus,
 .catalog-detail .vmd-price-row .qnt_cont a.plus {
 	float: none;
