@@ -114,4 +114,47 @@ foreach ($sectionCodes as $code) {
 	}
 }
 
+// HTML в свойствах CML2_COMPLECT* (tabs / комплектация)
+$idList = [];
+foreach ($elementCodes as $code) {
+	$esc = $m->real_escape_string($code);
+	$res = $m->query("SELECT ID FROM b_iblock_element WHERE IBLOCK_ID=24 AND CODE='{$esc}' LIMIT 1");
+	if ($row = $res->fetch_assoc()) {
+		$idList[] = (int)$row['ID'];
+	}
+}
+if ($idList) {
+	$in = implode(',', $idList);
+	$res = $m->query(
+		"SELECT ep.ID, ep.IBLOCK_ELEMENT_ID, p.CODE, ep.VALUE
+		 FROM b_iblock_element_property ep
+		 JOIN b_iblock_property p ON p.ID=ep.IBLOCK_PROPERTY_ID
+		 WHERE ep.IBLOCK_ELEMENT_ID IN ({$in}) AND p.CODE LIKE 'CML2_COMPLECT%'"
+	);
+	while ($row = $res->fetch_assoc()) {
+		$val = (string)$row['VALUE'];
+		$arr = @unserialize($val, ['allowed_classes' => false]);
+		if (!is_array($arr) || empty($arr['TEXT']) || !is_string($arr['TEXT'])) {
+			continue;
+		}
+		$old = $arr['TEXT'];
+		$new = \Titlo\Relevance\CatalogRepository::sanitizeCatalogHtml($old);
+		if ($new === $old) {
+			continue;
+		}
+		$arr['TEXT'] = $new;
+		$ser = serialize($arr);
+		echo ($dry ? 'DRY ' : '') . "OK PROP {$row['CODE']} el={$row['IBLOCK_ELEMENT_ID']} "
+			. strlen($old) . '→' . strlen($new) . "\n";
+		if (!$dry) {
+			$id = (int)$row['ID'];
+			$stmt = $m->prepare('UPDATE b_iblock_element_property SET VALUE=? WHERE ID=?');
+			$stmt->bind_param('si', $ser, $id);
+			$stmt->execute();
+			$stmt->close();
+			$updated++;
+		}
+	}
+}
+
 echo "updated={$updated}\n";
