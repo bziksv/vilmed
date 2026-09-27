@@ -1,6 +1,9 @@
 <?php
 /**
- * Fix broken catalog links in vendor DETAIL_TEXT + suggest redirects.
+ * Fix broken /catalog/ links in vendor DETAIL_TEXT (iblock 13).
+ * - known map
+ * - CODE ending with -r → same CODE without -r if section exists
+ *
  * php tools/perf/fix-vendor-broken-catalog-links.php [--dry]
  */
 $docRoot = dirname(__DIR__, 2);
@@ -14,35 +17,66 @@ if ($m->connect_error) {
 $m->set_charset('utf8');
 $dry = in_array('--dry', $argv ?? [], true);
 
-// broken CODE => replacement CODE (must exist in iblock 24)
-$map = [
-	'reanimatologiya' => 'anesteziologiya',
-	'koltsa-skleroderzhateli-trabekulotomy-fiksatory' => 'khirurgiya',
-];
+function sectionActive(mysqli $m, string $code): bool
+{
+	$esc = $m->real_escape_string($code);
+	$r = $m->query("SELECT ID FROM b_iblock_section WHERE IBLOCK_ID=24 AND ACTIVE='Y' AND CODE='{$esc}' LIMIT 1");
+	return $r && (bool)$r->fetch_assoc();
+}
 
-foreach ($map as $from => $to) {
-	$r = $m->query(
-		"SELECT ID,ACTIVE,CODE FROM b_iblock_section WHERE IBLOCK_ID=24 AND CODE='"
-		. $m->real_escape_string($to) . "' LIMIT 1"
-	);
-	$sec = $r ? $r->fetch_assoc() : null;
-	if (!$sec || $sec['ACTIVE'] !== 'Y') {
-		fwrite(STDERR, "replacement missing/inactive: {$to}\n");
-		exit(1);
+/** @return array<string,string> broken => replacement */
+function buildReplaceMap(mysqli $m): array
+{
+	$map = [
+		'reanimatologiya' => 'anesteziologiya',
+		'koltsa-skleroderzhateli-trabekulotomy-fiksatory' => 'khirurgiya',
+		'telezhki-meditsinskie' => 'telezhki-dlya-perevozki-bolnykh',
+		'kushetki-massazhnye' => 'mebel-meditsinskaya',
+		'kushetki-massazhnye-r' => 'mebel-meditsinskaya',
+	];
+
+	// discover missing codes from vendor texts
+	$r = $m->query('SELECT DETAIL_TEXT FROM b_iblock_element WHERE IBLOCK_ID=13 AND DETAIL_TEXT LIKE "%/catalog/%"');
+	$codes = [];
+	while ($row = $r->fetch_assoc()) {
+		if (preg_match_all('#/catalog/([a-z0-9_-]+)/#u', (string)$row['DETAIL_TEXT'], $mm)) {
+			foreach ($mm[1] as $c) {
+				$codes[$c] = true;
+			}
+		}
 	}
-	echo "OK target /catalog/{$to}/ id={$sec['ID']}\n";
+
+	foreach (array_keys($codes) as $code) {
+		if (isset($map[$code])) {
+			continue;
+		}
+		if (sectionActive($m, $code)) {
+			continue;
+		}
+		// strip trailing -r
+		if (preg_match('/^(.+)-r$/', $code, $mm2) && sectionActive($m, $mm2[1])) {
+			$map[$code] = $mm2[1];
+			continue;
+		}
+	}
+
+	foreach ($map as $from => $to) {
+		if (!sectionActive($m, $to)) {
+			fwrite(STDERR, "bad target for {$from}: {$to}\n");
+			unset($map[$from]);
+		}
+	}
+
+	return $map;
 }
 
-// find all vendor DETAIL_TEXT containing broken paths
-$patterns = array_keys($map);
-$where = [];
-foreach ($patterns as $p) {
-	$esc = $m->real_escape_string($p);
-	$where[] = "DETAIL_TEXT LIKE '%{$esc}%'";
+$map = buildReplaceMap($m);
+echo "map:\n";
+foreach ($map as $from => $to) {
+	echo "  /catalog/{$from}/ => /catalog/{$to}/\n";
 }
-$sql = 'SELECT ID,CODE,NAME,DETAIL_TEXT FROM b_iblock_element WHERE IBLOCK_ID=13 AND ('
-	. implode(' OR ', $where) . ')';
-$r = $m->query($sql);
+
+$r = $m->query('SELECT ID,CODE,NAME,DETAIL_TEXT FROM b_iblock_element WHERE IBLOCK_ID=13 AND DETAIL_TEXT LIKE "%/catalog/%"');
 $updated = 0;
 while ($row = $r->fetch_assoc()) {
 	$text = (string)$row['DETAIL_TEXT'];
@@ -63,10 +97,9 @@ while ($row = $r->fetch_assoc()) {
 		);
 	}
 	if ($new === $text) {
-		echo "skip {$row['CODE']} (ID {$row['ID']}) — no replace\n";
 		continue;
 	}
-	echo ($dry ? 'DRY ' : '') . "update vendor {$row['CODE']} (ID {$row['ID']})\n";
+	echo ($dry ? 'DRY ' : '') . "update {$row['CODE']}#{$row['ID']}\n";
 	if (!$dry) {
 		$stmt = $m->prepare('UPDATE b_iblock_element SET DETAIL_TEXT=? WHERE ID=?');
 		$id = (int)$row['ID'];
@@ -76,21 +109,4 @@ while ($row = $r->fetch_assoc()) {
 		$updated++;
 	}
 }
-
 echo "updated={$updated}\n";
-
-// also list similar oftalmo instrument sections for manual review
-echo "=== oftalmo/khirurg sections (info) ===\n";
-$r = $m->query(
-	"SELECT ID,ACTIVE,CODE,NAME FROM b_iblock_section
-	 WHERE IBLOCK_ID=24 AND (
-	   CODE IN ('khirurgiya','oftalmologiya','igly-khirurgicheskie','instrumenty-travmatologiya','shovnyy-material')
-	   OR NAME LIKE '%склеро%'
-	   OR NAME LIKE '%трабекул%'
-	   OR NAME LIKE '%офтальмохирург%'
-	 )
-	 ORDER BY ID LIMIT 40"
-);
-while ($row = $r->fetch_assoc()) {
-	echo $row['ID'] . ' | ' . $row['ACTIVE'] . ' | ' . $row['CODE'] . ' | ' . $row['NAME'] . "\n";
-}
