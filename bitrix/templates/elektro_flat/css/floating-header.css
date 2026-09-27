@@ -3,6 +3,13 @@
    slate #575b71 (buttons / primary), dark slate #2b2d42 (hover / badge),
    muted #8184a1, hairline borders #dee0ee, white search box. No loud accents. */
 
+/* Bitrix Asset выносит <style> из <!--[if lte IE 7]> панели в <head>,
+   из‑за этого #bx-panel {display:none !important} действует во всех браузерах.
+   IE7 давно не поддерживаем — принудительно показываем панель админам. */
+#bx-panel {
+	display: block !important;
+}
+
 .vilmed-fh {
 	position: fixed;
 	top: 0;

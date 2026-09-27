@@ -1166,9 +1166,11 @@ class CTopPanel
 
 		$toggleModeLink = $hrefEnc.'?bitrix_include_areas='.($toggleMode ? 'N' : 'Y').($params<>""? "&amp;".htmlspecialcharsbx($params):"");
 		$result = CTopPanel::ShowPanelScripts(true);
+		// VILMED: не вставляем <style>#bx-panel{display:none}</style> внутрь
+		// <!--[if lte IE 7]> — Bitrix Asset выносит style в <head> и панель
+		// скрывается во всех браузерах. Сообщение для IE7 оставляем.
 		$result .= '
 	<!--[if lte IE 7]>
-	<style type="text/css">#bx-panel {display:none !important;}</style>
 	<div id="bx-panel-error">' . Loc::getMessage("top_panel_browser").'</div><![endif]-->
 	<script type="text/javascript">BX.admin.dynamic_mode='.($toggleModeDynamic ? 'true' : 'false').'; BX.admin.dynamic_mode_show_borders = '.($toggleMode ? 'true' : 'false').';</script>
 	<div style="display:none; overflow:hidden;" id="bx-panel-back"></div>
