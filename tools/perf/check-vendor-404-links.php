@@ -13,64 +13,32 @@ if ($m->connect_error) {
 }
 $m->set_charset('utf8');
 
-$vendorIds = [324, 415]; // monitor, medtekhnika
-$brokenWanted = [
-	'reanimatologiya',
-	'koltsa-skleroderzhateli-trabekulotomy-fiksatory',
-];
-
-foreach ($vendorIds as $id) {
-	$r = $m->query('SELECT ID,CODE,NAME,DETAIL_TEXT,PREVIEW_TEXT FROM b_iblock_element WHERE ID=' . (int)$id);
-	$row = $r->fetch_assoc();
-	if (!$row) {
-		echo "missing element $id\n";
-		continue;
-	}
-	echo '===== ' . $row['CODE'] . " (ID {$row['ID']}) =====\n";
-	$text = (string)($row['DETAIL_TEXT'] ?? '') . "\n" . (string)($row['PREVIEW_TEXT'] ?? '');
+// Scan all vendor DETAIL_TEXT for /catalog/{code}/ that have no section
+$r = $m->query('SELECT ID,CODE,NAME,DETAIL_TEXT FROM b_iblock_element WHERE IBLOCK_ID=13 AND DETAIL_TEXT LIKE "%/catalog/%"');
+$missing = [];
+while ($row = $r->fetch_assoc()) {
+	$text = (string)$row['DETAIL_TEXT'];
 	if (!preg_match_all('#/catalog/([a-z0-9_-]+)/#u', $text, $mm)) {
-		echo "(no catalog links)\n";
 		continue;
 	}
-	$codes = array_unique($mm[1]);
-	sort($codes);
-	foreach ($codes as $code) {
+	foreach (array_unique($mm[1]) as $code) {
 		$sr = $m->query(
-			"SELECT ID,ACTIVE,CODE,NAME FROM b_iblock_section WHERE IBLOCK_ID=24 AND CODE='"
+			"SELECT ID,ACTIVE FROM b_iblock_section WHERE IBLOCK_ID=24 AND CODE='"
 			. $m->real_escape_string($code) . "' LIMIT 1"
 		);
 		$sec = $sr ? $sr->fetch_assoc() : null;
-		$status = $sec ? ('OK id=' . $sec['ID'] . ' A=' . $sec['ACTIVE']) : 'MISSING';
-		$mark = in_array($code, $brokenWanted, true) || !$sec ? ' ***' : '';
-		echo "/catalog/{$code}/ => {$status}{$mark}\n";
-	}
-	foreach ($brokenWanted as $frag) {
-		$pos = mb_stripos($text, $frag);
-		if ($pos !== false) {
-			echo 'CTX: ' . mb_substr($text, max(0, $pos - 100), 280) . "\n\n";
+		if (!$sec || $sec['ACTIVE'] !== 'Y') {
+			$key = $code;
+			if (!isset($missing[$key])) {
+				$missing[$key] = [];
+			}
+			$missing[$key][] = $row['CODE'] . '#' . $row['ID'];
 		}
 	}
 }
-
-echo "=== similar sections ===\n";
-$likes = [
-	'%reanim%',
-	'%anestez%',
-	'%intensiv%',
-	'%sklero%',
-	'%trabek%',
-	'%koltsa%',
-	'%skleroder%',
-];
-foreach ($likes as $like) {
-	$likeEsc = $m->real_escape_string($like);
-	$r = $m->query(
-		"SELECT ID,ACTIVE,CODE,NAME FROM b_iblock_section
-		 WHERE IBLOCK_ID=24 AND (CODE LIKE '{$likeEsc}' OR NAME LIKE '{$likeEsc}')
-		 ORDER BY ID LIMIT 40"
-	);
-	echo "-- {$like} --\n";
-	while ($row = $r->fetch_assoc()) {
-		echo $row['ID'] . ' | ' . $row['ACTIVE'] . ' | ' . $row['CODE'] . ' | ' . $row['NAME'] . "\n";
-	}
+echo "=== missing catalog links in vendors DETAIL_TEXT ===\n";
+ksort($missing);
+foreach ($missing as $code => $vendors) {
+	echo "/catalog/{$code}/ <= " . implode(', ', array_unique($vendors)) . "\n";
 }
+echo 'total_missing_codes=' . count($missing) . "\n";
