@@ -1580,15 +1580,67 @@ if (!function_exists('vilmedFixContentMarkupBuffer')) {
 		if ((stripos($content, '<li') !== false || stripos($content, '<ol') !== false || stripos($content, '<ul') !== false)
 			&& class_exists('\\Titlo\\Relevance\\CatalogRepository')
 		) {
+			$content = preg_replace('#<(ul|ol)(\b[^>]*)>\s*</li>#i', '<$1$2>', $content) ?? $content;
+			$content = preg_replace(
+				'#<li(\b[^>]*)>([^<]*?):\s*</(ul|ol)>#iu',
+				'<li$1>$2:</li></$3>',
+				$content
+			) ?? $content;
 			if (method_exists('\\Titlo\\Relevance\\CatalogRepository', 'fixListInnerBlocks')) {
 				$content = \Titlo\Relevance\CatalogRepository::fixListInnerBlocks($content);
 			}
 			if (method_exists('\\Titlo\\Relevance\\CatalogRepository', 'fixNestedListMarkup')) {
 				$content = \Titlo\Relevance\CatalogRepository::fixNestedListMarkup($content);
 			}
+			$content = preg_replace('#<(ul|ol)(\b[^>]*)>\s*</li>#i', '<$1$2>', $content) ?? $content;
+			if (method_exists('\\Titlo\\Relevance\\CatalogRepository', 'dropOrphanListEndTags')) {
+				// На полном буфере страницы — только li/ul/ol (p/hN опасны вне DETAIL_TEXT)
+				$content = preg_replace_callback(
+					'#(<(?:ul|ol)\b[^>]*>[\s\S]*?</(?:ul|ol)>)#i',
+					static function (array $m): string {
+						return \Titlo\Relevance\CatalogRepository::dropOrphanListEndTags($m[1]);
+					},
+					$content
+				) ?? $content;
+			}
 			if (method_exists('\\Titlo\\Relevance\\CatalogRepository', 'wrapOrphanListItems')) {
 				$content = \Titlo\Relevance\CatalogRepository::wrapOrphanListItems($content);
 			}
+		}
+		// `<b><p>…</p></b>` / `<span><p>`
+		if (preg_match('#<(?:b|strong|span)\b[^>]*>\s*<p\b#i', $content)) {
+			$content = preg_replace(
+				'#<(?:b|strong)>\s*<p\b[^>]*>([\s\S]*?)</p>\s*</(?:b|strong)>#i',
+				'<p>$1</p>',
+				$content
+			) ?? $content;
+			$content = preg_replace(
+				'#<span\b[^>]*>\s*<p\b[^>]*>([\s\S]*?)</p>\s*</span>#i',
+				'<p>$1</p>',
+				$content
+			) ?? $content;
+		}
+		// `<td><li>` без ul
+		if (preg_match('#<td\b[^>]*>\s*<li\b#i', $content)) {
+			$content = preg_replace_callback(
+				'#<(td|th)(\b[^>]*)>(\s*<li\b[\s\S]*?)</\1>#i',
+				static function (array $m): string {
+					if (preg_match('#<(?:ul|ol)\b#i', $m[3])) {
+						return $m[0];
+					}
+
+					return '<' . $m[1] . $m[2] . '><ul>' . $m[3] . '</ul></' . $m[1] . '>';
+				},
+				$content
+			) ?? $content;
+		}
+		// `<span>…<ul>`
+		if (preg_match('#<span\b[^>]*>\s*<ul\b#i', $content)) {
+			$content = preg_replace(
+				'#<span\b[^>]*>\s*(<(?:ul|ol)\b[^>]*>[\s\S]*?</(?:ul|ol)>)\s*</span>#i',
+				'$1',
+				$content
+			) ?? $content;
 		}
 		// пустые tr / мусорные атрибуты / mso
 		if (stripos($content, '<tr') !== false) {
@@ -1611,7 +1663,11 @@ if (!function_exists('vilmedFixContentMarkupBuffer')) {
 			$content = preg_replace('/\s*mso-[a-z0-9-]+:[^;"]*;?/i', '', $content) ?? $content;
 		}
 		if (stripos($content, 'align=') !== false) {
-			$content = preg_replace('/<(figure|div|p|table)(\s[^>]*?)\s+align\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)([^>]*)>/i', '<$1$2$3>', $content) ?? $content;
+			$content = preg_replace(
+				'/<(figure|div|p|table|img)\b([^>]*?)\s+align\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)([^>]*)>/i',
+				'<$1$2$3>',
+				$content
+			) ?? $content;
 		}
 		// heading-in-heading
 		if (preg_match('#<h[1-6]\b[^>]*>[^<]*<h[1-6]\b#i', $content)) {

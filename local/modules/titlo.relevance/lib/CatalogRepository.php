@@ -2411,8 +2411,12 @@ class CatalogRepository
 			'',
 			$html
 		) ?? $html;
-		// `align` на figure (и прочих блоках) — убрать
-		$html = preg_replace('/<(figure|div|p|table|img)(\s[^>]*?)\s+align\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)([^>]*)>/i', '<$1$2$3>', $html) ?? $html;
+		// `align` на figure (и прочих блоках) — убрать (в т.ч. первый атрибут)
+		$html = preg_replace(
+			'/<(figure|div|p|table|img)\b([^>]*?)\s+align\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)([^>]*)>/i',
+			'<$1$2$3>',
+			$html
+		) ?? $html;
 		// mso-* в style
 		$html = preg_replace('/\s*mso-[a-z0-9-]+:[^;"]*;?/i', '', $html) ?? $html;
 		// пустые <tr></tr>
@@ -2471,6 +2475,29 @@ class CatalogRepository
 		// двойной `<li><li>…</li></li>`
 		$html = preg_replace('#<li(\b[^>]*)>\s*<li\b[^>]*>#i', '<li$1>', $html) ?? $html;
 		$html = preg_replace('#</li>\s*</li>#i', '</li>', $html) ?? $html;
+		// `<ol></li>` / `<ul></li>` — stray end tag
+		$html = preg_replace('#<(ul|ol)(\b[^>]*)>\s*</li>#i', '<$1$2>', $html) ?? $html;
+		// `<li>заголовок:</ol>` без </li>
+		$html = preg_replace(
+			'#<li(\b[^>]*)>([^<]*?):\s*</(ul|ol)>#iu',
+			'<li$1>$2:</li></$3>',
+			$html
+		) ?? $html;
+		// `<b><p>…</p></b>` → `<p>…</p>`
+		$html = preg_replace(
+			'#<(?:b|strong)>\s*<p\b[^>]*>([\s\S]*?)</p>\s*</(?:b|strong)>#i',
+			'<p>$1</p>',
+			$html
+		) ?? $html;
+		// `<span>…<b><p>` обёртки
+		$html = preg_replace(
+			'#<span\b[^>]*>\s*<p\b[^>]*>([\s\S]*?)</p>\s*</span>#i',
+			'<p>$1</p>',
+			$html
+		) ?? $html;
+		// лишний `</p>` подряд / после блочных
+		$html = preg_replace('#(?:</p>\s*){2,}#i', '</p>', $html) ?? $html;
+		$html = preg_replace('#</(div|td|th|li|ul|ol|h[1-6]|section|article)>\s*</p>#i', '</$1>', $html) ?? $html;
 		// `<li><p>…</p></li>` → `<li>…</li>`
 		$html = preg_replace(
 			'#(<li\b[^>]*>)\s*<p\b[^>]*>([\s\S]*?)</p>\s*(</li>)#i',
@@ -2481,6 +2508,9 @@ class CatalogRepository
 		$html = self::fixListInnerBlocks($html);
 		// пустые <li> и списки-заглушки; </li><ul> → вложить ul в предыдущий li
 		$html = self::fixNestedListMarkup($html);
+		// после вложенности снова убрать stray </li> сразу после открытия списка
+		$html = preg_replace('#<(ul|ol)(\b[^>]*)>\s*</li>#i', '<$1$2>', $html) ?? $html;
+		$html = self::dropOrphanListEndTags($html);
 		// `<span>…<p>` / `<b><span><h2>` — block не в inline
 		$html = preg_replace(
 			'#<(?:b|strong)>\s*<span\b[^>]*>\s*(<h[1-6]\b[^>]*>[\s\S]*?</h[1-6]>)\s*</span>\s*</(?:b|strong)>#i',
@@ -2523,6 +2553,52 @@ class CatalogRepository
 	}
 
 	/**
+	 * Удаляет </li></ul></ol></p> вне открытого контекста (стек).
+	 */
+	public static function dropOrphanListEndTags(string $html): string
+	{
+		if ($html === '' || !preg_match('#</(?:li|ul|ol|p|h[1-6])>#i', $html)) {
+			return $html;
+		}
+		$parts = preg_split('#(</?(?:li|ul|ol|p|h[1-6])\b[^>]*>)#i', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
+		if (!is_array($parts)) {
+			return $html;
+		}
+		$out = '';
+		$stack = [];
+		foreach ($parts as $part) {
+			if ($part === '' || $part === null) {
+				continue;
+			}
+			if (preg_match('#^<(li|ul|ol|p|h[1-6])\b[^>]*>$#i', $part, $m)) {
+				$stack[] = strtolower($m[1]);
+				$out .= $part;
+				continue;
+			}
+			if (preg_match('#^</(li|ul|ol|p|h[1-6])\s*>$#i', $part, $m)) {
+				$tag = strtolower($m[1]);
+				$idx = null;
+				for ($i = count($stack) - 1; $i >= 0; $i--) {
+					if ($stack[$i] === $tag) {
+						$idx = $i;
+						break;
+					}
+				}
+				if ($idx === null) {
+					// stray end tag — drop
+					continue;
+				}
+				array_splice($stack, $idx, 1);
+				$out .= $part;
+				continue;
+			}
+			$out .= $part;
+		}
+
+		return $out;
+	}
+
+	/**
 	 * W3C: внутри ul/ol нельзя hN/br/p/голый текст/соседний ul|ol без li —
 	 * разрезать список или обернуть.
 	 */
@@ -2536,17 +2612,25 @@ class CatalogRepository
 				'#<' . $list . '(\b[^>]*)>([\s\S]*?)</' . $list . '>#i',
 				static function (array $m) use ($list): string {
 					$inner = $m[2];
-					if (!preg_match('#<(?:h[1-6]|br|p|ul|ol)\b#i', $inner)
-						&& !preg_match('#^[^<\s]#u', trim($inner))) {
+					// Плохо: hN/br/p/голый текст; соседний ul|ol после </li>; ul|ol сразу в корне списка.
+					// Нормально: <li>…<ul>…</ul></li> — не трогаем.
+					$hasBadBlock = preg_match('#<(?:h[1-6]|br|p)\b#i', $inner)
+						|| preg_match('#</li>\s*<(?:ul|ol)\b#i', $inner)
+						|| preg_match('#<(?:ul|ol)\b[^>]*>\s*<(?:ul|ol)\b#i', $inner);
+					$trimmed = trim($inner);
+					$hasLeadingJunk = $trimmed !== ''
+						&& !preg_match('#^<li\b#i', $trimmed)
+						&& preg_match('#^[^<\s]#u', $trimmed);
+					if (!$hasBadBlock && !$hasLeadingJunk) {
 						return $m[0];
 					}
 					// убрать <br> между пунктами
 					$inner = preg_replace('#</li>\s*<br\s*/?>#i', '</li>', $inner) ?? $inner;
 					$inner = preg_replace('#<br\s*/?>\s*(?=<li\b)#i', '', $inner) ?? $inner;
 					$inner = preg_replace('#<br\s*/?>#i', '', $inner) ?? $inner;
-					// вынести hN / p / вложенный список без li
+					// вынести только hN / p (вложенные ul|ol внутри li не трогаем)
 					$parts = preg_split(
-						'#(<(?:h[1-6]|p)\b[^>]*>[\s\S]*?</(?:h[1-6]|p)>|<(?:ul|ol)\b[^>]*>[\s\S]*?</(?:ul|ol)>)#i',
+						'#(<(?:h[1-6]|p)\b[^>]*>[\s\S]*?</(?:h[1-6]|p)>)#i',
 						$inner,
 						-1,
 						PREG_SPLIT_DELIM_CAPTURE
