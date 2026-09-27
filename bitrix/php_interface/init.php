@@ -114,3 +114,25 @@ if (file_exists($_SERVER['DOCUMENT_ROOT'].'/local/php_interface/include/image_de
 if (file_exists($_SERVER['DOCUMENT_ROOT'].'/local/php_interface/include/vilmed_admin_svg.php')) {
 	require_once $_SERVER['DOCUMENT_ROOT'].'/local/php_interface/include/vilmed_admin_svg.php';
 }
+
+// Композит отдаётся до auth: без cookie NCC админ видит витрину без #bx-panel.
+// После auth выставляем NCC (не для групп CC), чтобы следующий хит шёл мимо html_pages.
+AddEventHandler('main', 'OnProlog', static function () {
+	if (PHP_SAPI === 'cli' || !class_exists('\\Bitrix\\Main\\Composite\\Engine')) {
+		return;
+	}
+	if (!\Bitrix\Main\Composite\Engine::isOn()) {
+		return;
+	}
+	global $USER, $APPLICATION;
+	if (!is_object($USER) || !$USER->IsAuthorized()) {
+		return;
+	}
+	if (\Bitrix\Main\Composite\Engine::isCurrentUserCC()) {
+		return;
+	}
+	if (is_object($APPLICATION) && $APPLICATION->get_cookie('NCC') === 'Y') {
+		return;
+	}
+	\Bitrix\Main\Composite\Engine::setNCC();
+});

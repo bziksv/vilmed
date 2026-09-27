@@ -173,7 +173,7 @@ ID инфоблоков зашиты в коде компонентов и inclu
 Что делает (JS работает поверх существующего DOM, без правок разметки шаблона):
 
 - **Плавающая (sticky) шапка** при скролле: логотип, кнопка «Каталог» (выезжающее off-canvas меню разделов), быстрый поиск, город, телефон, иконки кабинета/сравнения/избранного/корзины.
-- **Быстрый поиск** (в плавающей и статичной шапке) поверх `altop:search.title`: исправление раскладки (ЙЦУКЕН⇄QWERTY), опечаток (Левенштейн по словарю категорий), транслитерация брендов. Нативный дропдаун `.title-search-result` скрыт.
+- **Быстрый поиск** (в плавающей и статичной шапке): JSON API `/ajax/search.php`, исправление раскладки (ЙЦУКЕН⇄QWERTY), опечаток (Левенштейн по словарю категорий), транслитерация брендов; в выпадашке — **фильтр по категориям** (чипы с количеством). На странице `/catalog/?q=` — те же чипы + поле «Фильтр категорий», параметр `section_id`. Нативный дропдаун `.title-search-result` скрыт.
 - **Перекомпоновка статичной шапки:** строка поиска укорочена (`#altop_search` = `calc(100% - 170px)`), блок «Время работы» (`.vilmed-hdr-sched-moved`, `position:absolute; right:14px`) перенесён правее, иконки кабинета (сетка 2×2) — рядом, город/телефон прижаты вправо; кнопка «Заказать звонок» и левый рейл `.foot_panel_all` скрыты (CSS). Зарезервированная ширина (170px) и `right:14px` подобраны так, чтобы расписание не наезжало ни на поиск, ни на иконки.
 - **Время работы** генерируется автоматически по дню/времени (ПН–ПТ 09:00–19:00): «Сегодня до 19:00» / «Сегодня выходной — В ПН с 09:00 до 19:00» и т.п. Время берётся из браузера пользователя.
 - Счётчики корзины/сравнения/избранного зеркалятся в иконки через `MutationObserver`.
@@ -281,7 +281,7 @@ ID инфоблоков зашиты в коде компонентов и inclu
 - `askaron.agents` — агенты
 - `niges.cookiesaccept` — cookie-баннер
 - `prime.alerts` (1.2.2) — политика e-mail (запрет иностранных доменов на регистрации/заказе), `local/modules/prime.alerts/`. Frontend (`OnEndBufferContent`) инжектит CSS/JS **только** в HTML с `</body>` / не в AJAX — иначе ломает JSON («Купить в 1 клик», выбор города на оформлении).
-- `titlo.relevance` (1.1.0) — интеграция с Titlo Shop API: релевантность + генерация анонса/детального/категории + **проверка названий** (`UF_TITLO_PHRASE`, до 50 символов через DeepSeek; кнопка «В название» пишет фразу в `NAME`, оригинал — в `UF_TITLO_NAME_ORIG`). Модуль: `local/modules/titlo.relevance/`. Админка: Сервисы → «Titlo: тексты». HTML из AI: `CatalogRepository::sanitizeCatalogHtml()` (`.ic`→`<svg>`, FAQ summary→details, mark→span.vmd-mark, `;` между атрибутами). Пересанитизация: `php tools/perf/fix-w3c-vmd-html.php`. Runtime: `vilmedFixVmdMarkup` / `vilmedEscapeScriptHtmlEndTags` в `include/vilmed_perf.php`.
+- `titlo.relevance` (1.1.0) — интеграция с Titlo Shop API: релевантность + генерация анонса/детального/категории + **проверка названий** (`UF_TITLO_PHRASE`, до 50 символов через DeepSeek; кнопка «В название» пишет фразу в `NAME`, оригинал — в `UF_TITLO_NAME_ORIG`). Модуль: `local/modules/titlo.relevance/`. Админка: Сервисы → «Titlo: тексты» → `/bitrix/admin/titlo_relevance_single.php`, `/bitrix/admin/titlo_relevance_names.php`, `/bitrix/admin/titlo_relevance_section_names.php`. Настройки: API base URL + Bearer-ключ из кабинета (`/integration/api-keys`). Пишет в IB 24: товар `PREVIEW_TEXT`/`DETAIL_TEXT`/`UF_TITLO_PHRASE`/`NAME`, категория `DESCRIPTION`/`NAME`. Очередь `titlo_relevance_queue` + агент `Titlo\Relevance\Agent` — задел под массовую проработку. HTML из AI проходит `CatalogRepository::sanitizeCatalogHtml()` (обёртка Lucide `.ic`→`<svg>`, FAQ `<summary>`→`<details>`, `<mark>`→`<span class="vmd-mark">`, `;` между атрибутами). Пересанитизация уже сохранённых текстов: `php tools/perf/fix-w3c-vmd-html.php`. Runtime-дочистка буфера: `vilmedFixVmdMarkup` / `vilmedEscapeScriptHtmlEndTags` в `include/vilmed_perf.php`.
 - `arturgolubev.chatgpt` (6.2.0) — генерация контента (ChatGPT / DeepSeek / GigaChat), админка `/bitrix/admin/arturgolubev_chatgpt_*.php`, таблицы `ag_chatgpt_*`. Устанавливался на prod вне git → в репозитории с 2026-08.
 - `sng.secure` — безопасность
 - `abtest` — A/B тестирование
@@ -652,6 +652,11 @@ rm -rf assets
 > регенерацию (TTFB ~2–4 с) — это не показатель скорости для пользователей.
 > Проверка применения правок на чистом URL: composite кешируется по URL+query,
 > поэтому `?nocache=<ts>` форсирует свежую генерацию в обход composite.
+>
+> **Админ-панель на витрине:** композит отдаётся до auth; в `html_pages` блок `#bx-panel` пустой.
+> Bypass: `include/vilmed_composite_bypass.php` (до Responder) — `ncc` при `back_url_admin`,
+> `bitrix_include_areas`, cookie `BITRIX_SM_NCC` / логин без CC. После auth `OnProlog` в
+> `bitrix/php_interface/init.php` выставляет `NCC` для админов. Разовый обход: `?ncc=1`.
 
 ### Канонический деплой (актуально)
 
@@ -724,7 +729,7 @@ ssh vilmed 'cd /var/www/vilmed_ru_usr/data/www/vilmed.ru && \
 
 ### Дедупликация фото в галерее карточки
 
-Главное фото товара часто **повторно загружено** как первое «доп. фото»: это **разные файлы** (разные `iblock`-пути) с одинаковым содержимым — по URL не отличить, в галерее/лайтбоксе шёл дубль. Отсев в `…/catalog.element/.default/result_modifier.php` (блок `VILMED_MORE_PHOTO_DEDUP`): из `MORE_PHOTO` убираются записи, совпадающие с `DETAIL_PICTURE` и между собой. Сравнение: **md5**, **dHash** (пересжатый JPEG), **pixel-fallback** (32×32, mean diff ≤ 10). Хелперы в `local/php_interface/include/image_dedup_helpers.php` (`vilmedResolveUploadFilePath`, `vilmedImagesAreDuplicate`); на локалке `/upload/` проксируется с prod — файлы качаются во `upload/.vilmed_hash_cache` для хеширования. JS-лайтбокс (`product-lightbox.js`) дополнительно схлопывает `resize_cache`-варианты одного файла.
+Главное фото товара часто **повторно загружено** как первое «доп. фото»: это **разные файлы** (разные `iblock`-пути) с одинаковым содержимым — по URL не отличить, в галерее/лайтбоксе шёл дубль. Отсев в `…/catalog.element/.default/result_modifier.php` (блок `VILMED_MORE_PHOTO_DEDUP`): из `MORE_PHOTO` убираются записи, чей **md5 содержимого файла** совпадает с `DETAIL_PICTURE` (и внутренние повторы). JS-лайтбокс (`product-lightbox.js`) дополнительно схлопывает `resize_cache`-варианты одного файла.
 
 **Проверка прода без правок кода:** `?nocache=<ts>` форсирует свежую генерацию в обход композита; `curl` всегда получает полную регенерацию (TTFB ~2–4 с — это не скорость для реальных браузеров).
 
