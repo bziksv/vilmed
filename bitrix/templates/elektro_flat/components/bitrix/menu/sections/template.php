@@ -68,7 +68,7 @@ global $arSetting;?>
 						dropdownMenuTop = pos.top - 5 + "px";
 					if(pos.top + dropdownMenu.outerHeight() > $(window).height() + $(window).scrollTop() - 46) {
 						dropdownMenuTop = pos.top - dropdownMenu.outerHeight() + $(this).outerHeight() + 5;
-						dropdownMenuTop = (dropdownMenuTop < 0 ? $(window).scrollTop() : dropdownMenuTop) + "px";
+						dropdownMenuTop = (dropdownMenuTop <= -1 ? $(window).scrollTop() : dropdownMenuTop) + "px";
 					}
 					dropdownMenu.css({"left": dropdownMenuLeft, "top": dropdownMenuTop, "z-index" : "9999"});
 					dropdownMenu.stop(true, true).delay(200).fadeIn(150);

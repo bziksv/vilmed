@@ -1677,11 +1677,9 @@ if (!function_exists('vilmedFixContentMarkupBuffer')) {
 				$content
 			) ?? $content;
 		}
-		// голый «< » только в sanitizeCatalogHtml / CLI — на полном HTML ломает JS (`a < b`)
-		// безопасный вариант: «< » перед цифрой в тексте свойств (`мин. < 3`)
-		if (preg_match('/<\s+\d/', $content)) {
-			$content = preg_replace('/<(?=\s+\d)/', '&lt;', $content) ?? $content;
-		}
+		// НЕ кодировать «< » / «< цифра» на полном HTML — ломает JS
+		// (левое меню: `dropdownMenuTop < 0` → `&lt;` → SyntaxError, hover мёртв).
+		// Голый «<» в контенте — только sanitizeCatalogHtml / CLI.
 		// <img> без alt
 		if (stripos($content, '<img') !== false) {
 			$content = preg_replace('/<img(?![^>]*\balt\s*=)(\s[^>]*)>/i', '<img alt=""$1>', $content) ?? $content;
