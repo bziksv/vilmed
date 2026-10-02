@@ -334,4 +334,74 @@ class AdminUi
 		</script>
 		<?php
 	}
+
+	/**
+	 * Кнопка «Titlo: генерация текста» на карточках товара/раздела в админке Bitrix
+	 * (как у arturgolubev.chatgpt — справа в .adm-detail-toolbar-right).
+	 */
+	public static function onAdminEpilogCatalogEditButton(): void
+	{
+		if (!(defined('ADMIN_SECTION') && ADMIN_SECTION === true)) {
+			return;
+		}
+
+		/** @global CUser $USER */
+		global $USER;
+		if (!is_object($USER) || !$USER->IsAdmin()) {
+			return;
+		}
+
+		$page = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
+		$isElement = (
+			$page === '/bitrix/admin/iblock_element_edit.php'
+			|| $page === '/bitrix/admin/cat_product_edit.php'
+		);
+		$isSection = ($page === '/bitrix/admin/iblock_section_edit.php');
+		if (!$isElement && !$isSection) {
+			return;
+		}
+
+		$id = (int) ($_REQUEST['ID'] ?? $_GET['ID'] ?? 0);
+		$iblockId = (int) ($_REQUEST['IBLOCK_ID'] ?? $_GET['IBLOCK_ID'] ?? 0);
+		if ($id <= 0 || $iblockId <= 0) {
+			return;
+		}
+		if ($iblockId !== Config::iblockId()) {
+			return;
+		}
+
+		$entity = $isSection ? 'S' : 'E';
+		$url = '/bitrix/admin/titlo_relevance_single.php?lang=' . rawurlencode((string) LANGUAGE_ID)
+			. '&ENTITY=' . $entity
+			. '&ID=' . $id;
+		$label = $isSection ? 'Titlo: генерация текста (категория)' : 'Titlo: генерация текста';
+		?>
+		<script>
+		(function () {
+			function inject() {
+				var panels = document.querySelectorAll('.adm-detail-toolbar-right');
+				if (!panels.length) return;
+				var href = <?= \CUtil::PhpToJSObject($url) ?>;
+				var label = <?= \CUtil::PhpToJSObject($label) ?>;
+				Array.prototype.forEach.call(panels, function (panel) {
+					if (panel.querySelector('.titlo-catalog-edit-btn')) return;
+					var a = document.createElement('a');
+					a.href = href;
+					a.className = 'adm-btn adm-btn-green titlo-catalog-edit-btn';
+					a.target = '_blank';
+					a.rel = 'noopener';
+					a.textContent = label;
+					a.title = 'Открыть проработку и генерацию текста Titlo';
+					panel.appendChild(a);
+				});
+			}
+			if (document.readyState === 'loading') {
+				document.addEventListener('DOMContentLoaded', inject);
+			} else {
+				inject();
+			}
+		})();
+		</script>
+		<?php
+	}
 }

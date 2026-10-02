@@ -65,6 +65,7 @@ if (\Bitrix\Main\Config\Option::get('titlo.relevance', 'queue_schema', '') !== $
 
 AddEventHandler('main', 'OnEpilog', ['\\Titlo\\Relevance\\IndexingControl', 'applyRobotsOnEpilog']);
 AddEventHandler('main', 'OnEndBufferContent', ['\\Titlo\\Relevance\\IndexingControl', 'applyRobotsOnBuffer']);
+AddEventHandler('main', 'OnEpilog', ['\\Titlo\\Relevance\\AdminUi', 'onAdminEpilogCatalogEditButton']);
 
 // Иконки меню админки (логотип Titlo + полезные сервисы)
 AddEventHandler('main', 'OnProlog', static function () {
