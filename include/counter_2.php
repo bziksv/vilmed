@@ -33,5 +33,5 @@ style="width:88px; height:31px; border:0;" alt="Яндекс.Метрика" tit
 	}
 })();
 </script>
-<noscript><div><img src="https://mc.yandex.ru/watch/55225453" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+<noscript><div><img src="https://mc.yandex.ru/watch/55225453" style="position:absolute; left:-9999px;" alt="Яндекс.Метрика" /></div></noscript>
 <!-- /Yandex.Metrika counter -->

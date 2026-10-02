@@ -1787,10 +1787,49 @@ class CatalogRepository
 	}
 
 	/**
+	 * Дата автопроработки пуста (ещё не отмечали полный цикл).
+	 */
+	private static function sqlAutoAtEmpty(string $utsAlias, string $autoAtCol): string
+	{
+		$col = $utsAlias . '.' . $autoAtCol;
+
+		return '(' . $col . ' IS NULL OR ' . $col . ' = "0000-00-00 00:00:00")';
+	}
+
+	/**
+	 * HTML-поле (DETAIL_TEXT / DESCRIPTION) выглядит пустым — как isElementDetailEmpty / isSectionDescriptionEmpty.
+	 * Приближение strip_tags+trim в SQL (без REGEXP_REPLACE — совместимо с MySQL 5.7).
+	 */
+	private static function sqlHtmlFieldEmpty(string $expr): string
+	{
+		$plain = 'TRIM(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE('
+			. 'COALESCE(' . $expr . ', ""),'
+			. '"&nbsp;", ""),'
+			. '"&#160;", ""),'
+			. '"<br>", ""),'
+			. '"<br/>", ""),'
+			. '"<br />", ""),'
+			. '"</p>", ""),'
+			. '"<p>", ""),'
+			. '"</div>", "")'
+			. ')';
+
+		return '(' . $expr . ' IS NULL OR TRIM(' . $expr . ') = "" OR CHAR_LENGTH(' . $plain . ') = 0)';
+	}
+
+	private static function sqlHtmlFieldFilled(string $expr): string
+	{
+		return 'NOT ' . self::sqlHtmlFieldEmpty($expr);
+	}
+
+	/**
 	 * Товары с короткой фразой — кандидаты на автопроработку.
 	 *
 	 * @param array{page?:int,page_size?:int,q?:string,filter?:string,sort?:string,section_id?:int,section_ids?:int[]|string} $params
-	 *        filter: all|todo|done|scored (todo = без UF_TITLO_AUTO_AT; scored = есть балл в work_history)
+	 *        filter: all|todo|todo_ready|todo_all|done|scored
+	 *          todo = без AUTO_AT и без описания (нужна генерация)
+	 *          todo_ready = без AUTO_AT, описание уже есть (ручная проработка / можно только отметить)
+	 *          todo_all = без AUTO_AT (старое поведение «Ещё без автопроработки»)
 	 *        sort: id_desc|score_asc
 	 *        section_ids: ветки каталога (раздел + подразделы); пусто = все
 	 * @return array{items:array,total:int,page:int,page_size:int,pages:int,sort:string,section_id:int,section_ids:int[]}
@@ -1805,7 +1844,7 @@ class CatalogRepository
 		$page = max(1, (int) ($params['page'] ?? 1));
 		$pageSize = max(1, min(100, (int) ($params['page_size'] ?? 25)));
 		$q = trim((string) ($params['q'] ?? ''));
-		$filterMode = (string) ($params['filter'] ?? 'todo'); // all|todo|done|scored
+		$filterMode = (string) ($params['filter'] ?? 'todo'); // all|todo|todo_ready|todo_all|done|scored
 		$sort = (string) ($params['sort'] ?? 'id_desc');
 		if ($sort !== 'score_asc') {
 			$sort = 'id_desc';
@@ -1816,6 +1855,9 @@ class CatalogRepository
 		$uts = 'b_uts_iblock_' . (int) $iblockId . '_element';
 		$phraseCol = UserFields::PHRASE_FIELD;
 		$autoAtCol = UserFields::AUTO_AT_FIELD;
+		$autoEmpty = self::sqlAutoAtEmpty('UTS', $autoAtCol);
+		$detailEmpty = self::sqlHtmlFieldEmpty('BE.DETAIL_TEXT');
+		$detailFilled = self::sqlHtmlFieldFilled('BE.DETAIL_TEXT');
 
 		$where = [
 			'BE.IBLOCK_ID = ' . (int) $iblockId,
@@ -1826,7 +1868,13 @@ class CatalogRepository
 		];
 
 		if ($filterMode === 'todo') {
-			$where[] = '(UTS.' . $autoAtCol . ' IS NULL OR UTS.' . $autoAtCol . ' = "0000-00-00 00:00:00")';
+			$where[] = $autoEmpty;
+			$where[] = $detailEmpty;
+		} elseif ($filterMode === 'todo_ready') {
+			$where[] = $autoEmpty;
+			$where[] = $detailFilled;
+		} elseif ($filterMode === 'todo_all') {
+			$where[] = $autoEmpty;
 		} elseif ($filterMode === 'done') {
 			$where[] = '(UTS.' . $autoAtCol . ' IS NOT NULL AND UTS.' . $autoAtCol . ' <> "0000-00-00 00:00:00")';
 		} elseif ($filterMode === 'scored') {
@@ -1994,6 +2042,7 @@ class CatalogRepository
 	 * Пагинированный список категорий для автопроработки.
 	 *
 	 * @param array{page?:int,page_size?:int,q?:string,filter?:string,sort?:string,section_id?:int,section_ids?:int[]|string} $params
+	 *        filter: all|todo|todo_ready|todo_all|done|scored — как у listElementsForAuto
 	 * @return array{items:array,total:int,page:int,page_size:int,pages:int,sort:string,section_id:int,section_ids:int[]}
 	 */
 	public static function listSectionsForAuto(array $params): array
@@ -2017,6 +2066,9 @@ class CatalogRepository
 		$uts = 'b_uts_iblock_' . (int) $iblockId . '_section';
 		$phraseCol = UserFields::PHRASE_FIELD;
 		$autoAtCol = UserFields::AUTO_AT_FIELD;
+		$autoEmpty = self::sqlAutoAtEmpty('UTS', $autoAtCol);
+		$detailEmpty = self::sqlHtmlFieldEmpty('BS.DESCRIPTION');
+		$detailFilled = self::sqlHtmlFieldFilled('BS.DESCRIPTION');
 
 		$where = [
 			'BS.IBLOCK_ID = ' . (int) $iblockId,
@@ -2025,7 +2077,13 @@ class CatalogRepository
 		];
 
 		if ($filterMode === 'todo') {
-			$where[] = '(UTS.' . $autoAtCol . ' IS NULL OR UTS.' . $autoAtCol . ' = "0000-00-00 00:00:00")';
+			$where[] = $autoEmpty;
+			$where[] = $detailEmpty;
+		} elseif ($filterMode === 'todo_ready') {
+			$where[] = $autoEmpty;
+			$where[] = $detailFilled;
+		} elseif ($filterMode === 'todo_all') {
+			$where[] = $autoEmpty;
 		} elseif ($filterMode === 'done') {
 			$where[] = '(UTS.' . $autoAtCol . ' IS NOT NULL AND UTS.' . $autoAtCol . ' <> "0000-00-00 00:00:00")';
 		} elseif ($filterMode === 'scored') {
