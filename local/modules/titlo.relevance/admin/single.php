@@ -262,7 +262,7 @@ $hasKey = Config::apiKey() !== '';
 		</div>
 		<h3 style="margin-top:16px">Топ-лист фраз (TLP)
 			<span class="titlo-help" tabindex="0" aria-label="Связь с генерацией">?
-				<span class="titlo-help__tip">Те же группы unigram и TF-IDF ТОП, что в кабинете (/show-history). Две таблицы: слова, которых нет на посадочной, и слова с разницей к конкурентам. Лимиты режут срез в промпт.</span>
+				<span class="titlo-help__tip">Те же группы unigram и TF-IDF ТОП, что в кабинете (/show-history). Две таблицы: слова, которых нет на посадочной, и слова с разницей к конкурентам. Лимиты режут срез в промпт. Крестик у строки — убрать слово из списка и из генерации (подтянется следующее из запаса).</span>
 			</span>
 		</h3>
 		<div class="titlo-tlp-limits" id="titlo-tlp-limits" style="display:none;margin:8px 0 10px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px">
@@ -288,8 +288,8 @@ $hasKey = Config::apiKey() !== '';
 				<h4>Нет на сайте</h4>
 				<div class="titlo-phrases__scroll">
 					<table>
-						<thead><tr><th>Слово</th><th>TF-IDF ТОП</th><th>У конкурентов</th><th>На сайте</th><th>Ориентир</th></tr></thead>
-						<tbody id="titlo-tlp-missing-body"><tr><td colspan="5">Пока пусто</td></tr></tbody>
+						<thead><tr><th>Слово</th><th>TF-IDF ТОП</th><th>У конкурентов</th><th>На сайте</th><th>Ориентир</th><th class="titlo-tlp-act-col"></th></tr></thead>
+						<tbody id="titlo-tlp-missing-body"><tr><td colspan="6">Пока пусто</td></tr></tbody>
 					</table>
 				</div>
 			</div>
@@ -297,8 +297,8 @@ $hasKey = Config::apiKey() !== '';
 				<h4>С разницей (добавить)</h4>
 				<div class="titlo-phrases__scroll">
 					<table>
-						<thead><tr><th>Слово</th><th>TF-IDF ТОП</th><th>У конкурентов</th><th>На сайте</th><th>Ориентир</th></tr></thead>
-						<tbody id="titlo-tlp-diff-body"><tr><td colspan="5">Пока пусто</td></tr></tbody>
+						<thead><tr><th>Слово</th><th>TF-IDF ТОП</th><th>У конкурентов</th><th>На сайте</th><th>Ориентир</th><th class="titlo-tlp-act-col"></th></tr></thead>
+						<tbody id="titlo-tlp-diff-body"><tr><td colspan="6">Пока пусто</td></tr></tbody>
 					</table>
 				</div>
 			</div>
@@ -589,6 +589,35 @@ $hasKey = Config::apiKey() !== '';
 		return {missing: missLim, diff: diffLim};
 	}
 
+	function syncTlpAvailLabels() {
+		var availM = document.getElementById('titlo-tlp-missing-avail');
+		var availD = document.getElementById('titlo-tlp-diff-avail');
+		if (availM) availM.textContent = 'из ' + tlpMissing.length;
+		if (availD) availD.textContent = 'из ' + tlpDiff.length;
+	}
+
+	function removeTlpWord(bucket, word) {
+		word = String(word || '');
+		if (!word) return;
+		var list = bucket === 'diff' ? tlpDiff : tlpMissing;
+		var next = [];
+		for (var i = 0; i < list.length; i++) {
+			if (String(list[i].word || '') !== word) {
+				next.push(list[i]);
+			}
+		}
+		if (next.length === list.length) return;
+		if (bucket === 'diff') {
+			tlpDiff = next;
+			tlpDiffTotal = next.length;
+		} else {
+			tlpMissing = next;
+			tlpMissingTotal = next.length;
+		}
+		syncTlpAvailLabels();
+		rebuildKeywordsFromTlp();
+	}
+
 	function rebuildKeywordsFromTlp() {
 		var lim = readTlpLimits();
 		keywords = [];
@@ -615,28 +644,33 @@ $hasKey = Config::apiKey() !== '';
 		}
 		el.innerHTML = 'В генерацию уйдёт <b>' + n + '</b> слов TLP: '
 			+ '<b>' + takeM + '</b> нет на сайте + <b>' + takeD + '</b> с разницей '
-			+ '(сортировка TF-IDF ТОП). Первые ~40 — обязательно, остальные желательно.';
+			+ '(сортировка TF-IDF ТОП). Первые ~40 — обязательно, остальные желательно. '
+			+ 'Крестик у строки убирает слово из списка и из промпта.';
 	}
 
 	function renderTlpTable() {
 		var lim = readTlpLimits();
-		function fillBody(bodyId, list, take) {
+		function fillBody(bodyId, list, take, bucket) {
 			var body = document.getElementById(bodyId);
 			if (!body) return;
 			var rows = [];
 			list.slice(0, take).forEach(function (item) {
+				var w = String(item.word || '');
 				rows.push(
-					'<tr><td>' + escapeHtml(item.word) + '</td>' +
+					'<tr><td>' + escapeHtml(w) + '</td>' +
 					'<td>' + (item.tfidf_top != null ? escapeHtml(Number(item.tfidf_top).toFixed(4)) : '—') + '</td>' +
 					'<td>' + (item.avg_competitors != null ? escapeHtml(String(item.avg_competitors)) : '—') + '</td>' +
 					'<td>' + (item.on_landing != null ? escapeHtml(String(item.on_landing)) : '—') + '</td>' +
-					'<td>' + escapeHtml(String(item.suggested_count || 1)) + '</td></tr>'
+					'<td>' + escapeHtml(String(item.suggested_count || 1)) + '</td>' +
+					'<td class="titlo-tlp-act-col">' +
+					'<button type="button" class="titlo-tlp-remove" data-bucket="' + escapeHtml(bucket) + '" data-word="' + escapeHtml(w) + '" aria-label="Убрать «' + escapeHtml(w) + '» из генерации" title="Убрать из генерации">×</button>' +
+					'</td></tr>'
 				);
 			});
-			body.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="5">По выбранному лимиту пусто</td></tr>';
+			body.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="6">По выбранному лимиту пусто</td></tr>';
 		}
-		fillBody('titlo-tlp-missing-body', tlpMissing, lim.missing);
-		fillBody('titlo-tlp-diff-body', tlpDiff, lim.diff);
+		fillBody('titlo-tlp-missing-body', tlpMissing, lim.missing, 'missing');
+		fillBody('titlo-tlp-diff-body', tlpDiff, lim.diff, 'diff');
 	}
 
 	function renderPhrases(payload) {
@@ -654,14 +688,21 @@ $hasKey = Config::apiKey() !== '';
 		if (diffInput && defaults.diff_limit != null && !diffInput.dataset.userTouched) {
 			diffInput.value = String(defaults.diff_limit);
 		}
-		var availM = document.getElementById('titlo-tlp-missing-avail');
-		var availD = document.getElementById('titlo-tlp-diff-avail');
-		if (availM) availM.textContent = 'из ' + tlpMissingTotal;
-		if (availD) availD.textContent = 'из ' + tlpDiffTotal;
+		syncTlpAvailLabels();
 		var box = document.getElementById('titlo-tlp-limits');
 		if (box) box.style.display = '';
 
 		rebuildKeywordsFromTlp();
+	}
+
+	var phrasesBox = document.getElementById('titlo-phrases');
+	if (phrasesBox) {
+		phrasesBox.addEventListener('click', function (e) {
+			var btn = e.target && e.target.closest ? e.target.closest('.titlo-tlp-remove') : null;
+			if (!btn) return;
+			e.preventDefault();
+			removeTlpWord(btn.getAttribute('data-bucket') || 'missing', btn.getAttribute('data-word') || '');
+		});
 	}
 
 	var cloudsCache = null;
