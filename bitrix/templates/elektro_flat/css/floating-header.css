@@ -2600,6 +2600,13 @@ html.vilmed-drawer-lock {
 		height: auto;
 		max-height: 520px;
 	}
+	/* <picture> + a.table-cell иначе держат intrinsic 390 и width:100% не растёт */
+	.catalog-detail-element > .catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .detail_picture > a.catalog-detail-images,
+	.catalog-detail-element > .catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .detail_picture picture {
+		display: block !important;
+		width: 100% !important;
+		max-width: 100%;
+	}
 	.catalog-detail-element > .catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .detail_picture img,
 	.catalog-detail-element > .catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .catalog-detail-images img {
 		width: 100% !important;

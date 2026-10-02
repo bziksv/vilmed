@@ -279,6 +279,8 @@ $APPLICATION->AddHeadString(
 	.'.catalog-detail-element>.catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures{width:100%;max-width:none!important;}'
 	.'.catalog-detail-element>.catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .catalog-detail-picture{max-width:none!important;flex:1 1 auto;width:auto;}'
 	.'.catalog-detail-element>.catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .detail_picture{display:block;width:100%;height:auto;max-height:520px;}'
+	.'.catalog-detail-element>.catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .detail_picture>a.catalog-detail-images,'
+	.'.catalog-detail-element>.catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .detail_picture picture{display:block!important;width:100%!important;max-width:100%;}'
 	.'.catalog-detail-element>.catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .detail_picture img,'
 	.'.catalog-detail-element>.catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .catalog-detail-images img{width:100%!important;max-width:100%!important;height:auto!important;max-height:520px!important;object-fit:contain;}'
 	.'.catalog-detail-element .offer_block ul li span{white-space:nowrap;}'
