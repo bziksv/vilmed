@@ -251,7 +251,44 @@ $strAlt = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_ALT"
 $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TITLE"]) && $arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TITLE"] != "" ? $arResult["IPROPERTY_VALUES"]["ELEMENT_DETAIL_PICTURE_FILE_TITLE"] : $arResult["NAME"]);
 
 
-//CATALOG_DETAIL//?>
+//CATALOG_DETAIL//
+// Inline critical CSS: Bitrix склеивает template_*.css и кеширует бандл.
+// Старые width:500px (галерея) + width:300px (цена) переживают git pull,
+// если бандл/браузер не сброшены — «Тип» сжимается до ~120px. !important
+// здесь бьёт даже протухший бандл. Зеркало правил — floating-header.css.
+$APPLICATION->AddHeadString(
+	'<style id="vilmed-product-cols">'
+	.'@media (min-width:992px){'
+	.'.catalog-detail-element>.catalog-detail{display:flex!important;align-items:flex-start;width:100%;}'
+	.'.catalog-detail-element>.catalog-detail>.column.first:not(.colletion){display:block;flex:0 0 auto;width:auto;max-width:440px;}'
+	.'.catalog-detail-element>.catalog-detail>.column.second{display:block;flex:1 1 0;min-width:0;padding-left:20px;}'
+	.'.catalog-detail-element>.catalog-detail>.column.second>.catalog-detail{display:flex!important;align-items:flex-start;width:100%;gap:16px;}'
+	.'.catalog-detail-element .catalog-detail-offers-cont{float:none!important;width:auto!important;flex:1 1 0;min-width:200px;align-self:stretch;display:flex;flex-direction:column;}'
+	.'.catalog-detail-element .catalog-detail-offers{float:none!important;width:100%;flex:1 1 auto;margin-top:0!important;padding:14px 16px 16px;box-sizing:border-box;border:1px solid #dee0ee;border-radius:4px;background:#fff;}'
+	.'.catalog-detail-element .offer_block .h3{padding-top:0;}'
+	.'.catalog-detail-element .column.three{display:block!important;flex:0 0 280px;width:280px!important;padding-left:0;margin-left:0;}'
+	.'.catalog-detail-element>.catalog-detail>.column.second>.catalog-detail:not(:has(.catalog-detail-offers-cont)){justify-content:flex-end;}'
+	.'.catalog-detail-element .column.three .price_buy_detail{width:280px!important;max-width:280px!important;box-sizing:border-box;}'
+	.'.catalog-detail-element .column.first:not(.colletion) .catalog-detail-pictures{max-width:440px;}'
+	.'.catalog-detail-element .column.first:not(.colletion) .catalog-detail-pictures .catalog-detail-picture{max-width:330px;overflow:hidden;}'
+	.'.catalog-detail-element .column.first:not(.colletion) .catalog-detail-pictures .detail_picture img,'
+	.'.catalog-detail-element .column.first:not(.colletion) .catalog-detail-pictures .catalog-detail-images img{max-width:100%!important;width:auto!important;height:auto!important;max-height:390px;}'
+	.'.catalog-detail-element .column.first:not(.colletion) .catalog-detail-pictures .more_photo{flex:0 0 96px;min-width:96px;width:96px;}'
+	.'.catalog-detail-element>.catalog-detail:not(:has(.catalog-detail-offers-cont))>.column.first:not(.colletion){flex:1 1 0!important;max-width:none!important;min-width:0;}'
+	.'.catalog-detail-element>.catalog-detail:not(:has(.catalog-detail-offers-cont))>.column.second{flex:0 0 auto!important;}'
+	.'.catalog-detail-element>.catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures{width:100%;max-width:none!important;}'
+	.'.catalog-detail-element>.catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .catalog-detail-picture{max-width:none!important;}'
+	.'.catalog-detail-element>.catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .detail_picture{height:auto;max-height:520px;}'
+	.'.catalog-detail-element>.catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .detail_picture img,'
+	.'.catalog-detail-element>.catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .catalog-detail-images img{max-height:520px!important;}'
+	.'.catalog-detail-element .offer_block ul li span{white-space:nowrap;}'
+	.'.catalog-detail-element .vmd-price-row .catalog-detail-item-price,'
+	.'.catalog-detail-element .vmd-price-row .catalog-detail-item-price-current{white-space:nowrap;}'
+	.'}'
+	.'</style>',
+	true
+);
+?>
 <div id="<?=$arItemIDs['ID']?>" class="catalog-detail-element" itemscope itemtype="https://schema.org/Product">
 	<meta content="<?=$arResult['NAME']?>" itemprop="name" />
 	<div class="catalog-detail">

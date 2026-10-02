@@ -2261,13 +2261,18 @@ html.vilmed-drawer-lock {
 	margin-right: 0;
 }
 
-/* десктоп: правая колонка покупки — не раздувать сверх темы:
-   раньше width:300px + gallery 500px оставляли SKU ~100px. */
+/* десктоп: блок покупки — хватает под «Цена: N руб.» + qty (−/1/+). */
 @media (min-width: 788px) {
 	.catalog-detail .column.three .price_buy_detail {
-		width: 100%;
+		width: 280px;
 		max-width: 280px;
+		box-sizing: border-box;
 	}
+}
+.catalog-detail .vmd-price-row .catalog-detail-item-price,
+.catalog-detail .vmd-price-row .catalog-detail-item-price-current,
+.catalog-detail .vmd-price-row .catalog-detail-item-no-price {
+	white-space: nowrap;
 }
 .catalog-detail .catalog-detail-article.vmd-article-below {
 	display: block;
@@ -2377,22 +2382,79 @@ html.vilmed-drawer-lock {
 }
 
 /* ============================================================
-   КАРТОЧКА ТОВАРА (десктоп): миниатюры — вертикальной лентой
-   справа от главного фото, а не строкой под ним.
-   Не ставить column.first в фиксированные 500px: при сайдбаре
-   контент ~1000px, цена ~300px → колонка SKU («Тип») сжималась
-   до ~50px, подписи переносились («мм» с новой строки), вёрстка
-   карточки разъезжалась. Держим долю ширины + min для офферов.
+   КАРТОЧКА ТОВАРА (десктоп)
+   Структура темы: first | second > (offers | three).
+   Баги, которые чиним:
+   1) img max-width:390 темы вылезал из flex-слота (~310) и
+      накрывал ленту превью («щели» вместо миниатюр).
+   2) price 208 слишком узкий для ряда цена+qty.
+   3) table-cell + float offers ломали «Тип».
+   Дубль критичных правил — inline #vilmed-product-cols.
    ============================================================ */
 @media (min-width: 992px) {
-	.catalog-detail .column.first:not(.colletion) {
-		width: 42%;
-		max-width: 460px;
+	.catalog-detail-element > .catalog-detail {
+		display: flex !important;
+		align-items: flex-start;
+		width: 100%;
 	}
-	.catalog-detail .column.second {
-		min-width: 220px;
+	.catalog-detail-element > .catalog-detail > .column.first:not(.colletion) {
+		display: block;
+		flex: 0 0 auto;
+		width: auto;
+		max-width: 440px;
 	}
-	.catalog-detail .offer_block ul li span {
+	.catalog-detail-element > .catalog-detail > .column.second {
+		display: block;
+		flex: 1 1 0;
+		min-width: 0;
+		padding-left: 20px;
+	}
+	.catalog-detail-element > .catalog-detail > .column.second > .catalog-detail {
+		display: flex !important;
+		align-items: flex-start;
+		width: 100%;
+		gap: 16px;
+	}
+	.catalog-detail-element .catalog-detail-offers-cont {
+		float: none !important;
+		width: auto !important;
+		flex: 1 1 0;
+		min-width: 200px;
+		align-self: stretch;
+		display: flex;
+		flex-direction: column;
+	}
+	.catalog-detail-element .catalog-detail-offers {
+		float: none !important;
+		width: 100%;
+		flex: 1 1 auto;
+		margin-top: 0 !important;
+		padding: 14px 16px 16px;
+		box-sizing: border-box;
+		border: 1px solid #dee0ee;
+		border-radius: 4px;
+		background: #fff;
+	}
+	.catalog-detail-element .offer_block,
+	.catalog-detail-element .offer_block ul {
+		float: none;
+		width: 100%;
+	}
+	.catalog-detail-element .offer_block .h3 {
+		padding-top: 0;
+	}
+	.catalog-detail-element .column.three {
+		display: block !important;
+		flex: 0 0 280px;
+		width: 280px !important;
+		padding-left: 0;
+		margin-left: 0;
+	}
+	/* без SKU («Тип») — блок покупки прижать вправо */
+	.catalog-detail-element > .catalog-detail > .column.second > .catalog-detail:not(:has(.catalog-detail-offers-cont)) {
+		justify-content: flex-end;
+	}
+	.catalog-detail-element .offer_block ul li span {
 		white-space: nowrap;
 	}
 
@@ -2400,24 +2462,40 @@ html.vilmed-drawer-lock {
 		display: flex;
 		align-items: flex-start;
 		gap: 14px;
-		width: 100%;
+		width: auto;
+		max-width: 440px;
 		float: none;
 		box-sizing: border-box;
 	}
-	/* главное фото — слева, сверху */
+	/* главное фото — слева; не шире слота, иначе наезжает на превью */
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .catalog-detail-picture {
 		order: 1;
 		flex: 1 1 auto;
 		width: auto;
 		min-width: 0;
+		max-width: 330px;
 		float: none;
 		align-self: flex-start;
+		overflow: hidden;
+	}
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .detail_picture {
+		width: 100%;
+		max-width: 100%;
+	}
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .detail_picture img,
+	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .catalog-detail-images img {
+		max-width: 100% !important;
+		width: auto !important;
+		height: auto !important;
+		max-height: 390px;
 	}
 	/* высота ленты задаётся JS по .price_buy_detail; max-height:none !important — против старого кеша 390px */
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo {
 		order: 2;
 		flex: 0 0 96px;
+		flex-shrink: 0;
 		width: 96px;
+		min-width: 96px;
 		margin: 0;
 		float: none;
 		display: flex;
@@ -2496,6 +2574,31 @@ html.vilmed-drawer-lock {
 		margin-top: 6px;
 	}
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .clr { display: none; }
+
+	/* без «Тип»: галерея растягивается на всю ширину до блока цены */
+	.catalog-detail-element > .catalog-detail:not(:has(.catalog-detail-offers-cont)) > .column.first:not(.colletion) {
+		flex: 1 1 0 !important;
+		max-width: none !important;
+		min-width: 0;
+	}
+	.catalog-detail-element > .catalog-detail:not(:has(.catalog-detail-offers-cont)) > .column.second {
+		flex: 0 0 auto !important;
+	}
+	.catalog-detail-element > .catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures {
+		width: 100%;
+		max-width: none !important;
+	}
+	.catalog-detail-element > .catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .catalog-detail-picture {
+		max-width: none !important;
+	}
+	.catalog-detail-element > .catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .detail_picture {
+		height: auto;
+		max-height: 520px;
+	}
+	.catalog-detail-element > .catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .detail_picture img,
+	.catalog-detail-element > .catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .catalog-detail-images img {
+		max-height: 520px !important;
+	}
 }
 
 /* блок «Популярные категории» (.tag_menu) из левого сайдбара на мобиле
