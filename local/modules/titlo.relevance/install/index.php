@@ -149,11 +149,25 @@ class titlo_relevance extends CModule
 
 	public function InstallEvents()
 	{
+		RegisterModuleDependences(
+			'main',
+			'OnEpilog',
+			$this->MODULE_ID,
+			'\\Titlo\\Relevance\\AdminUi',
+			'onAdminEpilogCatalogEditButton'
+		);
 		return true;
 	}
 
 	public function UnInstallEvents()
 	{
+		UnRegisterModuleDependences(
+			'main',
+			'OnEpilog',
+			$this->MODULE_ID,
+			'\\Titlo\\Relevance\\AdminUi',
+			'onAdminEpilogCatalogEditButton'
+		);
 		return true;
 	}
 }

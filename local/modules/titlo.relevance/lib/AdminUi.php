@@ -338,6 +338,7 @@ class AdminUi
 	/**
 	 * Кнопка «Titlo: генерация текста» на карточках товара/раздела в админке Bitrix
 	 * (как у arturgolubev.chatgpt — справа в .adm-detail-toolbar-right).
+	 * На списке разделов/товаров кнопки нет — только на экране редактирования.
 	 */
 	public static function onAdminEpilogCatalogEditButton(): void
 	{
@@ -346,17 +347,23 @@ class AdminUi
 		}
 
 		/** @global CUser $USER */
-		global $USER;
-		if (!is_object($USER) || !$USER->IsAdmin()) {
+		/** @global CMain $APPLICATION */
+		global $USER, $APPLICATION;
+		if (!is_object($USER) || !$USER->IsAuthorized()) {
 			return;
 		}
 
-		$page = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
-		$isElement = (
-			$page === '/bitrix/admin/iblock_element_edit.php'
-			|| $page === '/bitrix/admin/cat_product_edit.php'
-		);
-		$isSection = ($page === '/bitrix/admin/iblock_section_edit.php');
+		$page = '';
+		if (is_object($APPLICATION) && method_exists($APPLICATION, 'GetCurPage')) {
+			$page = (string) $APPLICATION->GetCurPage();
+		}
+		if ($page === '') {
+			$page = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
+		}
+		// Иногда Bitrix отдаёт путь без /bitrix/admin префикса в SCRIPT_NAME
+		$base = basename($page);
+		$isElement = in_array($base, ['iblock_element_edit.php', 'cat_product_edit.php'], true);
+		$isSection = ($base === 'iblock_section_edit.php');
 		if (!$isElement && !$isSection) {
 			return;
 		}
@@ -366,23 +373,31 @@ class AdminUi
 		if ($id <= 0 || $iblockId <= 0) {
 			return;
 		}
-		if ($iblockId !== Config::iblockId()) {
+		$configuredIblock = Config::iblockId();
+		// Если в настройках модуля каталог задан — только он; иначе любой инфоблок.
+		if ($configuredIblock > 0 && $iblockId !== $configuredIblock) {
 			return;
 		}
 
 		$entity = $isSection ? 'S' : 'E';
-		$url = '/bitrix/admin/titlo_relevance_single.php?lang=' . rawurlencode((string) LANGUAGE_ID)
+		$url = '/bitrix/admin/titlo_relevance_single.php?lang=' . rawurlencode((string) (defined('LANGUAGE_ID') ? LANGUAGE_ID : 'ru'))
 			. '&ENTITY=' . $entity
 			. '&ID=' . $id;
 		$label = $isSection ? 'Titlo: генерация текста (категория)' : 'Titlo: генерация текста';
 		?>
 		<script>
 		(function () {
+			var href = <?= \CUtil::PhpToJSObject($url) ?>;
+			var label = <?= \CUtil::PhpToJSObject($label) ?>;
+			var tries = 0;
 			function inject() {
 				var panels = document.querySelectorAll('.adm-detail-toolbar-right');
-				if (!panels.length) return;
-				var href = <?= \CUtil::PhpToJSObject($url) ?>;
-				var label = <?= \CUtil::PhpToJSObject($label) ?>;
+				if (!panels.length) {
+					if (tries++ < 40) {
+						setTimeout(inject, 100);
+					}
+					return;
+				}
 				Array.prototype.forEach.call(panels, function (panel) {
 					if (panel.querySelector('.titlo-catalog-edit-btn')) return;
 					var a = document.createElement('a');

@@ -65,7 +65,20 @@ if (\Bitrix\Main\Config\Option::get('titlo.relevance', 'queue_schema', '') !== $
 
 AddEventHandler('main', 'OnEpilog', ['\\Titlo\\Relevance\\IndexingControl', 'applyRobotsOnEpilog']);
 AddEventHandler('main', 'OnEndBufferContent', ['\\Titlo\\Relevance\\IndexingControl', 'applyRobotsOnBuffer']);
-AddEventHandler('main', 'OnEpilog', ['\\Titlo\\Relevance\\AdminUi', 'onAdminEpilogCatalogEditButton']);
+
+// Кнопка на карточке товара/раздела: RegisterModuleDependences, чтобы срабатывало
+// даже если модуль ещё не подключали на странице (как у arturgolubev.chatgpt).
+$editBtnDep = '1.0.1';
+if (\Bitrix\Main\Config\Option::get('titlo.relevance', 'admin_edit_btn_dep', '') !== $editBtnDep) {
+	RegisterModuleDependences(
+		'main',
+		'OnEpilog',
+		'titlo.relevance',
+		'\\Titlo\\Relevance\\AdminUi',
+		'onAdminEpilogCatalogEditButton'
+	);
+	\Bitrix\Main\Config\Option::set('titlo.relevance', 'admin_edit_btn_dep', $editBtnDep);
+}
 
 // Иконки меню админки (логотип Titlo + полезные сервисы)
 AddEventHandler('main', 'OnProlog', static function () {
