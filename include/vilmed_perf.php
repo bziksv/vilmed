@@ -1814,6 +1814,31 @@ if (!function_exists('vilmedOnEndBufferContent')) {
 		vilmedStripInvalidCss($content);
 		vilmedHoistBodyStylesToHead($content);
 		vilmedNormalizeNoindexTags($content);
+		vilmedCollapseOverEncodedEntities($content);
+	}
+}
+
+if (!function_exists('vilmedCollapseOverEncodedEntities')) {
+	/**
+	 * Схлопывает лишние слои HTML-entities в буфере:
+	 * &amp;amp;…quot; → &quot; (Bitrix ShowMeta поверх уже экранированного description).
+	 * Одиночные &amp; / &quot; не трогаем — цикл стабилен.
+	 */
+	function vilmedCollapseOverEncodedEntities(string &$content): void
+	{
+		if ($content === '' || (strpos($content, '&amp;amp;') === false && strpos($content, '&amp;quot;') === false
+			&& strpos($content, '&amp;lt;') === false && strpos($content, '&amp;gt;') === false)) {
+			return;
+		}
+		$prev = null;
+		for ($i = 0; $i < 16 && $content !== $prev; $i++) {
+			$prev = $content;
+			$content = str_replace(
+				['&amp;amp;', '&amp;quot;', '&amp;lt;', '&amp;gt;', '&amp;#039;', '&amp;apos;'],
+				['&amp;', '&quot;', '&lt;', '&gt;', '&#039;', '&apos;'],
+				$content
+			);
+		}
 	}
 }
 
