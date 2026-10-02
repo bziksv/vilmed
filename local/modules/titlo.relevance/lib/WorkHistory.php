@@ -506,8 +506,8 @@ class WorkHistory
 	}
 
 	/**
-	 * @param array{preset?:string,entity_type?:string,q?:string,page?:int,page_size?:int} $params
-	 * @return array{items:array,total:int,page:int,page_size:int,preset:string}
+	 * @param array{preset?:string,entity_type?:string,q?:string,page?:int,page_size?:int,date_from?:string,date_to?:string} $params
+	 * @return array{items:array,total:int,page:int,page_size:int,preset:string,date_from?:string,date_to?:string}
 	 */
 	public static function list(array $params): array
 	{
@@ -517,6 +517,8 @@ class WorkHistory
 		$preset = (string) ($params['preset'] ?? 'all');
 		$entityType = strtoupper((string) ($params['entity_type'] ?? ''));
 		$q = trim((string) ($params['q'] ?? ''));
+		$dateFrom = self::normalizeDateBound((string) ($params['date_from'] ?? ''));
+		$dateTo = self::normalizeDateBound((string) ($params['date_to'] ?? ''), true);
 		$page = max(1, (int) ($params['page'] ?? 1));
 		$pageSize = (int) ($params['page_size'] ?? 25);
 		if ($pageSize < 10) {
@@ -572,6 +574,13 @@ class WorkHistory
 				break;
 		}
 
+		if ($dateFrom !== '') {
+			$where[] = "UPDATED_AT >= '" . $DB->ForSql($dateFrom) . "'";
+		}
+		if ($dateTo !== '') {
+			$where[] = "UPDATED_AT <= '" . $DB->ForSql($dateTo) . "'";
+		}
+
 		if ($q !== '') {
 			$like = "'%" . Config::forLike($q) . "%'";
 			$parts = [
@@ -607,7 +616,45 @@ class WorkHistory
 			'page' => $page,
 			'page_size' => $pageSize,
 			'preset' => $preset,
+			'date_from' => $dateFrom !== '' ? substr($dateFrom, 0, 10) : '',
+			'date_to' => $dateTo !== '' ? substr($dateTo, 0, 10) : '',
 		];
+	}
+
+	/**
+	 * Нормализация границы диапазона UPDATED_AT.
+	 * $endOfDay=true → конец суток 23:59:59.
+	 */
+	protected static function normalizeDateBound(string $raw, bool $endOfDay = false): string
+	{
+		$raw = trim($raw);
+		if ($raw === '') {
+			return '';
+		}
+		// YYYY-MM-DD или YYYY-MM-DD HH:MM[:SS]
+		if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/', $raw, $m)) {
+			return '';
+		}
+		$y = (int) $m[1];
+		$mo = (int) $m[2];
+		$d = (int) $m[3];
+		if (!checkdate($mo, $d, $y)) {
+			return '';
+		}
+		$hasTime = isset($m[4]);
+		if ($hasTime) {
+			$h = (int) $m[4];
+			$mi = (int) $m[5];
+			$s = isset($m[6]) ? (int) $m[6] : 0;
+			if ($h > 23 || $mi > 59 || $s > 59) {
+				return '';
+			}
+			return sprintf('%04d-%02d-%02d %02d:%02d:%02d', $y, $mo, $d, $h, $mi, $s);
+		}
+		if ($endOfDay) {
+			return sprintf('%04d-%02d-%02d 23:59:59', $y, $mo, $d);
+		}
+		return sprintf('%04d-%02d-%02d 00:00:00', $y, $mo, $d);
 	}
 
 	/**

@@ -26,6 +26,8 @@ $ajaxUrl = '/bitrix/admin/titlo_relevance_ajax.php?lang=' . LANGUAGE_ID;
 $preset = (string) ($_GET['preset'] ?? 'all');
 $entityType = (string) ($_GET['entity_type'] ?? '');
 $q = (string) ($_GET['q'] ?? '');
+$dateFrom = (string) ($_GET['date_from'] ?? '');
+$dateTo = (string) ($_GET['date_to'] ?? '');
 $cabinetShowHistoryBase = rtrim(Config::cabinetPublicOrigin(), '/') . '/show-history/';
 ?>
 
@@ -61,7 +63,14 @@ $cabinetShowHistoryBase = rtrim(Config::cabinetPublicOrigin(), '/') . '/show-his
 			</select>
 		</label>
 		<input type="text" id="titlo-q" class="adm-input" placeholder="ID / название / фраза / history_id" value="<?= htmlspecialcharsbx($q) ?>" style="width:280px">
+		<label>По времени с
+			<input type="date" id="titlo-date-from" class="adm-input" value="<?= htmlspecialcharsbx($dateFrom) ?>" title="Обновлено с">
+		</label>
+		<label>по
+			<input type="date" id="titlo-date-to" class="adm-input" value="<?= htmlspecialcharsbx($dateTo) ?>" title="Обновлено по">
+		</label>
 		<input type="button" id="titlo-reload" class="adm-btn" value="Показать">
+		<input type="button" id="titlo-date-clear" class="adm-btn" value="Сбросить даты">
 		<span id="titlo-list-status"></span>
 	</div>
 
@@ -241,6 +250,8 @@ $cabinetShowHistoryBase = rtrim(Config::cabinetPublicOrigin(), '/') . '/show-his
 			preset: preset,
 			entity_type: document.getElementById('titlo-entity-type').value,
 			q: document.getElementById('titlo-q').value,
+			date_from: document.getElementById('titlo-date-from').value,
+			date_to: document.getElementById('titlo-date-to').value,
 			page: page,
 			page_size: 25
 		}).then(function (res) {
@@ -308,6 +319,14 @@ $cabinetShowHistoryBase = rtrim(Config::cabinetPublicOrigin(), '/') . '/show-his
 		});
 	});
 	document.getElementById('titlo-reload').onclick = function () { page = 1; load(); };
+	document.getElementById('titlo-date-clear').onclick = function () {
+		document.getElementById('titlo-date-from').value = '';
+		document.getElementById('titlo-date-to').value = '';
+		page = 1;
+		load();
+	};
+	document.getElementById('titlo-date-from').addEventListener('change', function () { page = 1; load(); });
+	document.getElementById('titlo-date-to').addEventListener('change', function () { page = 1; load(); });
 	document.getElementById('titlo-q').addEventListener('keydown', function (e) {
 		if (e.key === 'Enter') { page = 1; load(); }
 	});

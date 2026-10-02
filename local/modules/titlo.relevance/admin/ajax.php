@@ -390,6 +390,8 @@ try {
 				'preset' => (string) ($_POST['preset'] ?? 'all'),
 				'entity_type' => (string) ($_POST['entity_type'] ?? ''),
 				'q' => (string) ($_POST['q'] ?? ''),
+				'date_from' => (string) ($_POST['date_from'] ?? ''),
+				'date_to' => (string) ($_POST['date_to'] ?? ''),
 				'page' => (int) ($_POST['page'] ?? 1),
 				'page_size' => (int) ($_POST['page_size'] ?? 25),
 			]);
