@@ -2261,12 +2261,12 @@ html.vilmed-drawer-lock {
 	margin-right: 0;
 }
 
-/* десктоп: правая колонка покупки узкая (208px контента) — длинная цена и
-   количество в один ряд не помещались. В .column.three есть свободное место
-   справа, поэтому слегка расширяем блок покупки, чтобы цена не дробилась. */
+/* десктоп: правая колонка покупки — не раздувать сверх темы:
+   раньше width:300px + gallery 500px оставляли SKU ~100px. */
 @media (min-width: 788px) {
 	.catalog-detail .column.three .price_buy_detail {
-		width: 300px;
+		width: 100%;
+		max-width: 280px;
 	}
 }
 .catalog-detail .catalog-detail-article.vmd-article-below {
@@ -2378,11 +2378,23 @@ html.vilmed-drawer-lock {
 
 /* ============================================================
    КАРТОЧКА ТОВАРА (десктоп): миниатюры — вертикальной лентой
-   справа от главного фото, а не строкой под ним. Колонку галереи
-   расширяем, чтобы заполнить пустоту рядом с блоком покупки.
+   справа от главного фото, а не строкой под ним.
+   Не ставить column.first в фиксированные 500px: при сайдбаре
+   контент ~1000px, цена ~300px → колонка SKU («Тип») сжималась
+   до ~50px, подписи переносились («мм» с новой строки), вёрстка
+   карточки разъезжалась. Держим долю ширины + min для офферов.
    ============================================================ */
 @media (min-width: 992px) {
-	.catalog-detail .column.first:not(.colletion) { width: 500px; }
+	.catalog-detail .column.first:not(.colletion) {
+		width: 42%;
+		max-width: 460px;
+	}
+	.catalog-detail .column.second {
+		min-width: 220px;
+	}
+	.catalog-detail .offer_block ul li span {
+		white-space: nowrap;
+	}
 
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures {
 		display: flex;
