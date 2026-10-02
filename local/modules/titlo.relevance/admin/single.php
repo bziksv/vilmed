@@ -1123,6 +1123,9 @@ $hasKey = Config::apiKey() !== '';
 			'<div class="big">' + ptsHtml + ' <span style="font-size:14px;font-weight:500;color:#64748b">' + label + '</span> ' + fmtDelta(delta) + '</div>' +
 			'<div class="titlo-scores-meta">' +
 			'history_id=<b>' + escapeHtml(String(h.history_id || '—')) + '</b>' +
+			(h.history_id
+				? (' <button type="button" class="adm-btn" id="titlo-share-history" data-hid="' + escapeHtml(String(h.history_id)) + '" style="padding:0 8px;font-size:11px;margin-left:6px">ссылка для команды</button>')
+				: '') +
 			' · <b>' + escapeHtml(params.engine) + '</b>' +
 			' · <b>' + escapeHtml(params.region) + '</b>' +
 			' · ТОП-<b>' + escapeHtml(params.top) + '</b>' +
@@ -1132,6 +1135,39 @@ $hasKey = Config::apiKey() !== '';
 			textLine +
 			(h.last_check || h.created_at ? ' · ' + escapeHtml(fmtDate(h.last_check || h.created_at)) : '') +
 			'</div>';
+		var shareBtn = document.getElementById('titlo-share-history');
+		if (shareBtn) {
+			shareBtn.onclick = function () {
+				shareHistoryLink(parseInt(shareBtn.getAttribute('data-hid'), 10) || 0, shareBtn);
+			};
+		}
+	}
+
+	function shareHistoryLink(hid, btn) {
+		hid = parseInt(hid, 10) || 0;
+		if (!hid) return;
+		var label = btn ? btn.textContent : '';
+		if (btn) { btn.disabled = true; btn.textContent = '…'; }
+		post('history_public_share', { history_id: hid, op: 'create', ttl_days: 30 }).then(function (res) {
+			if (btn) { btn.disabled = false; btn.textContent = label || 'ссылка для команды'; }
+			if (!res.ok || !res.url) {
+				alert(res.error || 'Не удалось создать ссылку');
+				return;
+			}
+			var url = res.url;
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				navigator.clipboard.writeText(url).then(function () {
+					alert('Публичная ссылка скопирована (30 дней):\n' + url);
+				}).catch(function () {
+					prompt('Скопируйте публичную ссылку (30 дней):', url);
+				});
+			} else {
+				prompt('Скопируйте публичную ссылку (30 дней):', url);
+			}
+		}).catch(function (e) {
+			if (btn) { btn.disabled = false; btn.textContent = label || 'ссылка для команды'; }
+			alert((e && e.message) || 'Ошибка');
+		});
 	}
 
 	function renderHistoryList(items, currentHid) {
@@ -1160,7 +1196,8 @@ $hasKey = Config::apiKey() !== '';
 				'<td>' + escapeHtml(fmtTextWords(it)) + fmtDeltaText(it.delta_text_words) + '</td>' +
 				'<td>' + escapeHtml(it.coverage != null ? String(it.coverage) : '—') + '</td>' +
 				'<td>' + escapeHtml(it.position != null ? String(it.position) : '—') + '</td>' +
-				'<td><button type="button" class="linkish" data-hid="' + escapeHtml(String(it.history_id || '')) + '" data-delta="' + escapeHtml(it.delta_points != null ? String(it.delta_points) : '') + '" data-delta-text="' + escapeHtml(it.delta_text_words != null ? String(it.delta_text_words) : '') + '">открыть</button></td>' +
+				'<td><button type="button" class="linkish" data-hid="' + escapeHtml(String(it.history_id || '')) + '" data-delta="' + escapeHtml(it.delta_points != null ? String(it.delta_points) : '') + '" data-delta-text="' + escapeHtml(it.delta_text_words != null ? String(it.delta_text_words) : '') + '">открыть</button>' +
+				' · <button type="button" class="linkish titlo-share-hist" data-share-hid="' + escapeHtml(String(it.history_id || '')) + '">ссылка</button></td>' +
 				'</tr>';
 		}).join('');
 		Array.prototype.forEach.call(body.querySelectorAll('button[data-hid]'), function (btn) {
@@ -1173,6 +1210,11 @@ $hasKey = Config::apiKey() !== '';
 					d === '' || d == null ? null : parseFloat(d),
 					dt === '' || dt == null ? null : parseInt(dt, 10)
 				);
+			};
+		});
+		Array.prototype.forEach.call(body.querySelectorAll('.titlo-share-hist'), function (btn) {
+			btn.onclick = function () {
+				shareHistoryLink(parseInt(btn.getAttribute('data-share-hid'), 10) || 0, btn);
 			};
 		});
 	}

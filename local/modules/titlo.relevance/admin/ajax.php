@@ -175,6 +175,28 @@ try {
 			$res = $client->getHistory($historyId);
 			titlo_json(array_merge(['ok' => true], $res));
 
+		case 'history_public_share':
+			$historyId = (int) ($_POST['history_id'] ?? 0);
+			if ($historyId <= 0) {
+				titlo_json(['ok' => false, 'error' => 'history_id required'], 422);
+			}
+			$op = strtolower(trim((string) ($_POST['op'] ?? 'create')));
+			try {
+				if ($op === 'revoke') {
+					$res = $client->revokeHistoryPublicShare($historyId);
+					titlo_json(array_merge(['ok' => true], $res));
+				}
+				if ($op === 'status') {
+					$res = $client->getHistoryPublicShare($historyId);
+					titlo_json(array_merge(['ok' => true], $res));
+				}
+				$ttl = (int) ($_POST['ttl_days'] ?? 30);
+				$res = $client->createHistoryPublicShare($historyId, $ttl);
+				titlo_json(array_merge(['ok' => true], $res));
+			} catch (\Throwable $e) {
+				titlo_json(['ok' => false, 'error' => $e->getMessage()], 422);
+			}
+
 		case 'list_histories':
 			$url = trim((string) ($_POST['url'] ?? ''));
 			$phrase = trim((string) ($_POST['phrase'] ?? ''));

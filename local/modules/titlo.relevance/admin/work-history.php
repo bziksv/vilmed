@@ -174,7 +174,8 @@ $cabinetShowHistoryBase = rtrim(Config::cabinetPublicOrigin(), '/') . '/show-his
 		hid = parseInt(hid, 10) || 0;
 		if (!hid) return '';
 		var href = cabinetShowHistoryBase + hid;
-		return '<a href="' + escapeHtml(href) + '" target="_blank" rel="noopener">#' + hid + '</a>';
+		return '<a href="' + escapeHtml(href) + '" target="_blank" rel="noopener">#' + hid + '</a>' +
+			' <button type="button" class="adm-btn titlo-share-hist" data-hid="' + hid + '" style="padding:0 6px;margin-left:4px;font-size:11px">ссылка для команды</button>';
 	}
 	function scoreCell(side) {
 		if (!side || side.points == null) return '—';
@@ -287,6 +288,36 @@ $cabinetShowHistoryBase = rtrim(Config::cabinetPublicOrigin(), '/') . '/show-his
 						'<td><a class="adm-btn" href="' + escapeHtml(it.single_url || '#') + '">Проработка</a></td>' +
 						'</tr>';
 				}).join('');
+				Array.prototype.forEach.call(body.querySelectorAll('.titlo-share-hist'), function (btn) {
+					btn.onclick = function () {
+						var hid = parseInt(btn.getAttribute('data-hid'), 10) || 0;
+						if (!hid) return;
+						btn.disabled = true;
+						btn.textContent = '…';
+						post('history_public_share', { history_id: hid, op: 'create', ttl_days: 30 }).then(function (res) {
+							btn.disabled = false;
+							btn.textContent = 'ссылка для команды';
+							if (!res.ok || !res.url) {
+								alert(res.error || 'Не удалось создать ссылку');
+								return;
+							}
+							var url = res.url;
+							if (navigator.clipboard && navigator.clipboard.writeText) {
+								navigator.clipboard.writeText(url).then(function () {
+									alert('Публичная ссылка скопирована (действует 30 дней):\n' + url);
+								}).catch(function () {
+									prompt('Скопируйте публичную ссылку (30 дней):', url);
+								});
+							} else {
+								prompt('Скопируйте публичную ссылку (30 дней):', url);
+							}
+						}).catch(function (e) {
+							btn.disabled = false;
+							btn.textContent = 'ссылка для команды';
+							alert(e.message || 'Ошибка');
+						});
+					};
+				});
 			}
 			var total = res.total || 0;
 			var pages = Math.max(1, Math.ceil(total / (res.page_size || 25)));

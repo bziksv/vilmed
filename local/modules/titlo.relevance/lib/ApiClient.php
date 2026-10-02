@@ -38,6 +38,31 @@ class ApiClient
 	}
 
 	/**
+	 * Публичная ссылка на проверку (просмотр без логина в кабинете).
+	 *
+	 * @return array{history_id?:int,url?:string,token?:string,expires_at?:?string,expires_label?:string,ttl_days?:int}
+	 */
+	public function createHistoryPublicShare(int $historyId, int $ttlDays = 30): array
+	{
+		return $this->request('POST', '/relevance/histories/' . $historyId . '/public-share', [
+			'ttl_days' => $ttlDays,
+		]);
+	}
+
+	/**
+	 * @return array{history_id?:int,active?:bool,url?:string}
+	 */
+	public function getHistoryPublicShare(int $historyId): array
+	{
+		return $this->request('GET', '/relevance/histories/' . $historyId . '/public-share');
+	}
+
+	public function revokeHistoryPublicShare(int $historyId): array
+	{
+		return $this->request('DELETE', '/relevance/histories/' . $historyId . '/public-share');
+	}
+
+	/**
 	 * Список прошлых проверок посадочной (динамика баллов).
 	 *
 	 * @return array{latest?:array,items:array,count:int}
