@@ -2039,6 +2039,101 @@ class CatalogRepository
 	}
 
 	/**
+	 * ID товаров по тем же фильтрам, что listElementsForAuto (для «выбрать все найденные»).
+	 *
+	 * @param array{q?:string,filter?:string,section_id?:int,section_ids?:int[]|string,limit?:int} $params
+	 * @return array{ids:int[],total:int,truncated:bool,limit:int}
+	 */
+	public static function listElementIdsForAuto(array $params): array
+	{
+		global $DB;
+
+		$iblockId = Config::iblockId();
+		$limit = max(1, min(2000, (int) ($params['limit'] ?? 2000)));
+		$q = trim((string) ($params['q'] ?? ''));
+		$filterMode = (string) ($params['filter'] ?? 'todo');
+		$sectionIds = self::sectionIdsFromParams($params);
+
+		$uts = 'b_uts_iblock_' . (int) $iblockId . '_element';
+		$phraseCol = UserFields::PHRASE_FIELD;
+		$autoAtCol = UserFields::AUTO_AT_FIELD;
+		$autoEmpty = self::sqlAutoAtEmpty('UTS', $autoAtCol);
+		$detailEmpty = self::sqlHtmlFieldEmpty('BE.DETAIL_TEXT');
+		$detailFilled = self::sqlHtmlFieldFilled('BE.DETAIL_TEXT');
+
+		$where = [
+			'BE.IBLOCK_ID = ' . (int) $iblockId,
+			"BE.ACTIVE = 'Y'",
+			'(BE.WF_STATUS_ID IS NULL OR BE.WF_STATUS_ID = 1)',
+			'(BE.WF_PARENT_ELEMENT_ID IS NULL OR BE.WF_PARENT_ELEMENT_ID = 0)',
+			'(UTS.' . $phraseCol . ' IS NOT NULL AND UTS.' . $phraseCol . ' <> "")',
+		];
+
+		if ($filterMode === 'todo') {
+			$where[] = $autoEmpty;
+			$where[] = $detailEmpty;
+		} elseif ($filterMode === 'todo_ready') {
+			$where[] = $autoEmpty;
+			$where[] = $detailFilled;
+		} elseif ($filterMode === 'todo_all') {
+			$where[] = $autoEmpty;
+		} elseif ($filterMode === 'done') {
+			$where[] = '(UTS.' . $autoAtCol . ' IS NOT NULL AND UTS.' . $autoAtCol . ' <> "0000-00-00 00:00:00")';
+		} elseif ($filterMode === 'scored') {
+			$where[] = 'EXISTS (
+				SELECT 1 FROM titlo_work_history whx
+				WHERE whx.ENTITY_TYPE = \'E\' AND whx.ENTITY_ID = BE.ID
+				  AND (whx.BEFORE_POINTS IS NOT NULL OR whx.AFTER_POINTS IS NOT NULL)
+			)';
+		}
+
+		$branchSql = self::sqlElementInAnySectionSubtree('BE', $sectionIds, $iblockId);
+		if ($branchSql !== null) {
+			$where[] = $branchSql;
+		}
+
+		if ($q !== '') {
+			$cond = self::sqlPhraseSearchCondition($q, 'BE', 'E', $phraseCol);
+			if ($cond !== '') {
+				$where[] = $cond;
+			}
+		}
+
+		$whereSql = implode(' AND ', $where);
+
+		$total = (int) ($DB->Query("
+			SELECT COUNT(*) AS CNT
+			FROM b_iblock_element BE
+			LEFT JOIN {$uts} UTS ON UTS.VALUE_ID = BE.ID
+			WHERE {$whereSql}
+		")->Fetch()['CNT'] ?? 0);
+
+		$res = $DB->Query("
+			SELECT BE.ID
+			FROM b_iblock_element BE
+			LEFT JOIN {$uts} UTS ON UTS.VALUE_ID = BE.ID
+			WHERE {$whereSql}
+			ORDER BY BE.ID DESC
+			LIMIT " . (int) $limit . '
+		');
+
+		$ids = [];
+		while ($row = $res->Fetch()) {
+			$id = (int) ($row['ID'] ?? 0);
+			if ($id > 0) {
+				$ids[] = $id;
+			}
+		}
+
+		return [
+			'ids' => $ids,
+			'total' => $total,
+			'truncated' => $total > count($ids),
+			'limit' => $limit,
+		];
+	}
+
+	/**
 	 * Пагинированный список категорий для автопроработки.
 	 *
 	 * @param array{page?:int,page_size?:int,q?:string,filter?:string,sort?:string,section_id?:int,section_ids?:int[]|string} $params
@@ -2244,6 +2339,99 @@ class CatalogRepository
 			'sort' => $sort,
 			'section_id' => $sectionId,
 			'section_ids' => $sectionIds,
+		];
+	}
+
+	/**
+	 * ID категорий по тем же фильтрам, что listSectionsForAuto (для «выбрать все найденные»).
+	 *
+	 * @param array{q?:string,filter?:string,section_id?:int,section_ids?:int[]|string,limit?:int} $params
+	 * @return array{ids:int[],total:int,truncated:bool,limit:int}
+	 */
+	public static function listSectionIdsForAuto(array $params): array
+	{
+		global $DB;
+
+		$iblockId = Config::iblockId();
+		$limit = max(1, min(2000, (int) ($params['limit'] ?? 2000)));
+		$q = trim((string) ($params['q'] ?? ''));
+		$filterMode = (string) ($params['filter'] ?? 'todo');
+		$sectionIds = self::sectionIdsFromParams($params);
+
+		$uts = 'b_uts_iblock_' . (int) $iblockId . '_section';
+		$phraseCol = UserFields::PHRASE_FIELD;
+		$autoAtCol = UserFields::AUTO_AT_FIELD;
+		$autoEmpty = self::sqlAutoAtEmpty('UTS', $autoAtCol);
+		$detailEmpty = self::sqlHtmlFieldEmpty('BS.DESCRIPTION');
+		$detailFilled = self::sqlHtmlFieldFilled('BS.DESCRIPTION');
+
+		$where = [
+			'BS.IBLOCK_ID = ' . (int) $iblockId,
+			"BS.ACTIVE = 'Y'",
+			'(UTS.' . $phraseCol . ' IS NOT NULL AND UTS.' . $phraseCol . ' <> "")',
+		];
+
+		if ($filterMode === 'todo') {
+			$where[] = $autoEmpty;
+			$where[] = $detailEmpty;
+		} elseif ($filterMode === 'todo_ready') {
+			$where[] = $autoEmpty;
+			$where[] = $detailFilled;
+		} elseif ($filterMode === 'todo_all') {
+			$where[] = $autoEmpty;
+		} elseif ($filterMode === 'done') {
+			$where[] = '(UTS.' . $autoAtCol . ' IS NOT NULL AND UTS.' . $autoAtCol . ' <> "0000-00-00 00:00:00")';
+		} elseif ($filterMode === 'scored') {
+			$where[] = 'EXISTS (
+				SELECT 1 FROM titlo_work_history whx
+				WHERE whx.ENTITY_TYPE = \'S\' AND whx.ENTITY_ID = BS.ID
+				  AND (whx.BEFORE_POINTS IS NOT NULL OR whx.AFTER_POINTS IS NOT NULL)
+			)';
+		}
+
+		$branchSql = self::sqlSectionInAnySubtree($sectionIds);
+		if ($branchSql !== null) {
+			$where[] = $branchSql;
+		}
+
+		if ($q !== '') {
+			$cond = self::sqlPhraseSearchCondition($q, 'BS', 'S', $phraseCol);
+			if ($cond !== '') {
+				$where[] = $cond;
+			}
+		}
+
+		$whereSql = implode(' AND ', $where);
+
+		$total = (int) ($DB->Query("
+			SELECT COUNT(*) AS CNT
+			FROM b_iblock_section BS
+			LEFT JOIN {$uts} UTS ON UTS.VALUE_ID = BS.ID
+			WHERE {$whereSql}
+		")->Fetch()['CNT'] ?? 0);
+
+		$res = $DB->Query("
+			SELECT BS.ID
+			FROM b_iblock_section BS
+			LEFT JOIN {$uts} UTS ON UTS.VALUE_ID = BS.ID
+			WHERE {$whereSql}
+			ORDER BY BS.ID DESC
+			LIMIT " . (int) $limit . '
+		');
+
+		$ids = [];
+		while ($row = $res->Fetch()) {
+			$id = (int) ($row['ID'] ?? 0);
+			if ($id > 0) {
+				$ids[] = $id;
+			}
+		}
+
+		return [
+			'ids' => $ids,
+			'total' => $total,
+			'truncated' => $total > count($ids),
+			'limit' => $limit,
 		];
 	}
 

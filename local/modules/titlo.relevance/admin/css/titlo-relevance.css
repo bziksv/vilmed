@@ -394,6 +394,25 @@
 .titlo-auto-products .titlo-auto-table td:nth-child(3) {
 	min-width: 180px;
 }
+.titlo-auto-sel-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	margin: 0 0 10px;
+	padding: 8px 12px;
+	background: #eff6ff;
+	border: 1px solid #bfdbfe;
+	border-radius: 6px;
+	font-size: 13px;
+	color: #1e3a8a;
+}
+.titlo-auto-sel-bar[hidden] {
+	display: none !important;
+}
+.titlo-auto-sel-bar .adm-btn {
+	margin: 0;
+}
 .titlo-hist-table tr.is-current { background: #ecfdf5; }
 .titlo-hist-table button.linkish {
 	background: none;

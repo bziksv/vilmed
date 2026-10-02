@@ -217,6 +217,12 @@ if ($sort !== 'id_desc') {
 		</div>
 	</section>
 
+	<div id="titlo-auto-sel-bar" class="titlo-auto-sel-bar" hidden>
+		<span id="titlo-auto-sel-msg"></span>
+		<input type="button" id="titlo-auto-sel-all-match" class="adm-btn" value="Выбрать все найденные">
+		<input type="button" id="titlo-auto-sel-clear" class="adm-btn" value="Снять выбор">
+	</div>
+
 	<table class="titlo-auto-table">
 		<thead>
 		<tr>
@@ -322,6 +328,8 @@ if ($sort !== 'id_desc') {
 	var pollTimer = null;
 	var expandCache = {};
 	var COLSPAN = 9;
+	var listTotal = 0;
+	var selectAllMatching = false;
 
 	function post(action, data) {
 		data = data || {};
@@ -369,12 +377,60 @@ if ($sort !== 'id_desc') {
 		return Object.keys(selected).filter(function (k) { return selected[k]; }).length;
 	}
 
+	function listFilterParams() {
+		return {
+			q: document.getElementById('titlo-auto-q').value,
+			filter: document.getElementById('titlo-auto-filter').value,
+			sort: document.getElementById('titlo-auto-sort').value,
+			section_ids: currentSectionIds().join(',')
+		};
+	}
+
+	function updateSelBar() {
+		var bar = document.getElementById('titlo-auto-sel-bar');
+		var msg = document.getElementById('titlo-auto-sel-msg');
+		var btnAll = document.getElementById('titlo-auto-sel-all-match');
+		if (!bar || !msg || !btnAll) return;
+		var n = selectedCount();
+		var pageN = document.querySelectorAll('.titlo-auto-row').length;
+		if (n < 1) {
+			bar.hidden = true;
+			return;
+		}
+		bar.hidden = false;
+		if (selectAllMatching || (listTotal > 0 && n >= listTotal)) {
+			msg.textContent = n < listTotal
+				? ('Выбрано ' + n + ' из ' + listTotal + ' (лимит за раз)')
+				: ('Выбрано все найденные: ' + n);
+			btnAll.style.display = 'none';
+		} else if (listTotal > pageN) {
+			msg.textContent = 'Выбрано на странице: ' + n + '.';
+			btnAll.style.display = '';
+			btnAll.value = 'Выбрать все найденные (' + listTotal + ')';
+		} else {
+			msg.textContent = 'Выбрано: ' + n;
+			btnAll.style.display = 'none';
+		}
+	}
+
+	function clearSelection() {
+		selected = {};
+		selectAllMatching = false;
+		Array.prototype.forEach.call(document.querySelectorAll('.titlo-auto-row'), function (cb) {
+			cb.checked = false;
+		});
+		var all = document.getElementById('titlo-auto-check-all');
+		if (all) all.checked = false;
+		updateEnqueueBtn();
+	}
+
 	function updateEnqueueBtn() {
 		var btn = document.getElementById('titlo-auto-enqueue');
 		if (!btn) return;
 		var n = selectedCount();
 		btn.value = 'В очередь (' + n + ')';
 		btn.disabled = !hasKey || n < 1;
+		updateSelBar();
 	}
 
 	function isAnalyzeOnly() {
@@ -752,7 +808,10 @@ if ($sort !== 'id_desc') {
 			cb.onchange = function () {
 				var id = parseInt(cb.value, 10);
 				if (cb.checked) selected[id] = true;
-				else delete selected[id];
+				else {
+					delete selected[id];
+					selectAllMatching = false;
+				}
 				updateEnqueueBtn();
 			};
 		});
@@ -766,13 +825,14 @@ if ($sort !== 'id_desc') {
 
 	function loadList() {
 		setStatus('titlo-auto-list-status', 'Загрузка…');
+		var fp = listFilterParams();
 		return post('auto_list_sections', {
 			page: page,
 			page_size: 25,
-			q: document.getElementById('titlo-auto-q').value,
-			filter: document.getElementById('titlo-auto-filter').value,
-			sort: document.getElementById('titlo-auto-sort').value,
-			section_ids: currentSectionIds().join(',')
+			q: fp.q,
+			filter: fp.filter,
+			sort: fp.sort,
+			section_ids: fp.section_ids
 		}).then(function (res) {
 			var body = document.getElementById('titlo-auto-body');
 			if (!res.ok) {
@@ -780,6 +840,7 @@ if ($sort !== 'id_desc') {
 				setStatus('titlo-auto-list-status', res.error || 'Ошибка', true);
 				return;
 			}
+			listTotal = res.total || 0;
 			var rows = [];
 			(res.items || []).forEach(function (it) {
 				var checked = !!selected[it.id];
@@ -801,15 +862,21 @@ if ($sort !== 'id_desc') {
 			body.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="' + COLSPAN + '">Нет категорий по фильтру (нужна короткая фраза)</td></tr>';
 			bindListEvents(body);
 			renderPager(res.total || 0, res.page_size || 25, res.pages || 1);
-			var qShow = (document.getElementById('titlo-auto-q').value || '').trim();
+			var qShow = (fp.q || '').trim();
 			setStatus(
 				'titlo-auto-list-status',
 				qShow
 					? ('Найдено: ' + (res.total || 0) + ' по «' + qShow + '»')
 					: ('Найдено: ' + (res.total || 0))
 			);
+			var pageRows = document.querySelectorAll('.titlo-auto-row');
+			var pageChecked = 0;
+			Array.prototype.forEach.call(pageRows, function (cb) { if (cb.checked) pageChecked++; });
+			var allCb = document.getElementById('titlo-auto-check-all');
+			if (allCb) {
+				allCb.checked = pageRows.length > 0 && pageChecked === pageRows.length;
+			}
 			updateEnqueueBtn();
-			document.getElementById('titlo-auto-check-all').checked = false;
 		});
 	}
 
@@ -953,6 +1020,7 @@ if ($sort !== 'id_desc') {
 
 	document.getElementById('titlo-auto-check-all').onchange = function () {
 		var on = this.checked;
+		selectAllMatching = false;
 		Array.prototype.forEach.call(document.querySelectorAll('.titlo-auto-row'), function (cb) {
 			cb.checked = on;
 			var id = parseInt(cb.value, 10);
@@ -962,21 +1030,74 @@ if ($sort !== 'id_desc') {
 		updateEnqueueBtn();
 	};
 
+	document.getElementById('titlo-auto-sel-all-match').onclick = function () {
+		var btn = this;
+		btn.disabled = true;
+		setStatus('titlo-auto-run-status', 'Загружаем все ID по фильтру…');
+		var fp = listFilterParams();
+		post('auto_list_ids', {
+			entity_type: entityType,
+			q: fp.q,
+			filter: fp.filter,
+			section_ids: fp.section_ids
+		}).then(function (res) {
+			btn.disabled = false;
+			if (!res.ok) {
+				setStatus('titlo-auto-run-status', res.error || 'Не удалось выбрать все', true);
+				return;
+			}
+			selected = {};
+			(res.ids || []).forEach(function (id) {
+				selected[parseInt(id, 10)] = true;
+			});
+			selectAllMatching = true;
+			Array.prototype.forEach.call(document.querySelectorAll('.titlo-auto-row'), function (cb) {
+				var id = parseInt(cb.value, 10);
+				cb.checked = !!selected[id];
+			});
+			var allCb = document.getElementById('titlo-auto-check-all');
+			if (allCb) {
+				var pageRows = document.querySelectorAll('.titlo-auto-row');
+				var pageChecked = 0;
+				Array.prototype.forEach.call(pageRows, function (cb) { if (cb.checked) pageChecked++; });
+				allCb.checked = pageRows.length > 0 && pageChecked === pageRows.length;
+			}
+			updateEnqueueBtn();
+			var n = selectedCount();
+			var note = res.truncated
+				? ('Выбрано ' + n + ' из ' + (res.total || n) + ' (лимит ' + (res.limit || n) + ' за раз)')
+				: ('Выбрано все найденные: ' + n);
+			setStatus('titlo-auto-run-status', note);
+		}).catch(function () {
+			btn.disabled = false;
+			setStatus('titlo-auto-run-status', 'Ошибка запроса', true);
+		});
+	};
+
+	document.getElementById('titlo-auto-sel-clear').onclick = function () {
+		clearSelection();
+		setStatus('titlo-auto-run-status', 'Выбор снят');
+	};
+
 	document.getElementById('titlo-auto-reload').onclick = function () {
 		page = 1;
+		clearSelection();
 		loadList();
 	};
 	document.getElementById('titlo-auto-filter').onchange = function () {
 		page = 1;
+		clearSelection();
 		loadList();
 	};
 	document.getElementById('titlo-auto-sort').onchange = function () {
 		page = 1;
+		clearSelection();
 		loadList();
 	};
 	if (window.TitloSectionBranch) {
 		TitloSectionBranch.bind(function () {
 			page = 1;
+			clearSelection();
 			loadList();
 		});
 	}
@@ -987,6 +1108,7 @@ if ($sort !== 'id_desc') {
 		function runSearch() {
 			timer = null;
 			page = 1;
+			clearSelection();
 			loadList();
 		}
 		inp.addEventListener('input', function () {
@@ -998,6 +1120,7 @@ if ($sort !== 'id_desc') {
 				e.preventDefault();
 				if (timer) clearTimeout(timer);
 				page = 1;
+				clearSelection();
 				loadList();
 			}
 		});
@@ -1012,6 +1135,7 @@ if ($sort !== 'id_desc') {
 				if (timer) clearTimeout(timer);
 				inp.value = '';
 				page = 1;
+				clearSelection();
 				loadList();
 				inp.focus();
 			};
@@ -1038,8 +1162,7 @@ if ($sort !== 'id_desc') {
 				return;
 			}
 			lastBatchKey = res.batch_key || '';
-			selected = {};
-			updateEnqueueBtn();
+			clearSelection();
 			var errN = res.errors ? Object.keys(res.errors).length : 0;
 			setStatus(
 				'titlo-auto-run-status',

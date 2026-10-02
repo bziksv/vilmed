@@ -457,6 +457,21 @@ try {
 			]);
 			titlo_json(array_merge(['ok' => true], $list));
 
+		case 'auto_list_ids':
+			BatchQueue::ensureSchema();
+			UserFields::ensurePhraseField();
+			$entityType = strtoupper((string) ($_POST['entity_type'] ?? 'E')) === 'S' ? 'S' : 'E';
+			$idParams = [
+				'q' => (string) ($_POST['q'] ?? ''),
+				'filter' => (string) ($_POST['filter'] ?? 'todo'),
+				'section_ids' => $_POST['section_ids'] ?? ($_POST['section_id'] ?? 0),
+				'limit' => (int) ($_POST['limit'] ?? 2000),
+			];
+			$idList = $entityType === 'S'
+				? CatalogRepository::listSectionIdsForAuto($idParams)
+				: CatalogRepository::listElementIdsForAuto($idParams);
+			titlo_json(array_merge(['ok' => true, 'entity_type' => $entityType], $idList));
+
 		case 'auto_enqueue_batch':
 			BatchQueue::ensureSchema();
 			UserFields::ensurePhraseField();
