@@ -799,6 +799,8 @@
 		}
 
 		price = this.currentPrices[this.currentPriceSelected];
+		if(!price || typeof price.PRINT_RATIO_PRICE === "undefined")
+			return;
 
 		if(this.isGift) {
 			price.PRICE = 0;
@@ -806,12 +808,27 @@
 			price.PERCENT = 100;
 		}
 
+		// В шаблоне «Цена:» лежит рядом с суммой в .catalog-detail-item-price-current.
+		// Раньше сюда писали только PRINT_RATIO_PRICE — префикс «Цена:» пропадал.
+		var setCurrentPriceHtml = function(node, printed) {
+			if(!node) return;
+			var valueNode = BX.findChild(node, {className: "catalog-detail-item-price-value"}, true, false);
+			if(!!valueNode) {
+				BX.adjust(valueNode, {html: printed});
+				return;
+			}
+			if(BX.hasClass(node, "catalog-detail-item-price-current")) {
+				BX.adjust(node, {html: "Цена: <span class=\"catalog-detail-item-price-value\">" + printed + "</span>"});
+				return;
+			}
+			BX.adjust(node, {html: printed});
+		};
+
 		switch(this.productType) {
 			case 1://product
 			case 2://set
 				priceItem = BX.findChild(this.obProduct, {className: "catalog-detail-item-price-current"}, true, false);
-				if(!!priceItem)
-					BX.adjust(priceItem, {html: price.PRINT_RATIO_PRICE});
+				setCurrentPriceHtml(priceItem, price.PRINT_RATIO_PRICE);
 
 				oldPriceItem = BX.findChild(this.obProduct, {className: "catalog-detail-item-price-old"}, true, false);
 				if(!!oldPriceItem)
@@ -830,8 +847,7 @@
 					var priceItemCont = BX("detail_price_" + this.visual.ID + "_" + this.offers[this.offerNum].ID);
 					if(!!priceItemCont) {
 						priceItem = BX.findChild(priceItemCont, {className: "catalog-detail-item-price-current"}, true, false);
-						if(!!priceItem)
-							BX.adjust(priceItem, {html: price.PRINT_RATIO_PRICE});
+						setCurrentPriceHtml(priceItem, price.PRINT_RATIO_PRICE);
 
 						oldPriceItem = BX.findChild(priceItemCont, {className: "catalog-detail-item-price-old"}, true, false);
 						if(!!oldPriceItem)

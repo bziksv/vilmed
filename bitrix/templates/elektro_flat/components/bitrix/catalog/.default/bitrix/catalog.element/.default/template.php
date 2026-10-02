@@ -284,10 +284,11 @@ $APPLICATION->AddHeadString(
 	.'.catalog-detail-element>.catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .detail_picture img,'
 	.'.catalog-detail-element>.catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .catalog-detail-images img{width:100%!important;max-width:100%!important;height:auto!important;max-height:520px!important;object-fit:contain;}'
 	.'.catalog-detail-element .offer_block ul li span{white-space:nowrap;}'
-	.'.catalog-detail-element .vmd-price-row{flex-wrap:wrap;}'
-	.'.catalog-detail-element .vmd-price-row .catalog-detail-price{min-width:min-content;overflow:visible;}'
+	.'.catalog-detail-element .vmd-price-row{flex-direction:column;align-items:flex-start;flex-wrap:nowrap;gap:8px;}'
+	.'.catalog-detail-element .vmd-price-row .catalog-detail-price{width:100%;min-width:0;overflow:visible;}'
+	.'.catalog-detail-element .vmd-price-row .qnt_cont{width:auto!important;max-width:108px!important;height:28px!important;display:inline-flex!important;}'
 	.'.catalog-detail-element .vmd-price-row .catalog-detail-item-price,'
-	.'.catalog-detail-element .vmd-price-row .catalog-detail-item-price-current{white-space:nowrap;}'
+	.'.catalog-detail-element .vmd-price-row .catalog-detail-item-price-current{white-space:normal;}'
 	.'}'
 	.'</style>',
 	true
@@ -690,7 +691,7 @@ $APPLICATION->AddHeadString(
 												<span class="catalog-detail-item-price">
 													<span class="catalog-detail-item-price-current">
                                                         Цена:
-														<?=$arOffer["MIN_PRICE"]["PRINT_RATIO_PRICE"]?>
+														<span class="catalog-detail-item-price-value"><?=$arOffer["MIN_PRICE"]["PRINT_RATIO_PRICE"]?></span>
 													</span>
 													<span class="unit">
 														<?//=GetMessage("CATALOG_ELEMENT_UNIT")." ".(($inPriceRatio) ? $arOffer["CATALOG_MEASURE_RATIO"] : "1")." ".$arOffer["CATALOG_MEASURE_NAME"];?>
@@ -913,7 +914,7 @@ $APPLICATION->AddHeadString(
 											<?if($arResult["COLLECTION"]["THIS"]) {?>
 												<span class="from"><?=GetMessage("CATALOG_ELEMENT_FROM");?></span>
 											<?}?>
-											<?=$arResult["MIN_PRICE"]["PRINT_RATIO_PRICE"]?>
+											<span class="catalog-detail-item-price-value"><?=$arResult["MIN_PRICE"]["PRINT_RATIO_PRICE"]?></span>
 										</span>
 										<span class="unit">
 											<?//=GetMessage("CATALOG_ELEMENT_UNIT")." ".(($inPriceRatio) ? $arResult["CATALOG_MEASURE_RATIO"] : "1")." ".$arResult["CATALOG_MEASURE_NAME"];?>
