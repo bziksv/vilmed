@@ -128,6 +128,9 @@ $renderPromptCard = static function (
 				<span class="badge badge-mode"><?= htmlspecialcharsbx($it['run_mode_label'] ?? Prompts::runModeLabel($mode)) ?></span>
 			<?php endif; ?>
 			<span class="badge badge-used"><?= htmlspecialcharsbx($it['last_used_label']) ?></span>
+			<?php if (!empty($it['updated_at_label'])): ?>
+				<span class="badge badge-updated" title="Дата изменения промпта">изм. <?= htmlspecialcharsbx($it['updated_at_label']) ?></span>
+			<?php endif; ?>
 		</div>
 		<textarea name="body" rows="9"><?= htmlspecialcharsbx($it['body']) ?></textarea>
 		<div class="card-actions">

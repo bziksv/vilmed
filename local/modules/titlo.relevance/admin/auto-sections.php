@@ -185,7 +185,7 @@ if ($sort !== 'id_desc') {
 			<span class="titlo-help" tabindex="0" aria-label="Промпт описания категории">?
 				<span class="titlo-help__tip">Список зависит от режима: полная проработка / повторная доработка. Привязка режима — в «Промпты». К тексту дописываются TLP и HTML страницы категории.</span>
 			</span>:
-			<select id="titlo-auto-prompt-detail" class="adm-input titlo-prompt-select" data-type="category" style="min-width:240px"></select>
+			<select id="titlo-auto-prompt-detail" class="adm-input titlo-prompt-select" data-type="category" style="min-width:320px"></select>
 		</label>
 		<label>Если описание уже есть
 			<span class="titlo-help" tabindex="0" aria-label="Политика существующего описания">?
@@ -479,7 +479,7 @@ if ($sort !== 'id_desc') {
 				items.forEach(function (it) {
 					var opt = document.createElement('option');
 					opt.value = it.id;
-					opt.textContent = it.name + (it.is_default ? ' ★' : '');
+					opt.textContent = it.name + (it.is_default ? ' ★' : '') + ' — ' + (it.last_used_label || 'не использовался');
 					if (pick && String(it.id) === String(pick)) opt.selected = true;
 					sel.appendChild(opt);
 				});

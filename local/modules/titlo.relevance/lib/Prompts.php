@@ -1494,6 +1494,7 @@ TXT;
 	protected static function mapRow(array $row): array
 	{
 		$last = $row['LAST_USED_AT'] ?? null;
+		$updated = $row['UPDATED_AT'] ?? null;
 		$runMode = self::normalizePromptRunMode((string) ($row['RUN_MODE'] ?? self::RUN_MODE_FULL));
 		return [
 			'id' => (int) $row['ID'],
@@ -1506,7 +1507,8 @@ TXT;
 			'sort' => (int) ($row['SORT'] ?? 100),
 			'last_used_at' => $last ?: null,
 			'use_count' => (int) ($row['USE_COUNT'] ?? 0),
-			'updated_at' => $row['UPDATED_AT'] ?? null,
+			'updated_at' => $updated ?: null,
+			'updated_at_label' => $updated ? self::formatUsedAt($updated) : '',
 			'last_used_label' => self::formatUsedAt($last),
 		];
 	}
