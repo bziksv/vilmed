@@ -577,6 +577,17 @@ try {
 			$res = BatchQueue::requeueByIds($decoded, $opts);
 			titlo_json(array_merge(['ok' => !empty($res['ok'])], $res), !empty($res['ok']) ? 200 : 422);
 
+		case 'auto_cancel_jobs':
+			BatchQueue::ensureSchema();
+			$rawIds = (string) ($_POST['ids'] ?? '[]');
+			$decoded = json_decode($rawIds, true);
+			if (!is_array($decoded)) {
+				$decoded = [];
+			}
+			$entityType = strtoupper((string) ($_POST['entity_type'] ?? 'E')) === 'S' ? 'S' : 'E';
+			$res = BatchQueue::cancelByIds($decoded, ['entity_type' => $entityType]);
+			titlo_json(array_merge(['ok' => !empty($res['ok'])], $res), !empty($res['ok']) ? 200 : 422);
+
 		case 'auto_queue_status':
 			BatchQueue::ensureSchema();
 			// подтолкнуть очередь из UI (если агент редко тикает на local)

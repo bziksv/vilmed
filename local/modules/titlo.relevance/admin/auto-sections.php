@@ -271,12 +271,15 @@ if ($sort !== 'id_desc') {
 		<summary>Очередь автопроработки</summary>
 		<div class="titlo-howto__body">
 			<p style="margin:8px 0 0;font-size:12px;color:#64748b">
-				Журнал заданий. Отметьте нужные строки и нажмите «Запустить выбранные» —
-				режим и политика берутся из панели выше (например: было «только анализ» → поставить «Полная проработка» + «Переписать описание заново»).
+				Журнал заданий. Отметьте нужные строки:
+				«Запустить выбранные» — снова поставить в работу (режим из панели выше);
+				«Убрать из очереди» — снять задания со статусом «в очереди», если поставили по ошибке.
 			</p>
 			<div style="margin:8px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
 				<div id="titlo-auto-queue-counts" class="bulk-status"></div>
 				<input type="button" id="titlo-auto-requeue-selected" class="adm-btn-save" value="Запустить выбранные (0)" <?= $hasKey ? '' : 'disabled' ?>>
+				<input type="button" id="titlo-auto-cancel-selected" class="adm-btn" value="Убрать из очереди (0)" disabled>
+				<input type="button" id="titlo-auto-queue-select-queued" class="adm-btn" value="Выбрать «в очереди»">
 				<input type="button" id="titlo-auto-queue-select-failed" class="adm-btn" value="Выбрать ошибки">
 				<input type="button" id="titlo-auto-queue-select-no-text" class="adm-btn" value="Выбрать «текст не писали»">
 				<span id="titlo-auto-requeue-status" class="bulk-status"></span>
@@ -887,6 +890,16 @@ if ($sort !== 'id_desc') {
 			btn.value = 'Запустить выбранные (' + n + ')';
 			btn.disabled = !hasKey || n === 0;
 		}
+		var cancelN = 0;
+		Array.prototype.forEach.call(document.querySelectorAll('.titlo-auto-queue-row'), function (cb) {
+			if (!cb.checked || cb.disabled) return;
+			if ((cb.getAttribute('data-status') || '') === 'queued') cancelN++;
+		});
+		var cBtn = document.getElementById('titlo-auto-cancel-selected');
+		if (cBtn) {
+			cBtn.value = 'Убрать из очереди (' + cancelN + ')';
+			cBtn.disabled = cancelN === 0;
+		}
 	}
 
 	function formatQueueWhen(it) {
@@ -903,6 +916,7 @@ if ($sort !== 'id_desc') {
 	function formatQueueError(it) {
 		var err = (it.error || '').trim();
 		if (!err) return '';
+		if (err === 'cancelled_by_user') return '';
 		if (err === 'analysis_failed' || err === '1') {
 			return 'анализ в Titlo не сохранился · ' + escapeHtml(it.step_label || it.step || 'анализ');
 		}
@@ -911,7 +925,7 @@ if ($sort !== 'id_desc') {
 
 	function canSelectQueueJob(it) {
 		var st = it.status || '';
-		return st === 'failed' || st === 'skipped' || st === 'done' || st === 'queued';
+		return st === 'failed' || st === 'skipped' || st === 'done' || st === 'queued' || st === 'cancelled';
 	}
 
 	function bindQueueChecks(body) {
@@ -966,6 +980,7 @@ if ($sort !== 'id_desc') {
 				+ ' · выполняются ' + (counts.running || 0)
 				+ ' · готово ' + (counts.done || 0)
 				+ ' · текст не писали ' + (counts.skipped || 0)
+				+ ' · снято ' + (counts.cancelled || 0)
 				+ ' · ошибки ' + (counts.failed || 0);
 
 			var body = document.getElementById('titlo-auto-queue-body');
@@ -1179,11 +1194,42 @@ if ($sort !== 'id_desc') {
 			return (cb.getAttribute('data-status') || '') === 'failed';
 		});
 	};
+	document.getElementById('titlo-auto-queue-select-queued').onclick = function () {
+		selectQueueByPred(function (cb) {
+			return (cb.getAttribute('data-status') || '') === 'queued';
+		});
+	};
 	document.getElementById('titlo-auto-queue-select-no-text').onclick = function () {
 		selectQueueByPred(function (cb) {
 			var st = cb.getAttribute('data-status') || '';
 			var mode = cb.getAttribute('data-run-mode') || '';
 			return st === 'skipped' || (st === 'done' && mode === 'analyze_only');
+		});
+	};
+
+	document.getElementById('titlo-auto-cancel-selected').onclick = function () {
+		var ids = [];
+		Array.prototype.forEach.call(document.querySelectorAll('.titlo-auto-queue-row'), function (cb) {
+			if (!cb.checked || cb.disabled) return;
+			if ((cb.getAttribute('data-status') || '') !== 'queued') return;
+			ids.push(parseInt(cb.value, 10));
+		});
+		if (!ids.length) return;
+		setStatus('titlo-auto-requeue-status', 'Снимаем с очереди…');
+		post('auto_cancel_jobs', {
+			ids: JSON.stringify(ids),
+			entity_type: entityType
+		}).then(function (res) {
+			if (!res.ok) {
+				setStatus('titlo-auto-requeue-status', res.error || 'Не удалось снять', true);
+				return;
+			}
+			ids.forEach(function (id) { delete queueSelected[id]; });
+			updateQueueRequeueBtn();
+			var extra = (res.skipped || 0) > 0 ? (', пропущено: ' + res.skipped) : '';
+			setStatus('titlo-auto-requeue-status', 'Снято с очереди: ' + (res.cancelled || 0) + extra);
+			loadList();
+			loadQueue();
 		});
 	};
 

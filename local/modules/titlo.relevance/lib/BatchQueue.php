@@ -9,6 +9,7 @@ class BatchQueue
 	public const STATUS_DONE = 'done';
 	public const STATUS_FAILED = 'failed';
 	public const STATUS_SKIPPED = 'skipped';
+	public const STATUS_CANCELLED = 'cancelled';
 
 	/** Дата/время для очереди — всегда Europe/Moscow (не UTC php.ini). */
 	public static function now(): string
@@ -535,7 +536,7 @@ class BatchQueue
 
 		$in = implode(',', $ids);
 		$allowed = "'" . self::STATUS_FAILED . "','" . self::STATUS_SKIPPED . "','"
-			. self::STATUS_DONE . "','" . self::STATUS_QUEUED . "'";
+			. self::STATUS_DONE . "','" . self::STATUS_QUEUED . "','" . self::STATUS_CANCELLED . "'";
 		$typeFilter = '';
 		$wantType = strtoupper(trim((string) ($opts['entity_type'] ?? '')));
 		if ($wantType === 'S' || $wantType === 'E') {
@@ -763,6 +764,68 @@ class BatchQueue
 		return self::requeueByIds($ids, $opts);
 	}
 
+	/**
+	 * Снять задания с очереди (ещё не взяты воркером).
+	 * Только STATUS_QUEUED — running не трогаем (уже в работе).
+	 *
+	 * @param int[] $ids
+	 * @param array{entity_type?:string} $opts
+	 * @return array{ok:bool,cancelled:int,ids:int[],skipped:int,error?:string}
+	 */
+	public static function cancelByIds(array $ids, array $opts = []): array
+	{
+		self::ensureSchema();
+		global $DB;
+		$ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+		if ($ids === []) {
+			return ['ok' => false, 'cancelled' => 0, 'ids' => [], 'skipped' => 0, 'error' => 'nothing_selected'];
+		}
+
+		$typeFilter = '';
+		$wantType = strtoupper(trim((string) ($opts['entity_type'] ?? '')));
+		if ($wantType === 'S' || $wantType === 'E') {
+			$typeFilter = " AND ENTITY_TYPE = '" . $DB->ForSql($wantType) . "'";
+		}
+
+		$okIds = [];
+		$skipped = 0;
+		$now = self::now();
+		foreach ($ids as $id) {
+			$DB->Query("
+				UPDATE titlo_relevance_queue SET
+					STATUS = '" . self::STATUS_CANCELLED . "',
+					ERROR = '" . $DB->ForSql('cancelled_by_user') . "',
+					WORKER_TOKEN = '',
+					LEASE_UNTIL = NULL,
+					UPDATED_AT = '" . $DB->ForSql($now) . "'
+				WHERE ID = " . (int) $id . "
+				  AND STATUS = '" . self::STATUS_QUEUED . "'" . $typeFilter . '
+			');
+			if (self::affectedRows() > 0) {
+				$okIds[] = $id;
+			} else {
+				$skipped++;
+			}
+		}
+
+		if ($okIds === []) {
+			return [
+				'ok' => false,
+				'cancelled' => 0,
+				'ids' => [],
+				'skipped' => $skipped,
+				'error' => 'nothing_to_cancel',
+			];
+		}
+
+		return [
+			'ok' => true,
+			'cancelled' => count($okIds),
+			'ids' => $okIds,
+			'skipped' => $skipped,
+		];
+	}
+
 	/** Сколько заданий одного типа (товар/категория) крутить параллельно. */
 	public const CONCURRENCY = 2;
 
@@ -892,6 +955,7 @@ class BatchQueue
 		} elseif ($status === self::STATUS_DONE
 			|| $status === self::STATUS_FAILED
 			|| $status === self::STATUS_SKIPPED
+			|| $status === self::STATUS_CANCELLED
 			|| $status === self::STATUS_QUEUED) {
 			$sets[] = "WORKER_TOKEN = ''";
 			$sets[] = 'LEASE_UNTIL = NULL';
@@ -973,6 +1037,7 @@ class BatchQueue
 			'done' => 0,
 			'failed' => 0,
 			'skipped' => 0,
+			'cancelled' => 0,
 		];
 		$countWhere = ($entityType === 'S' || $entityType === 'E')
 			? "WHERE ENTITY_TYPE = '" . $DB->ForSql($entityType) . "'"
@@ -1076,6 +1141,7 @@ class BatchQueue
 			self::STATUS_DONE => 'готово',
 			self::STATUS_FAILED => 'ошибка',
 			self::STATUS_SKIPPED => 'текст не писали',
+			self::STATUS_CANCELLED => 'снято с очереди',
 		];
 		return $map[$status] ?? $status;
 	}
@@ -1105,6 +1171,9 @@ class BatchQueue
 		if ($status === self::STATUS_FAILED) {
 			$stepRu = self::stepLabel($step !== '' ? $step : self::STEP_ANALYZE);
 			return 'Ошибка: ' . $stepRu;
+		}
+		if ($status === self::STATUS_CANCELLED) {
+			return 'Снято с очереди';
 		}
 		if ($status === self::STATUS_QUEUED || $status === self::STATUS_RUNNING) {
 			return self::stepLabel($step !== '' ? $step : self::STEP_ANALYZE);
