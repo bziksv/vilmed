@@ -2165,17 +2165,18 @@ html.vilmed-drawer-lock {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	flex-wrap: nowrap;
+	flex-wrap: wrap;
 	gap: 10px;
 	margin: 0 0 2px;
 }
 .catalog-detail .vmd-price-row .catalog-detail-price {
 	width: auto;
-	min-width: 0;
+	min-width: min-content;
 	display: block;
 	margin: 0;
 	flex: 1 1 auto;
 	text-align: left;
+	overflow: visible;
 }
 .catalog-detail .vmd-price-row .catalog-detail-price .catalog-detail-item-price,
 .catalog-detail .vmd-price-row .catalog-detail-price .catalog-detail-item-price-current {
@@ -2575,7 +2576,7 @@ html.vilmed-drawer-lock {
 	}
 	.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .clr { display: none; }
 
-	/* без «Тип»: галерея растягивается на всю ширину до блока цены */
+	/* без «Тип»: галерея на всю ширину до цены; картинку апскейлим (часто 390px в upload) */
 	.catalog-detail-element > .catalog-detail:not(:has(.catalog-detail-offers-cont)) > .column.first:not(.colletion) {
 		flex: 1 1 0 !important;
 		max-width: none !important;
@@ -2590,14 +2591,22 @@ html.vilmed-drawer-lock {
 	}
 	.catalog-detail-element > .catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .catalog-detail-picture {
 		max-width: none !important;
+		flex: 1 1 auto;
+		width: auto;
 	}
 	.catalog-detail-element > .catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .detail_picture {
+		display: block;
+		width: 100%;
 		height: auto;
 		max-height: 520px;
 	}
 	.catalog-detail-element > .catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .detail_picture img,
 	.catalog-detail-element > .catalog-detail:not(:has(.catalog-detail-offers-cont)) .column.first:not(.colletion) .catalog-detail-pictures .catalog-detail-images img {
+		width: 100% !important;
+		max-width: 100% !important;
+		height: auto !important;
 		max-height: 520px !important;
+		object-fit: contain;
 	}
 }
 
