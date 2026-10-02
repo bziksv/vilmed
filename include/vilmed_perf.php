@@ -1603,9 +1603,10 @@ if (!function_exists('vilmedFixContentMarkupBuffer')) {
 					$content
 				) ?? $content;
 			}
-			if (method_exists('\\Titlo\\Relevance\\CatalogRepository', 'wrapOrphanListItems')) {
-				$content = \Titlo\Relevance\CatalogRepository::wrapOrphanListItems($content);
-			}
+			// НЕ вызывать wrapOrphanListItems на полном HTML страницы:
+			// preg_split по non-greedy </ul> режет ul.left-menu на первом ul.submenu,
+			// оставшиеся <li> (Распродажа, Мебель…) оборачивает в голый <ul> → чужая вёрстка
+			// в сайдбаре. wrapOrphan — только для DETAIL_TEXT (sanitizeCatalogHtml / CLI).
 		}
 		// `<b><p>…</p></b>` / `<span><p>`
 		if (preg_match('#<(?:b|strong|span)\b[^>]*>\s*<p\b#i', $content)) {
