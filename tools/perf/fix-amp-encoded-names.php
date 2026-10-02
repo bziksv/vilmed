@@ -40,7 +40,7 @@ function vilmedDecodeNameEntities(string $name): string
 	return $cur;
 }
 
-function vilmedFixTable(mysqli $m, string $sql, string $updateSql, array $bindTypes, bool $dry, int $limit): array
+function vilmedFixTable(mysqli $m, string $sql, string $updateSql, string $bindTypes, bool $dry, int $limit): array
 {
 	if ($limit > 0) {
 		$sql .= ' LIMIT ' . (int)$limit;
