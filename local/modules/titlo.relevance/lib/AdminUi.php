@@ -363,7 +363,8 @@ class AdminUi
 		// Иногда Bitrix отдаёт путь без /bitrix/admin префикса в SCRIPT_NAME
 		$base = basename($page);
 		$isElement = in_array($base, ['iblock_element_edit.php', 'cat_product_edit.php'], true);
-		$isSection = ($base === 'iblock_section_edit.php');
+		// Каталог открывает разделы через cat_section_edit.php (обёртка над iblock_section_edit).
+		$isSection = in_array($base, ['iblock_section_edit.php', 'cat_section_edit.php'], true);
 		if (!$isElement && !$isSection) {
 			return;
 		}
@@ -392,6 +393,13 @@ class AdminUi
 			var tries = 0;
 			function inject() {
 				var panels = document.querySelectorAll('.adm-detail-toolbar-right');
+				if (!panels.length) {
+					// Fallback: панель, куда уже воткнули ИИ Генератор
+					var ag = document.getElementById('agcg_element_window_get');
+					if (ag && ag.parentNode) {
+						panels = [ag.parentNode];
+					}
+				}
 				if (!panels.length) {
 					if (tries++ < 40) {
 						setTimeout(inject, 100);
