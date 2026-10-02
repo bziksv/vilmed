@@ -65,9 +65,11 @@ if (\Bitrix\Main\Config\Option::get('titlo.relevance', 'queue_schema', '') !== $
 
 AddEventHandler('main', 'OnEpilog', ['\\Titlo\\Relevance\\IndexingControl', 'applyRobotsOnEpilog']);
 AddEventHandler('main', 'OnEndBufferContent', ['\\Titlo\\Relevance\\IndexingControl', 'applyRobotsOnBuffer']);
+// Пока модуль уже подключён (меню Titlo) — кнопка на карточке в этом же запросе.
+AddEventHandler('main', 'OnEpilog', ['\\Titlo\\Relevance\\AdminUi', 'onAdminEpilogCatalogEditButton']);
 
-// Кнопка на карточке товара/раздела: RegisterModuleDependences, чтобы срабатывало
-// даже если модуль ещё не подключали на странице (как у arturgolubev.chatgpt).
+// И через b_module_to_module — Bitrix сам подключит модуль на OnEpilog
+// (иначе на iblock_*_edit.php без визита в Titlo кнопка не появлялась).
 $editBtnDep = '1.0.1';
 if (\Bitrix\Main\Config\Option::get('titlo.relevance', 'admin_edit_btn_dep', '') !== $editBtnDep) {
 	RegisterModuleDependences(
