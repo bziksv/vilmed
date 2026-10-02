@@ -11,20 +11,21 @@ if (php_sapi_name() !== 'cli') {
 	exit(1);
 }
 
-$root = dirname(__DIR__, 2);
-$_SERVER['DOCUMENT_ROOT'] = $root;
-define('NO_KEEP_STATISTIC', true);
-define('NOT_CHECK_PERMISSIONS', true);
-define('BX_NO_ACCELERATOR_RESET', true);
-require $root . '/bitrix/modules/main/include/prolog_before.php';
-
-\Bitrix\Main\Loader::includeModule('iblock');
+$docRoot = dirname(__DIR__, 2);
+$settings = include $docRoot . '/bitrix/.settings.php';
+$db = $settings['connections']['value']['default'];
+$m = new mysqli($db['host'], $db['login'], $db['password'], $db['database']);
+if ($m->connect_error) {
+	fwrite(STDERR, $m->connect_error . "\n");
+	exit(1);
+}
+$m->set_charset('utf8');
 
 $dry = in_array('--dry-run', $argv, true);
 $limit = 0;
 foreach ($argv as $a) {
-	if (preg_match('/^--limit=(\d+)$/', $a, $m)) {
-		$limit = (int)$m[1];
+	if (preg_match('/^--limit=(\d+)$/', $a, $mm)) {
+		$limit = (int)$mm[1];
 	}
 }
 
@@ -39,19 +40,26 @@ function vilmedDecodeNameEntities(string $name): string
 	return $cur;
 }
 
-$filter = [
-	'NAME' => '%&amp;%',
-	'CHECK_PERMISSIONS' => 'N',
-];
-$select = ['ID', 'IBLOCK_ID', 'NAME', 'CODE'];
-$rs = CIBlockElement::GetList(['ID' => 'ASC'], $filter, false, $limit > 0 ? ['nTopCount' => $limit] : false, $select);
+$sql = "SELECT ID, IBLOCK_ID, CODE, NAME FROM b_iblock_element WHERE NAME LIKE '%&amp;%' ORDER BY ID";
+if ($limit > 0) {
+	$sql .= ' LIMIT ' . (int)$limit;
+}
+$res = $m->query($sql);
+if (!$res) {
+	fwrite(STDERR, $m->error . "\n");
+	exit(1);
+}
 
-$el = new CIBlockElement();
 $checked = 0;
 $changed = 0;
 $failed = 0;
+$upd = $m->prepare('UPDATE b_iblock_element SET NAME = ? WHERE ID = ?');
+if (!$upd) {
+	fwrite(STDERR, $m->error . "\n");
+	exit(1);
+}
 
-while ($row = $rs->Fetch()) {
+while ($row = $res->fetch_assoc()) {
 	$checked++;
 	$id = (int)$row['ID'];
 	$from = (string)$row['NAME'];
@@ -70,10 +78,10 @@ while ($row = $rs->Fetch()) {
 	if ($dry) {
 		continue;
 	}
-	$ok = $el->Update($id, ['NAME' => $to, 'TIMESTAMP_X' => false]);
-	if (!$ok) {
+	$upd->bind_param('si', $to, $id);
+	if (!$upd->execute()) {
 		$failed++;
-		fwrite(STDERR, "FAIL {$id}: " . $el->LAST_ERROR . "\n");
+		fwrite(STDERR, "FAIL {$id}: " . $upd->error . "\n");
 	}
 }
 
