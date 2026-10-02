@@ -384,39 +384,60 @@ class AdminUi
 		$url = '/bitrix/admin/titlo_relevance_single.php?lang=' . rawurlencode((string) (defined('LANGUAGE_ID') ? LANGUAGE_ID : 'ru'))
 			. '&ENTITY=' . $entity
 			. '&ID=' . $id;
-		$label = $isSection ? 'Titlo: генерация текста (категория)' : 'Titlo: генерация текста';
+		// Короткая подпись — длинная «(категория)» ломает float-тулбар Bitrix.
+		$label = 'Titlo: генерация текста';
+		$title = $isSection
+			? 'Проработка и генерация текста Titlo для категории'
+			: 'Проработка и генерация текста Titlo';
 		?>
 		<script>
 		(function () {
 			var href = <?= \CUtil::PhpToJSObject($url) ?>;
 			var label = <?= \CUtil::PhpToJSObject($label) ?>;
+			var title = <?= \CUtil::PhpToJSObject($title) ?>;
 			var tries = 0;
-			function inject() {
+			function pickPanel() {
+				// Как у ИИ Генератора: одна панель, рядом с ним.
+				var ag = document.getElementById('agcg_element_window_get');
+				if (ag && ag.parentNode) {
+					return ag.parentNode;
+				}
 				var panels = document.querySelectorAll('.adm-detail-toolbar-right');
 				if (!panels.length) {
-					// Fallback: панель, куда уже воткнули ИИ Генератор
-					var ag = document.getElementById('agcg_element_window_get');
-					if (ag && ag.parentNode) {
-						panels = [ag.parentNode];
-					}
+					return null;
 				}
-				if (!panels.length) {
+				// Одна панель: последняя обычно у формы редактирования.
+				return panels[panels.length - 1];
+			}
+			function inject() {
+				if (document.querySelector('.titlo-catalog-edit-btn')) {
+					return;
+				}
+				var panel = pickPanel();
+				if (!panel) {
 					if (tries++ < 40) {
 						setTimeout(inject, 100);
 					}
 					return;
 				}
-				Array.prototype.forEach.call(panels, function (panel) {
-					if (panel.querySelector('.titlo-catalog-edit-btn')) return;
-					var a = document.createElement('a');
-					a.href = href;
-					a.className = 'adm-btn adm-btn-green titlo-catalog-edit-btn';
-					a.target = '_blank';
-					a.rel = 'noopener';
-					a.textContent = label;
-					a.title = 'Открыть проработку и генерацию текста Titlo';
+				var a = document.createElement('a');
+				a.href = href;
+				a.className = 'adm-btn adm-btn-green titlo-catalog-edit-btn';
+				a.target = '_blank';
+				a.rel = 'noopener';
+				a.textContent = label;
+				a.title = title;
+				a.style.whiteSpace = 'nowrap';
+				var ag = document.getElementById('agcg_element_window_get');
+				if (ag && ag.parentNode === panel) {
+					if (ag.nextSibling) {
+						panel.insertBefore(a, ag.nextSibling);
+					} else {
+						panel.appendChild(a);
+					}
+				} else {
 					panel.appendChild(a);
-				});
+				}
 			}
 			if (document.readyState === 'loading') {
 				document.addEventListener('DOMContentLoaded', inject);
