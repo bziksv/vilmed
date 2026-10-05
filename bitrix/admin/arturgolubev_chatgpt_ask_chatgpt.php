@@ -1,1 +1,0 @@
-<?require($_SERVER["DOCUMENT_ROOT"].'/bitrix/modules/arturgolubev.chatgpt/scripts/ask_chatgpt.php');?>
