@@ -264,6 +264,36 @@ class Prompts
 		return true;
 	}
 
+	/**
+	 * Режим очереди (full|refine) по выбранному промпту.
+	 * refine → refine; full → full; any / нет промпта → $fallback.
+	 */
+	public static function batchRunModeForPromptId(int $promptId, string $fallback = BatchQueue::MODE_FULL): string
+	{
+		$fallback = BatchQueue::normalizeRunMode($fallback);
+		if ($fallback === BatchQueue::MODE_ANALYZE_ONLY) {
+			$fallback = BatchQueue::MODE_FULL;
+		}
+		if ($promptId <= 0) {
+			return $fallback;
+		}
+		$row = self::find($promptId);
+		if (!$row) {
+			return $fallback;
+		}
+		$m = self::normalizePromptRunMode((string) ($row['run_mode'] ?? self::RUN_MODE_FULL));
+		if ($m === self::RUN_MODE_REFINE) {
+			return BatchQueue::MODE_REFINE;
+		}
+		if ($m === self::RUN_MODE_FULL) {
+			return BatchQueue::MODE_FULL;
+		}
+
+		return $fallback === BatchQueue::MODE_REFINE
+			? BatchQueue::MODE_REFINE
+			: BatchQueue::MODE_FULL;
+	}
+
 	protected static function ensureRunModeColumn(): void
 	{
 		global $DB;

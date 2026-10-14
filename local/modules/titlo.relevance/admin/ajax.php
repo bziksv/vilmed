@@ -240,6 +240,11 @@ try {
 			}
 			$runMode = BatchQueue::normalizeRunMode((string) ($_POST['run_mode'] ?? BatchQueue::MODE_FULL));
 			$promptId = (int) ($_POST['prompt_id'] ?? 0);
+			// Ручная проработка: режима full/refine на форме нет — берём из выбранного промпта,
+			// иначе refine-промпт падает с «не подходит к режиму очереди» при дефолтном full.
+			if ($promptId > 0 && Prompts::typeUsesRunModes($type)) {
+				$runMode = Prompts::batchRunModeForPromptId($promptId, $runMode);
+			}
 			try {
 				$promptId = Prompts::resolveEnqueuePromptId($type, $promptId, $runMode);
 			} catch (\InvalidArgumentException $e) {

@@ -1103,6 +1103,18 @@ $hasKey = Config::apiKey() !== '';
 		return sel ? (parseInt(sel.value, 10) || 0) : 0;
 	}
 
+	/** full|refine — по data-run-mode выбранного промпта (any → full). */
+	function selectedPromptRunMode(type) {
+		var sel = document.querySelector('.titlo-prompt-select[data-type="' + type + '"]');
+		if (!sel || !sel.options.length || sel.selectedIndex < 0) return 'full';
+		var m = String(sel.options[sel.selectedIndex].getAttribute('data-run-mode') || 'full').toLowerCase();
+		return m === 'refine' ? 'refine' : 'full';
+	}
+
+	function currentWorkRunMode() {
+		return selectedPromptRunMode(entityType() === 'S' ? 'category' : 'detail');
+	}
+
 	function recordWorkScore(h, role) {
 		var id = parseInt(document.getElementById('titlo-entity-id').value, 10) || 0;
 		if (!id || !h || !h.history_id) return Promise.resolve();
@@ -1126,7 +1138,7 @@ $hasKey = Config::apiKey() !== '';
 			top: h.top || '',
 			checked_at: h.last_check || h.created_at || '',
 			role: role || 'auto',
-			run_mode: (document.getElementById('titlo-run-mode') || {}).value || 'full',
+			run_mode: currentWorkRunMode(),
 			prompt_detail_id: selectedPromptId(isSection ? 'category' : 'detail'),
 			prompt_preview_id: isSection ? 0 : selectedPromptId('preview')
 		}).then(function (res) {
@@ -1604,7 +1616,9 @@ $hasKey = Config::apiKey() !== '';
 				keywords: JSON.stringify(keywords),
 				history_id: historyId || document.getElementById('titlo-history-id').value || '',
 				prompt_id: promptId,
-				run_mode: (document.getElementById('titlo-run-mode') || {}).value || 'full'
+				run_mode: (type === 'detail' || type === 'category')
+					? selectedPromptRunMode(type)
+					: 'full'
 			}).then(function poll(res) {
 				if (!res.ok) {
 					setStatus('titlo-gen-status', res.error || 'Ошибка', true);
@@ -1634,12 +1648,18 @@ $hasKey = Config::apiKey() !== '';
 		var items = payload.items || [];
 		var active = payload.active_id || 0;
 		var last = payload.last;
+		var selType = sel.getAttribute('data-type') || '';
+		var modeAware = (selType === 'detail' || selType === 'category');
 		sel.innerHTML = '';
 		items.forEach(function (it) {
 			var opt = document.createElement('option');
 			opt.value = String(it.id);
+			opt.setAttribute('data-run-mode', String(it.run_mode || 'full'));
 			var label = it.name;
 			if (it.is_default) label += ' ★';
+			if (modeAware && it.run_mode_label) {
+				label += ' · ' + it.run_mode_label;
+			}
 			label += ' — ' + (it.last_used_label || 'не использовался');
 			opt.textContent = label;
 			if (it.id === active) opt.selected = true;
@@ -1647,10 +1667,16 @@ $hasKey = Config::apiKey() !== '';
 		});
 		var meta = sel.closest('.titlo-gen-row');
 		meta = meta ? meta.querySelector('.titlo-prompt-meta') : null;
+		function promptMetaText(it, asSelected) {
+			if (!it) return 'Ещё не запускали';
+			var mode = it.run_mode_label ? (' · ' + it.run_mode_label) : '';
+			if (asSelected) {
+				return 'Выбран: «' + it.name + '»' + mode + ' · был: ' + (it.last_used_label || 'никогда');
+			}
+			return 'Последний: «' + it.name + '»' + mode + ' · ' + (it.last_used_label || '');
+		}
 		if (meta) {
-			meta.textContent = last
-				? ('Последний: «' + last.name + '» · ' + last.last_used_label)
-				: 'Ещё не запускали';
+			meta.textContent = last ? promptMetaText(last, false) : 'Ещё не запускали';
 		}
 		sel.onchange = function () {
 			var it = null;
@@ -1658,9 +1684,12 @@ $hasKey = Config::apiKey() !== '';
 				if (String(items[i].id) === String(sel.value)) { it = items[i]; break; }
 			}
 			if (meta && it) {
-				meta.textContent = 'Выбран: «' + it.name + '» · был: ' + (it.last_used_label || 'никогда');
+				meta.textContent = promptMetaText(it, true);
 			}
 		};
+		if (meta && sel.value) {
+			sel.onchange();
+		}
 	}
 
 	function syncGenRowsByEntity() {
@@ -1849,7 +1878,7 @@ $hasKey = Config::apiKey() !== '';
 			phrase: document.getElementById('titlo-phrase').value,
 			name: ((document.getElementById('titlo-entity-label') || {}).textContent || '').replace(/^#\d+\s*[—\-]\s*/, '').trim(),
 			url: document.getElementById('titlo-url').value,
-			run_mode: (document.getElementById('titlo-run-mode') || {}).value || 'full',
+			run_mode: currentWorkRunMode(),
 			prompt_detail_id: selectedPromptId(type === 'S' ? 'category' : 'detail'),
 			prompt_preview_id: type === 'S' ? 0 : selectedPromptId('preview')
 		}).then(function (res) {
