@@ -516,6 +516,20 @@ rsync -avz user@217.28.220.186:/var/www/.../upload/ ~/Documents/projects/vilmed/
 
 ---
 
+## Nginx / fail2ban (prod s2)
+
+Сервер `217.28.220.186` (s2) выровнен с s3/kosmamed (`155.212.171.103`):
+
+| Параметр | Значение |
+|---|---|
+| `worker_rlimit_nofile` | `65535` |
+| `worker_connections` | `4096` |
+| systemd `LimitNOFILE` | `65535` (`/etc/systemd/system/nginx.service.d/override.conf`) |
+| rate-limit | `conf.d/00-rate-limit-zone.conf` zone `perip` 50r/s + `fastpanel2-includes/rate-limit.conf` burst 100 |
+| fail2ban | jails `sshd` + `nginx-limit-req` (maxretry 25 / 60s, bantime 1h) |
+
+Повод: 2026-10-14 nginx workers упёрлись в soft FD=1024 (`Too many open files`), сайты недоступны. Backup на сервере: `/root/nginx-hardening-backup-*`.
+
 ## Развёртывание
 
 ### Требования
