@@ -75,8 +75,8 @@ $sectionIds = CatalogRepository::normalizeSectionIds(
 					выберите его здесь и сгенерируйте заново: ответ не режется жёстко на 50.
 				</li>
 				<li>
-					<strong>Сгенерировать</strong> — сразу пишет фразу в UF.
-					<strong>Сохранить</strong> — если правите руками.
+					<strong>Сгенерировать</strong> — сразу пишет фразу в UF (отдельно жать «Сохранить» не нужно).
+					<strong>Сохранить правку</strong> — только если правите фразу руками в поле.
 					<strong>В название</strong> — подставляет короткую фразу в поле NAME
 					(оригинал сохраняется в <code><?= htmlspecialcharsbx(UserFields::NAME_ORIG_FIELD) ?></code>,
 					можно <strong>Вернуть NAME</strong>).
@@ -382,7 +382,7 @@ $sectionIds = CatalogRepository::normalizeSectionIds(
 						'<td><label><input type="checkbox" class="titlo-skip"' + (item.skip ? ' checked' : '') + '> не надо</label></td>' +
 						'<td class="row-actions">' +
 						'<input type="button" class="adm-btn titlo-gen" value="Сгенерировать"' + (hasKey && !item.skip ? '' : ' disabled') + '>' +
-						'<input type="button" class="adm-btn-save titlo-save" value="Сохранить">' +
+						'<input type="button" class="adm-btn titlo-save" value="Сохранить правку" title="Записать ручную правку фразы в UF. После «Сгенерировать» уже сохранено автоматически.">' +
 						'<input type="button" class="adm-btn titlo-apply-name" value="В название"' + (item.titlo_phrase ? '' : ' disabled') + ' title="Подставить короткую фразу в NAME (оригинал сохранится)">' +
 						'<input type="button" class="adm-btn titlo-restore-name" value="Вернуть NAME"' + (hasOrig ? '' : ' disabled') + ' title="Вернуть оригинальное название из бэкапа">' +
 						'<input type="button" class="adm-btn titlo-reset" value="Сбросить"' + (item.titlo_phrase ? '' : ' disabled') + ' title="Очистить короткую фразу — вернуть в «Нужно проработать»">' +

@@ -75,19 +75,29 @@ $hasKey = Config::apiKey() !== '';
 						placeholder="ID / название / код / URL"
 						value="<?= $prefill ? htmlspecialcharsbx($prefill['name']) : '' ?>">
 					<input type="button" id="titlo-search-btn" class="adm-btn" value="Найти">
+					<span class="titlo-section-pick" id="titlo-section-pick" style="<?= $entityType === 'S' ? '' : 'display:none' ?>">
+						<button type="button" class="adm-btn" id="titlo-section-pick-btn" aria-haspopup="listbox" aria-expanded="false">Выбрать категорию</button>
+						<div class="titlo-section-ms__panel titlo-section-pick__panel" id="titlo-section-pick-panel" hidden>
+							<input type="text" id="titlo-section-pick-q" class="adm-input titlo-section-ms__search"
+								placeholder="части слов: узи лазер" autocomplete="off" spellcheck="false"
+								aria-label="Поиск раздела по частям слов">
+							<div class="titlo-section-ms__hint">Дерево разделов · клик выбирает категорию для проработки</div>
+							<div class="titlo-section-ms__list" id="titlo-section-pick-list" role="listbox"></div>
+						</div>
+					</span>
 					<div id="titlo-search-results" class="titlo-search-results"></div>
 				</td>
 			</tr>
 			<tr>
 				<td class="adm-detail-content-cell-l">Выбрано
 					<span class="titlo-help" tabindex="0" aria-label="Выбранная сущность">?
-						<span class="titlo-help__tip">Текущая позиция для анализа и генерации. Ссылка «на проде» открывает карточку/раздел на боевом сайте (не на localhost).</span>
+						<span class="titlo-help__tip">Текущая позиция для анализа и генерации. Ссылка «Открыть на проде» — карточка/раздел на боевом сайте (не localhost).</span>
 					</span>
 				</td>
 				<td class="adm-detail-content-cell-r">
 					<input type="hidden" id="titlo-entity-id" value="<?= $prefill ? (int) $prefill['id'] : 0 ?>">
 					<strong id="titlo-entity-label"><?= $prefill ? htmlspecialcharsbx('#' . $prefill['id'] . ' — ' . $prefill['name']) : '—' ?></strong>
-					<a id="titlo-prod-link" href="#" target="_blank" rel="noopener" class="titlo-prod-link" style="display:none;margin-left:10px">на проде ↗</a>
+					<a id="titlo-prod-link" href="#" target="_blank" rel="noopener" class="titlo-prod-link" style="display:none;margin-left:10px">Открыть на проде ↗</a>
 				</td>
 			</tr>
 			<tr>
@@ -98,9 +108,6 @@ $hasKey = Config::apiKey() !== '';
 				</td>
 				<td class="adm-detail-content-cell-r">
 					<input type="text" id="titlo-url" class="adm-input" style="width:100%" value="<?= $prefill ? htmlspecialcharsbx($prefill['url']) : '' ?>">
-					<div style="margin-top:4px">
-						<a id="titlo-prod-link-url" href="#" target="_blank" rel="noopener" class="titlo-prod-link" style="display:none;font-size:12px">Открыть на проде</a>
-					</div>
 				</td>
 			</tr>
 			<tr>
@@ -424,17 +431,15 @@ $hasKey = Config::apiKey() !== '';
 
 	function updateProdLinks() {
 		var href = prodUrlFromLanding((document.getElementById('titlo-url') || {}).value || '');
-		['titlo-prod-link', 'titlo-prod-link-url'].forEach(function (id) {
-			var a = document.getElementById(id);
-			if (!a) return;
-			if (!href) {
-				a.style.display = 'none';
-				a.removeAttribute('href');
-				return;
-			}
-			a.href = href;
-			a.style.display = '';
-		});
+		var a = document.getElementById('titlo-prod-link');
+		if (!a) return;
+		if (!href) {
+			a.style.display = 'none';
+			a.removeAttribute('href');
+			return;
+		}
+		a.href = href;
+		a.style.display = '';
 	}
 
 	function currentEngine() {
@@ -1208,14 +1213,15 @@ $hasKey = Config::apiKey() !== '';
 				return;
 			}
 			var url = res.url;
+			// Сразу открываем — раньше только копировали в буфер, без прямого захода.
+			try { window.open(url, '_blank', 'noopener'); } catch (e1) {}
 			if (navigator.clipboard && navigator.clipboard.writeText) {
-				navigator.clipboard.writeText(url).then(function () {
-					alert('Публичная ссылка скопирована (30 дней):\n' + url);
-				}).catch(function () {
-					prompt('Скопируйте публичную ссылку (30 дней):', url);
-				});
-			} else {
-				prompt('Скопируйте публичную ссылку (30 дней):', url);
+				navigator.clipboard.writeText(url).catch(function () {});
+			}
+			if (btn) {
+				var prev = btn.textContent;
+				btn.textContent = 'открыто';
+				setTimeout(function () { btn.textContent = prev || label || 'ссылка'; }, 1500);
 			}
 		}).catch(function (e) {
 			if (btn) { btn.disabled = false; btn.textContent = label || 'ссылка для команды'; }
@@ -1377,6 +1383,45 @@ $hasKey = Config::apiKey() !== '';
 		});
 	}
 
+	function pickEntity(wantedType, item) {
+		wantedType = wantedType === 'S' ? 'S' : 'E';
+		var id = parseInt(item && item.id, 10) || 0;
+		var name = (item && item.name) ? String(item.name) : '';
+		if (id <= 0) return Promise.resolve();
+		var typeLabel = wantedType === 'S' ? 'категория' : 'товар';
+		var box = document.getElementById('titlo-search-results');
+		document.getElementById('titlo-entity-id').value = String(id);
+		document.getElementById('titlo-entity-label').textContent =
+			(wantedType === 'S' ? 'Категория' : 'Товар') + ' #' + id + (name ? (' — ' + name) : '');
+		if (box) {
+			box.style.display = 'none';
+			box.innerHTML = '';
+		}
+		closeSectionPick();
+		return post('load_entity', {entity_type: wantedType, entity_id: id}).then(function (r) {
+			if (!r.ok || !r.entity) {
+				clearEntitySelection();
+				setStatus('titlo-analysis-status', r.error || (typeLabel + ' не найдена'), true);
+				return;
+			}
+			if (String(r.entity.type || wantedType) !== wantedType) {
+				clearEntitySelection();
+				setStatus('titlo-analysis-status', 'Ответ сервера: неверный тип сущности', true);
+				return;
+			}
+			document.getElementById('titlo-url').value = r.entity.url || '';
+			document.getElementById('titlo-phrase').value = r.entity.preferred_phrase
+				|| r.entity.titlo_phrase
+				|| (r.entity.name || '').substring(0, 50);
+			if (r.entity.preview_text) document.getElementById('titlo-text-preview').value = r.entity.preview_text;
+			if (r.entity.detail_text) document.getElementById('titlo-text-detail').value = r.entity.detail_text;
+			if (r.entity.description) document.getElementById('titlo-text-category').value = r.entity.description;
+			updateProdLinks();
+			setStatus('titlo-analysis-status', 'Выбрана ' + typeLabel + ' #' + id);
+			return loadLandingStats();
+		});
+	}
+
 	document.getElementById('titlo-search-btn').onclick = function () {
 		var wantedType = entityType();
 		var q = (document.getElementById('titlo-search-q').value || '').trim();
@@ -1391,7 +1436,6 @@ $hasKey = Config::apiKey() !== '';
 				var items = (res.items || []).filter(function (item) {
 					return String(item.type || wantedType) === wantedType;
 				});
-				var typeLabel = wantedType === 'S' ? 'категория' : 'товар';
 				if (!items.length) {
 					clearEntitySelection();
 					box.style.display = 'none';
@@ -1402,49 +1446,17 @@ $hasKey = Config::apiKey() !== '';
 					);
 					return;
 				}
-				function pick(item) {
-					if (String(item.type) !== wantedType) {
-						setStatus('titlo-analysis-status', 'Тип результата не совпал с выбранным', true);
-						return;
-					}
-					document.getElementById('titlo-entity-id').value = item.id;
-					document.getElementById('titlo-entity-label').textContent =
-						(wantedType === 'S' ? 'Категория' : 'Товар') + ' #' + item.id + ' — ' + item.name;
-					box.style.display = 'none';
-					post('load_entity', {entity_type: wantedType, entity_id: item.id}).then(function (r) {
-						if (!r.ok || !r.entity) {
-							clearEntitySelection();
-							setStatus('titlo-analysis-status', r.error || (typeLabel + ' не найдена'), true);
-							return;
-						}
-						if (String(r.entity.type || wantedType) !== wantedType) {
-							clearEntitySelection();
-							setStatus('titlo-analysis-status', 'Ответ сервера: неверный тип сущности', true);
-							return;
-						}
-						document.getElementById('titlo-url').value = r.entity.url || '';
-						document.getElementById('titlo-phrase').value = r.entity.preferred_phrase
-							|| r.entity.titlo_phrase
-							|| (r.entity.name || '').substring(0, 50);
-						if (r.entity.preview_text) document.getElementById('titlo-text-preview').value = r.entity.preview_text;
-						if (r.entity.detail_text) document.getElementById('titlo-text-detail').value = r.entity.detail_text;
-						if (r.entity.description) document.getElementById('titlo-text-category').value = r.entity.description;
-						updateProdLinks();
-						setStatus('titlo-analysis-status', 'Выбрана ' + typeLabel + ' #' + item.id);
-						return loadLandingStats();
-					});
-				}
 				items.forEach(function (item) {
 					var div = document.createElement('div');
 					div.textContent = (wantedType === 'S' ? 'Категория' : 'Товар') +
 						' #' + item.id + ' — ' + item.name + (item.code ? (' (' + item.code + ')') : '');
-					div.onclick = function () { pick(item); };
+					div.onclick = function () { pickEntity(wantedType, item); };
 					box.appendChild(div);
 				});
 				box.style.display = 'block';
 				// точный ID — берём сразу, без лишнего клика
 				if (/^\d+$/.test(q) && items.length === 1 && String(items[0].id) === q) {
-					pick(items[0]);
+					pickEntity(wantedType, items[0]);
 				}
 			});
 	};
@@ -1463,13 +1475,135 @@ $hasKey = Config::apiKey() !== '';
 		updateProdLinks();
 	}
 
+	var sectionPickTree = null;
+
+	function closeSectionPick() {
+		var panel = document.getElementById('titlo-section-pick-panel');
+		var btn = document.getElementById('titlo-section-pick-btn');
+		if (panel) panel.hidden = true;
+		if (btn) btn.setAttribute('aria-expanded', 'false');
+	}
+
+	function syncSectionPickVisibility() {
+		var wrap = document.getElementById('titlo-section-pick');
+		if (!wrap) return;
+		var on = entityType() === 'S';
+		wrap.style.display = on ? '' : 'none';
+		if (!on) closeSectionPick();
+	}
+
+	function filterSectionPickList() {
+		var qEl = document.getElementById('titlo-section-pick-q');
+		var list = document.getElementById('titlo-section-pick-list');
+		if (!qEl || !list) return;
+		var raw = String(qEl.value || '').toLowerCase().replace(/ё/g, 'е').trim();
+		var tokens = raw ? raw.split(/[\s,;|]+/).filter(function (t) { return t.length >= 2; }) : [];
+		var items = list.querySelectorAll('.titlo-section-pick__item');
+		var visible = 0;
+		Array.prototype.forEach.call(items, function (item) {
+			var hay = String(item.getAttribute('data-name') || '').toLowerCase().replace(/ё/g, 'е');
+			var ok = !tokens.length || tokens.every(function (t) { return hay.indexOf(t) !== -1; });
+			if (!ok && tokens.length > 1) {
+				ok = tokens.some(function (t) { return hay.indexOf(t) !== -1; });
+			}
+			item.hidden = !ok;
+			if (ok) visible++;
+		});
+		var empty = list.querySelector('.titlo-section-ms__empty');
+		if (!visible) {
+			if (!empty) {
+				empty = document.createElement('div');
+				empty.className = 'titlo-section-ms__empty';
+				empty.textContent = 'Нет разделов по запросу';
+				list.appendChild(empty);
+			}
+			empty.hidden = false;
+		} else if (empty) {
+			empty.hidden = true;
+		}
+	}
+
+	function renderSectionPickTree(items) {
+		var list = document.getElementById('titlo-section-pick-list');
+		if (!list) return;
+		list.innerHTML = '';
+		(items || []).forEach(function (sec) {
+			var btn = document.createElement('button');
+			btn.type = 'button';
+			btn.className = 'titlo-section-pick__item';
+			btn.setAttribute('data-id', String(sec.id));
+			btn.setAttribute('data-name', String(sec.name || ''));
+			btn.textContent = sec.label || sec.name || ('#' + sec.id);
+			btn.onclick = function () {
+				pickEntity('S', { id: sec.id, name: sec.name || '', type: 'S' });
+			};
+			list.appendChild(btn);
+		});
+		filterSectionPickList();
+	}
+
+	function openSectionPick() {
+		var panel = document.getElementById('titlo-section-pick-panel');
+		var btn = document.getElementById('titlo-section-pick-btn');
+		if (!panel || !btn) return;
+		panel.hidden = false;
+		btn.setAttribute('aria-expanded', 'true');
+		var q = document.getElementById('titlo-section-pick-q');
+		if (q) { q.focus(); q.select(); }
+		if (sectionPickTree) {
+			renderSectionPickTree(sectionPickTree);
+			return;
+		}
+		var list = document.getElementById('titlo-section-pick-list');
+		if (list) list.innerHTML = '<div class="titlo-section-ms__empty">Загрузка дерева…</div>';
+		post('section_tree', {}).then(function (res) {
+			if (!res.ok) {
+				if (list) list.innerHTML = '<div class="titlo-section-ms__empty">' + escapeHtml(res.error || 'Ошибка') + '</div>';
+				return;
+			}
+			sectionPickTree = res.items || [];
+			renderSectionPickTree(sectionPickTree);
+		});
+	}
+
+	(function bindSectionPick() {
+		var wrap = document.getElementById('titlo-section-pick');
+		var btn = document.getElementById('titlo-section-pick-btn');
+		var q = document.getElementById('titlo-section-pick-q');
+		if (!wrap || !btn) return;
+		btn.addEventListener('click', function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+			var panel = document.getElementById('titlo-section-pick-panel');
+			if (panel && !panel.hidden) closeSectionPick();
+			else openSectionPick();
+		});
+		if (q) {
+			q.addEventListener('input', filterSectionPickList);
+			q.addEventListener('keydown', function (e) {
+				if (e.key === 'Escape') {
+					e.preventDefault();
+					closeSectionPick();
+				}
+			});
+		}
+		document.addEventListener('click', function (e) {
+			var panel = document.getElementById('titlo-section-pick-panel');
+			if (!panel || panel.hidden) return;
+			if (wrap.contains(e.target)) return;
+			closeSectionPick();
+		});
+		syncSectionPickVisibility();
+	})();
+
 	Array.prototype.forEach.call(document.querySelectorAll('input[name="entity_type"]'), function (radio) {
 		radio.addEventListener('change', function () {
 			clearEntitySelection();
 			document.getElementById('titlo-search-results').style.display = 'none';
 			document.getElementById('titlo-search-results').innerHTML = '';
+			syncSectionPickVisibility();
 			setStatus('titlo-analysis-status', radio.value === 'S'
-				? 'Режим: категории — введите ID/название категории'
+				? 'Режим: категории — поиск или «Выбрать категорию» из дерева'
 				: 'Режим: товары — введите ID/название товара');
 			setStatus('titlo-phrase-status', '');
 			if (promptsByTypeCache) {

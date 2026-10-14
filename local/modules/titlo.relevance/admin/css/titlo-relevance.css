@@ -189,6 +189,40 @@
 	position: relative;
 	display: block;
 }
+/* Одиночный выбор категории на ручной проработке */
+.titlo-section-pick {
+	position: relative;
+	display: inline-block;
+	margin-left: 6px;
+	vertical-align: middle;
+}
+.titlo-section-pick__panel {
+	left: 0;
+	width: 420px;
+	max-width: min(420px, 92vw);
+}
+.titlo-section-pick__item {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	text-align: left;
+	padding: 6px 10px;
+	margin: 0;
+	border: 0;
+	border-bottom: 1px solid #eef1f5;
+	background: transparent;
+	font: inherit;
+	font-size: 13px;
+	line-height: 1.35;
+	cursor: pointer;
+	color: #1e293b;
+}
+.titlo-section-pick__item:hover {
+	background: #eef5ff;
+}
+.titlo-section-pick__item[hidden] {
+	display: none !important;
+}
 .titlo-section-ms__btn {
 	min-width: 220px;
 	max-width: 360px;

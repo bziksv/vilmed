@@ -58,6 +58,12 @@ try {
 			);
 			titlo_json(['ok' => true, 'items' => $items]);
 
+		case 'section_tree':
+			titlo_json([
+				'ok' => true,
+				'items' => CatalogRepository::listSectionTreeForSelect(),
+			]);
+
 		case 'load_entity':
 			$type = strtoupper((string) ($_POST['entity_type'] ?? 'E')) === 'S' ? 'S' : 'E';
 			$id = (int) ($_POST['entity_id'] ?? 0);
