@@ -218,23 +218,27 @@ $tabControl->Begin();
 		<td colspan="2">Поля текстов каталога</td>
 	</tr>
 	<tr>
-		<td><?= Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_PREVIEW') ?></td>
-		<td>
-			<?php $renderFieldSelect('text_field_preview', Config::previewTextField(), $previewOptions); ?>
-		</td>
-	</tr>
-	<tr>
-		<td><?= Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_DETAIL') ?></td>
-		<td>
-			<?php $renderFieldSelect('text_field_detail', Config::detailTextField(), $previewOptions); ?>
-			<div class="adm-info-message" style="display:block;margin-top:6px;">
+		<td colspan="2">
+			<div class="adm-info-message" style="display:block;margin:0;">
 				<?= Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_FIELDS_HINT') ?>
 			</div>
 		</td>
 	</tr>
 	<tr>
-		<td><?= Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_SECTION') ?></td>
-		<td>
+		<td style="vertical-align:middle"><?= Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_PREVIEW') ?></td>
+		<td style="vertical-align:middle">
+			<?php $renderFieldSelect('text_field_preview', Config::previewTextField(), $previewOptions); ?>
+		</td>
+	</tr>
+	<tr>
+		<td style="vertical-align:middle"><?= Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_DETAIL') ?></td>
+		<td style="vertical-align:middle">
+			<?php $renderFieldSelect('text_field_detail', Config::detailTextField(), $previewOptions); ?>
+		</td>
+	</tr>
+	<tr>
+		<td style="vertical-align:middle"><?= Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_SECTION') ?></td>
+		<td style="vertical-align:middle">
 			<?php $renderFieldSelect('text_field_section', Config::sectionTextField(), $sectionOptions); ?>
 		</td>
 	</tr>
