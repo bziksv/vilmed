@@ -124,6 +124,47 @@ class Config
 		return (int) self::get('iblock_id', '0');
 	}
 
+	/** Куда читать и писать анонс товара. Пусто = PREVIEW_TEXT. */
+	public static function previewTextField(): string
+	{
+		return self::normalizeCatalogTextField(self::get('text_field_preview', ''), 'PREVIEW_TEXT');
+	}
+
+	/** Куда читать и писать подробное описание товара. Пусто = DETAIL_TEXT. */
+	public static function detailTextField(): string
+	{
+		return self::normalizeCatalogTextField(self::get('text_field_detail', ''), 'DETAIL_TEXT');
+	}
+
+	/** Куда читать и писать описание раздела. Пусто = DESCRIPTION. */
+	public static function sectionTextField(): string
+	{
+		return self::normalizeCatalogTextField(self::get('text_field_section', ''), 'DESCRIPTION');
+	}
+
+	/**
+	 * PREVIEW_TEXT | DETAIL_TEXT | DESCRIPTION | UF_* | PROP:CODE
+	 */
+	public static function normalizeCatalogTextField(string $raw, string $fallback): string
+	{
+		$raw = strtoupper(trim($raw));
+		$fallback = strtoupper(trim($fallback));
+		if ($raw === '' || $raw === '0') {
+			return $fallback;
+		}
+		if (in_array($raw, ['PREVIEW_TEXT', 'DETAIL_TEXT', 'DESCRIPTION'], true)) {
+			return $raw;
+		}
+		if (preg_match('/^UF_[A-Z0-9_]+$/', $raw)) {
+			return $raw;
+		}
+		if (preg_match('/^PROP:[A-Z0-9_]+$/', $raw)) {
+			return $raw;
+		}
+
+		return $fallback;
+	}
+
 	/**
 	 * Хосты, на которые разрешено слать Bearer (presets + prod + local dev).
 	 *

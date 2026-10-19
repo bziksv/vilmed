@@ -15,3 +15,7 @@ $MESS['TITLO_RELEVANCE_OPT_NOINDEX_PROP'] = 'Свойство noindex магаз
 $MESS['TITLO_RELEVANCE_OPT_NOINDEX_PROP_HINT'] = 'Пусто = не трогаем свойства каталога. Работает на любом сайте через UF_TITLO_NOINDEX + SEO robots. CODE укажите только если нужно синхронизировать своё свойство.';
 $MESS['TITLO_RELEVANCE_OPT_NOINDEX_SEO'] = 'SEO robots элемента';
 $MESS['TITLO_RELEVANCE_OPT_NOINDEX_SEO_LABEL'] = 'Писать ELEMENT_META_ROBOTS = noindex, nofollow';
+$MESS['TITLO_RELEVANCE_OPT_TEXT_PREVIEW'] = 'Поле анонса товара';
+$MESS['TITLO_RELEVANCE_OPT_TEXT_DETAIL'] = 'Поле подробного описания товара';
+$MESS['TITLO_RELEVANCE_OPT_TEXT_SECTION'] = 'Поле описания категории';
+$MESS['TITLO_RELEVANCE_OPT_TEXT_FIELDS_HINT'] = 'Откуда подгружать и куда сохранять тексты. Пусто / стандарт — PREVIEW_TEXT, DETAIL_TEXT и DESCRIPTION. Для нестандартного сайта выберите пользовательское поле (UF_) или свойство инфоблока.';

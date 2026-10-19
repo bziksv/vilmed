@@ -69,6 +69,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_bitrix_sessid()) {
 		Option::set($moduleId, 'section_url_tpl', trim((string) ($_POST['section_url_tpl'] ?? '')));
 		Option::set($moduleId, 'noindex_property', trim((string) ($_POST['noindex_property'] ?? '')));
 		Option::set($moduleId, 'noindex_use_seo', !empty($_POST['noindex_use_seo']) ? 'Y' : 'N');
+		Option::set(
+			$moduleId,
+			'text_field_preview',
+			Config::normalizeCatalogTextField((string) ($_POST['text_field_preview'] ?? ''), 'PREVIEW_TEXT')
+		);
+		Option::set(
+			$moduleId,
+			'text_field_detail',
+			Config::normalizeCatalogTextField((string) ($_POST['text_field_detail'] ?? ''), 'DETAIL_TEXT')
+		);
+		Option::set(
+			$moduleId,
+			'text_field_section',
+			Config::normalizeCatalogTextField((string) ($_POST['text_field_section'] ?? ''), 'DESCRIPTION')
+		);
 		$note = Loc::getMessage('TITLO_RELEVANCE_OPTIONS_SAVED');
 	}
 }
@@ -177,6 +192,50 @@ $tabControl->Begin();
 			<div class="adm-info-message" style="display:block;margin-top:6px;">
 				<?= Loc::getMessage('TITLO_RELEVANCE_OPT_SECTION_TPL_HINT') ?>
 			</div>
+		</td>
+	</tr>
+	<?php
+	$previewOptions = \Titlo\Relevance\CatalogRepository::catalogTextFieldOptions('E');
+	$sectionOptions = \Titlo\Relevance\CatalogRepository::catalogTextFieldOptions('S');
+	$renderFieldSelect = static function (string $name, string $current, array $options): void {
+		$known = [];
+		echo '<select name="' . htmlspecialcharsbx($name) . '" style="max-width:520px">';
+		foreach ($options as $opt) {
+			$value = (string) $opt['value'];
+			$known[$value] = true;
+			echo '<option value="' . htmlspecialcharsbx($value) . '"'
+				. ($current === $value ? ' selected' : '') . '>'
+				. htmlspecialcharsbx((string) $opt['label']) . '</option>';
+		}
+		if ($current !== '' && !isset($known[$current])) {
+			echo '<option value="' . htmlspecialcharsbx($current) . '" selected>'
+				. htmlspecialcharsbx($current) . '</option>';
+		}
+		echo '</select>';
+	};
+	?>
+	<tr class="heading">
+		<td colspan="2">Поля текстов каталога</td>
+	</tr>
+	<tr>
+		<td><?= Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_PREVIEW') ?></td>
+		<td>
+			<?php $renderFieldSelect('text_field_preview', Config::previewTextField(), $previewOptions); ?>
+		</td>
+	</tr>
+	<tr>
+		<td><?= Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_DETAIL') ?></td>
+		<td>
+			<?php $renderFieldSelect('text_field_detail', Config::detailTextField(), $previewOptions); ?>
+			<div class="adm-info-message" style="display:block;margin-top:6px;">
+				<?= Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_FIELDS_HINT') ?>
+			</div>
+		</td>
+	</tr>
+	<tr>
+		<td><?= Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_SECTION') ?></td>
+		<td>
+			<?php $renderFieldSelect('text_field_section', Config::sectionTextField(), $sectionOptions); ?>
 		</td>
 	</tr>
 	<tr>

@@ -95,6 +95,196 @@ class CatalogRepository
 	}
 
 	/**
+	 * Варианты полей для настроек модуля.
+	 *
+	 * @return array<int, array{value:string,label:string}>
+	 */
+	public static function catalogTextFieldOptions(string $entityType): array
+	{
+		$entityType = strtoupper($entityType) === 'S' ? 'S' : 'E';
+		$iblockId = Config::iblockId();
+		$out = [];
+		if ($entityType === 'E') {
+			$out[] = ['value' => 'PREVIEW_TEXT', 'label' => 'Анонс (PREVIEW_TEXT)'];
+			$out[] = ['value' => 'DETAIL_TEXT', 'label' => 'Подробно (DETAIL_TEXT)'];
+		} else {
+			$out[] = ['value' => 'DESCRIPTION', 'label' => 'Описание раздела (DESCRIPTION)'];
+		}
+		if ($iblockId <= 0 || !class_exists('CUserTypeEntity')) {
+			return $out;
+		}
+
+		$entityId = 'IBLOCK_' . $iblockId . ($entityType === 'S' ? '_SECTION' : '_ELEMENT');
+		$uf = \CUserTypeEntity::GetList(['SORT' => 'ASC', 'ID' => 'ASC'], ['ENTITY_ID' => $entityId]);
+		while ($row = $uf->Fetch()) {
+			$code = strtoupper((string) ($row['FIELD_NAME'] ?? ''));
+			if (!preg_match('/^UF_[A-Z0-9_]+$/', $code)) {
+				continue;
+			}
+			$label = trim((string) ($row['EDIT_FORM_LABEL'] ?? $row['LIST_COLUMN_LABEL'] ?? ''));
+			$out[] = [
+				'value' => $code,
+				'label' => ($label !== '' ? $label : $code) . ' (' . $code . ')',
+			];
+		}
+
+		if ($entityType === 'E' && class_exists('CIBlockProperty')) {
+			$props = \CIBlockProperty::GetList(
+				['SORT' => 'ASC', 'ID' => 'ASC'],
+				['IBLOCK_ID' => $iblockId, 'ACTIVE' => 'Y']
+			);
+			while ($row = $props->Fetch()) {
+				$type = (string) ($row['PROPERTY_TYPE'] ?? '');
+				$userType = (string) ($row['USER_TYPE'] ?? '');
+				if ($type === 'F' || $type === 'G' || $type === 'E' || $type === 'L') {
+					continue;
+				}
+				if ($userType !== '' && !in_array($userType, ['HTML', 'SASDString'], true) && $type !== 'S') {
+					continue;
+				}
+				$code = strtoupper((string) ($row['CODE'] ?? ''));
+				if (!preg_match('/^[A-Z0-9_]+$/', $code)) {
+					continue;
+				}
+				$name = trim((string) ($row['NAME'] ?? $code));
+				$out[] = [
+					'value' => 'PROP:' . $code,
+					'label' => $name . ' (свойство ' . $code . ')',
+				];
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * SQL-выражение текста (для фильтра «пусто / заполнено» и длины).
+	 */
+	public static function sqlCatalogTextExpr(string $field, string $rowAlias): string
+	{
+		$alias = preg_replace('#[^A-Za-z0-9_]#', '', $rowAlias) ?: 'BE';
+		$field = Config::normalizeCatalogTextField($field, 'DETAIL_TEXT');
+		if (in_array($field, ['PREVIEW_TEXT', 'DETAIL_TEXT', 'DESCRIPTION'], true)) {
+			return $alias . '.' . $field;
+		}
+		if (preg_match('/^UF_[A-Z0-9_]+$/', $field)) {
+			return 'UTS.' . $field;
+		}
+		if (preg_match('/^PROP:([A-Z0-9_]+)$/', $field, $m)) {
+			$iblockId = (int) Config::iblockId();
+			$code = $m[1];
+			return '(SELECT P.VALUE FROM b_iblock_element_property P'
+				. ' INNER JOIN b_iblock_property IP ON IP.ID = P.IBLOCK_PROPERTY_ID'
+				. ' WHERE P.IBLOCK_ELEMENT_ID = ' . $alias . '.ID'
+				. ' AND IP.IBLOCK_ID = ' . $iblockId
+				. " AND IP.CODE = '" . $code . "'"
+				. ' LIMIT 1)';
+		}
+
+		return $alias . '.DETAIL_TEXT';
+	}
+
+	protected static function plainCatalogText(string $raw): string
+	{
+		return trim(html_entity_decode(strip_tags($raw), ENT_QUOTES, 'UTF-8'));
+	}
+
+	protected static function readCatalogFieldValue(string $entityType, int $id, string $field, array $standard = []): string
+	{
+		$entityType = strtoupper($entityType) === 'S' ? 'S' : 'E';
+		$field = Config::normalizeCatalogTextField(
+			$field,
+			$entityType === 'S' ? 'DESCRIPTION' : 'DETAIL_TEXT'
+		);
+		if (in_array($field, ['PREVIEW_TEXT', 'DETAIL_TEXT', 'DESCRIPTION'], true)) {
+			$key = '~' . $field;
+			if (array_key_exists($key, $standard)) {
+				return (string) $standard[$key];
+			}
+			if (array_key_exists($field, $standard)) {
+				return (string) $standard[$field];
+			}
+		}
+		if (preg_match('/^UF_[A-Z0-9_]+$/', $field)) {
+			global $DB;
+			$iblockId = (int) Config::iblockId();
+			$uts = 'b_uts_iblock_' . $iblockId . ($entityType === 'S' ? '_section' : '_element');
+			$row = $DB->Query(
+				'SELECT ' . $field . ' AS V FROM ' . $uts . ' WHERE VALUE_ID = ' . (int) $id
+			)->Fetch();
+
+			return (string) ($row['V'] ?? '');
+		}
+		if ($entityType === 'E' && preg_match('/^PROP:([A-Z0-9_]+)$/', $field, $m)) {
+			$prop = \CIBlockElement::GetProperty(
+				Config::iblockId(),
+				$id,
+				[],
+				['CODE' => $m[1], 'EMPTY' => 'N']
+			)->Fetch();
+			if (!$prop) {
+				return '';
+			}
+			$value = $prop['~VALUE'] ?? $prop['VALUE'] ?? '';
+			if (is_array($value)) {
+				return (string) ($value['TEXT'] ?? '');
+			}
+
+			return (string) $value;
+		}
+
+		return '';
+	}
+
+	protected static function writeCatalogFieldValue(string $entityType, int $id, string $field, string $value, bool $html): bool
+	{
+		$entityType = strtoupper($entityType) === 'S' ? 'S' : 'E';
+		$field = Config::normalizeCatalogTextField(
+			$field,
+			$entityType === 'S' ? 'DESCRIPTION' : 'DETAIL_TEXT'
+		);
+		if ($html) {
+			$value = self::sanitizeCatalogHtml($value);
+		}
+		if ($entityType === 'S' && $field === 'DESCRIPTION') {
+			$bs = new \CIBlockSection();
+
+			return (bool) $bs->Update($id, [
+				'DESCRIPTION' => $value,
+				'DESCRIPTION_TYPE' => 'html',
+			]);
+		}
+		if ($entityType === 'E' && ($field === 'PREVIEW_TEXT' || $field === 'DETAIL_TEXT')) {
+			$el = new \CIBlockElement();
+
+			return (bool) $el->Update($id, [
+				$field => $value,
+				$field . '_TYPE' => $html ? 'html' : 'text',
+			]);
+		}
+		if (preg_match('/^UF_[A-Z0-9_]+$/', $field)) {
+			return $entityType === 'S'
+				? self::updateSectionUserFields($id, [$field => $value])
+				: self::updateElementUserFields($id, [$field => $value]);
+		}
+		if ($entityType === 'E' && preg_match('/^PROP:([A-Z0-9_]+)$/', $field, $m)) {
+			$meta = \CIBlockProperty::GetList([], [
+				'IBLOCK_ID' => Config::iblockId(),
+				'CODE' => $m[1],
+			])->Fetch();
+			$userType = (string) ($meta['USER_TYPE'] ?? '');
+			$stored = $userType === 'HTML'
+				? ['VALUE' => ['TEXT' => $value, 'TYPE' => 'HTML']]
+				: $value;
+			\CIBlockElement::SetPropertyValuesEx($id, Config::iblockId(), [$m[1] => $stored]);
+
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
 	 * @return array|null
 	 */
 	public static function findElement(int $id)
@@ -112,13 +302,14 @@ class CatalogRepository
 			// UF через GetList/GetFields часто пустой — читаем b_uts напрямую (как на «Проверке названий»).
 			$phrase = self::getElementPhrase((int) $fields['ID']);
 
+			$eid = (int) $fields['ID'];
 			$entity = [
 				'type' => 'E',
-				'id' => (int) $fields['ID'],
+				'id' => $eid,
 				'name' => (string) $fields['NAME'],
 				'code' => (string) $fields['CODE'],
-				'preview_text' => (string) $fields['~PREVIEW_TEXT'],
-				'detail_text' => (string) $fields['~DETAIL_TEXT'],
+				'preview_text' => self::readCatalogFieldValue('E', $eid, Config::previewTextField(), $fields),
+				'detail_text' => self::readCatalogFieldValue('E', $eid, Config::detailTextField(), $fields),
 				'titlo_phrase' => $phrase,
 				'url' => UrlBuilder::fromDetailPageUrl(
 					(string) ($fields['DETAIL_PAGE_URL'] ?? ''),
@@ -146,13 +337,14 @@ class CatalogRepository
 			['ID', 'NAME', 'CODE', 'DESCRIPTION', 'SECTION_PAGE_URL', 'IBLOCK_ID']
 		);
 		if ($fields = $res->GetNext()) {
-			$phrase = self::getSectionPhrase((int) $fields['ID']);
+			$sid = (int) $fields['ID'];
+			$phrase = self::getSectionPhrase($sid);
 			$entity = [
 				'type' => 'S',
-				'id' => (int) $fields['ID'],
+				'id' => $sid,
 				'name' => (string) $fields['NAME'],
 				'code' => (string) $fields['CODE'],
-				'description' => (string) $fields['~DESCRIPTION'],
+				'description' => self::readCatalogFieldValue('S', $sid, Config::sectionTextField(), $fields),
 				'titlo_phrase' => $phrase,
 				'url' => UrlBuilder::fromDetailPageUrl(
 					(string) ($fields['SECTION_PAGE_URL'] ?? ''),
@@ -1458,21 +1650,19 @@ class CatalogRepository
 		if (!Config::elementBelongsToCatalog($id)) {
 			return false;
 		}
-		$fields = [];
+		$ok = true;
+		$wrote = false;
 		if ($preview !== null) {
-			$fields['PREVIEW_TEXT'] = $preview;
-			$fields['PREVIEW_TEXT_TYPE'] = 'text';
+			$wrote = true;
+			$ok = self::writeCatalogFieldValue('E', $id, Config::previewTextField(), $preview, false) && $ok;
 		}
 		if ($detail !== null) {
-			$fields['DETAIL_TEXT'] = self::sanitizeCatalogHtml($detail);
-			$fields['DETAIL_TEXT_TYPE'] = 'html';
+			$wrote = true;
+			$ok = self::writeCatalogFieldValue('E', $id, Config::detailTextField(), $detail, true) && $ok;
 		}
-		if ($fields === []) {
+		if (!$wrote) {
 			return false;
 		}
-
-		$el = new \CIBlockElement();
-		$ok = (bool) $el->Update($id, $fields);
 		if ($ok) {
 			self::flushPublicPageCache($id, 'E');
 		}
@@ -1856,8 +2046,9 @@ class CatalogRepository
 		$phraseCol = UserFields::PHRASE_FIELD;
 		$autoAtCol = UserFields::AUTO_AT_FIELD;
 		$autoEmpty = self::sqlAutoAtEmpty('UTS', $autoAtCol);
-		$detailEmpty = self::sqlHtmlFieldEmpty('BE.DETAIL_TEXT');
-		$detailFilled = self::sqlHtmlFieldFilled('BE.DETAIL_TEXT');
+		$detailExpr = self::sqlCatalogTextExpr(Config::detailTextField(), 'BE');
+		$detailEmpty = self::sqlHtmlFieldEmpty($detailExpr);
+		$detailFilled = self::sqlHtmlFieldFilled($detailExpr);
 
 		$where = [
 			'BE.IBLOCK_ID = ' . (int) $iblockId,
@@ -1943,8 +2134,8 @@ class CatalogRepository
 				BE.ID,
 				BE.NAME,
 				BE.CODE,
-				BE.DETAIL_TEXT,
-				CHAR_LENGTH(COALESCE(BE.DETAIL_TEXT, '')) AS DETAIL_LEN,
+				{$detailExpr} AS DETAIL_TEXT,
+				CHAR_LENGTH(COALESCE({$detailExpr}, '')) AS DETAIL_LEN,
 				UTS.{$phraseCol} AS TITLO_PHRASE,
 				UTS.{$autoAtCol} AS TITLO_AUTO_AT,
 				WH.WH_ID,
@@ -2058,8 +2249,9 @@ class CatalogRepository
 		$phraseCol = UserFields::PHRASE_FIELD;
 		$autoAtCol = UserFields::AUTO_AT_FIELD;
 		$autoEmpty = self::sqlAutoAtEmpty('UTS', $autoAtCol);
-		$detailEmpty = self::sqlHtmlFieldEmpty('BE.DETAIL_TEXT');
-		$detailFilled = self::sqlHtmlFieldFilled('BE.DETAIL_TEXT');
+		$detailExpr = self::sqlCatalogTextExpr(Config::detailTextField(), 'BE');
+		$detailEmpty = self::sqlHtmlFieldEmpty($detailExpr);
+		$detailFilled = self::sqlHtmlFieldFilled($detailExpr);
 
 		$where = [
 			'BE.IBLOCK_ID = ' . (int) $iblockId,
@@ -2162,8 +2354,9 @@ class CatalogRepository
 		$phraseCol = UserFields::PHRASE_FIELD;
 		$autoAtCol = UserFields::AUTO_AT_FIELD;
 		$autoEmpty = self::sqlAutoAtEmpty('UTS', $autoAtCol);
-		$detailEmpty = self::sqlHtmlFieldEmpty('BS.DESCRIPTION');
-		$detailFilled = self::sqlHtmlFieldFilled('BS.DESCRIPTION');
+		$detailExpr = self::sqlCatalogTextExpr(Config::sectionTextField(), 'BS');
+		$detailEmpty = self::sqlHtmlFieldEmpty($detailExpr);
+		$detailFilled = self::sqlHtmlFieldFilled($detailExpr);
 
 		$where = [
 			'BS.IBLOCK_ID = ' . (int) $iblockId,
@@ -2247,8 +2440,8 @@ class CatalogRepository
 				BS.ID,
 				BS.NAME,
 				BS.CODE,
-				BS.DESCRIPTION,
-				CHAR_LENGTH(COALESCE(BS.DESCRIPTION, '')) AS DETAIL_LEN,
+				{$detailExpr} AS DESCRIPTION,
+				CHAR_LENGTH(COALESCE({$detailExpr}, '')) AS DETAIL_LEN,
 				UTS.{$phraseCol} AS TITLO_PHRASE,
 				UTS.{$autoAtCol} AS TITLO_AUTO_AT,
 				WH.WH_ID,
@@ -2362,8 +2555,9 @@ class CatalogRepository
 		$phraseCol = UserFields::PHRASE_FIELD;
 		$autoAtCol = UserFields::AUTO_AT_FIELD;
 		$autoEmpty = self::sqlAutoAtEmpty('UTS', $autoAtCol);
-		$detailEmpty = self::sqlHtmlFieldEmpty('BS.DESCRIPTION');
-		$detailFilled = self::sqlHtmlFieldFilled('BS.DESCRIPTION');
+		$detailExpr = self::sqlCatalogTextExpr(Config::sectionTextField(), 'BS');
+		$detailEmpty = self::sqlHtmlFieldEmpty($detailExpr);
+		$detailFilled = self::sqlHtmlFieldFilled($detailExpr);
 
 		$where = [
 			'BS.IBLOCK_ID = ' . (int) $iblockId,
@@ -2445,13 +2639,14 @@ class CatalogRepository
 			['ID' => $id, 'IBLOCK_ID' => Config::iblockId()],
 			false,
 			false,
-			['ID', 'DETAIL_TEXT']
+			['ID', 'PREVIEW_TEXT', 'DETAIL_TEXT']
 		)->GetNext();
 		if (!$el) {
 			return true;
 		}
-		$plain = trim(html_entity_decode(strip_tags((string) ($el['~DETAIL_TEXT'] ?? $el['DETAIL_TEXT'] ?? '')), ENT_QUOTES, 'UTF-8'));
-		return $plain === '';
+		$raw = self::readCatalogFieldValue('E', $id, Config::detailTextField(), $el);
+
+		return self::plainCatalogText($raw) === '';
 	}
 
 	public static function isSectionDescriptionEmpty(int $id): bool
@@ -2468,8 +2663,9 @@ class CatalogRepository
 		if (!$sec) {
 			return true;
 		}
-		$plain = trim(html_entity_decode(strip_tags((string) ($sec['~DESCRIPTION'] ?? $sec['DESCRIPTION'] ?? '')), ENT_QUOTES, 'UTF-8'));
-		return $plain === '';
+		$raw = self::readCatalogFieldValue('S', $id, Config::sectionTextField(), $sec);
+
+		return self::plainCatalogText($raw) === '';
 	}
 
 	public static function markElementAutoAt(int $id, ?string $mysqlDatetime = null): bool
@@ -2539,11 +2735,7 @@ class CatalogRepository
 		if (!Config::sectionBelongsToCatalog($id)) {
 			return false;
 		}
-		$bs = new \CIBlockSection();
-		$ok = (bool) $bs->Update($id, [
-			'DESCRIPTION' => self::sanitizeCatalogHtml($description),
-			'DESCRIPTION_TYPE' => 'html',
-		]);
+		$ok = self::writeCatalogFieldValue('S', $id, Config::sectionTextField(), $description, true);
 		if ($ok) {
 			self::flushPublicPageCache($id, 'S');
 		}

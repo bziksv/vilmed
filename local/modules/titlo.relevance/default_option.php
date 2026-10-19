@@ -8,4 +8,7 @@ $titlo_relevance_default_option = [
 	'section_url_tpl' => '',
 	'noindex_property' => '',
 	'noindex_use_seo' => 'Y',
+	'text_field_preview' => 'PREVIEW_TEXT',
+	'text_field_detail' => 'DETAIL_TEXT',
+	'text_field_section' => 'DESCRIPTION',
 ];
