@@ -541,7 +541,7 @@ class SectionDuplicates
 		}
 
 		usort($clusters, static function ($a, $b) {
-			return $b['size'] <=> $a['size'] ?: $b['score'] <=> $a['score'];
+			return ($b['size'] <=> $a['size']) ?: ($b['score'] <=> $a['score']);
 		});
 
 		return $clusters;

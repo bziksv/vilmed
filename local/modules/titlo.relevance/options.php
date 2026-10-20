@@ -69,21 +69,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_bitrix_sessid()) {
 		Option::set($moduleId, 'section_url_tpl', trim((string) ($_POST['section_url_tpl'] ?? '')));
 		Option::set($moduleId, 'noindex_property', trim((string) ($_POST['noindex_property'] ?? '')));
 		Option::set($moduleId, 'noindex_use_seo', !empty($_POST['noindex_use_seo']) ? 'Y' : 'N');
-		Option::set(
-			$moduleId,
-			'text_field_preview',
-			Config::normalizeCatalogTextField((string) ($_POST['text_field_preview'] ?? ''), 'PREVIEW_TEXT')
-		);
-		Option::set(
-			$moduleId,
-			'text_field_detail',
-			Config::normalizeCatalogTextField((string) ($_POST['text_field_detail'] ?? ''), 'DETAIL_TEXT')
-		);
-		Option::set(
-			$moduleId,
-			'text_field_section',
-			Config::normalizeCatalogTextField((string) ($_POST['text_field_section'] ?? ''), 'DESCRIPTION')
-		);
+		$pickTextField = static function (string $selectKey, string $customKey, string $fallback): string {
+			$custom = trim((string) ($_POST[$customKey] ?? ''));
+			if ($custom !== '') {
+				return Config::normalizeCatalogTextField($custom, $fallback);
+			}
+
+			return Config::normalizeCatalogTextField((string) ($_POST[$selectKey] ?? ''), $fallback);
+		};
+		Option::set($moduleId, 'text_field_preview', $pickTextField('text_field_preview', 'text_field_preview_custom', 'PREVIEW_TEXT'));
+		Option::set($moduleId, 'text_field_detail', $pickTextField('text_field_detail', 'text_field_detail_custom', 'DETAIL_TEXT'));
+		Option::set($moduleId, 'text_field_section', $pickTextField('text_field_section', 'text_field_section_custom', 'DESCRIPTION'));
 		$note = Loc::getMessage('TITLO_RELEVANCE_OPTIONS_SAVED');
 	}
 }
@@ -165,6 +161,11 @@ $tabControl->Begin();
 		<td><?= Loc::getMessage('TITLO_RELEVANCE_OPT_IBLOCK') ?></td>
 		<td>
 			<input type="text" name="iblock_id" value="<?= htmlspecialcharsbx($get('iblock_id', '0')) ?>" size="10">
+			<?php if ((int) $get('iblock_id', '0') <= 0): ?>
+				<div class="adm-info-message" style="display:block;margin-top:6px;color:#b45309">
+					Без ID инфоблока списки UF/свойств для анонса и описания пустые — только стандартные PREVIEW_TEXT / DETAIL_TEXT.
+				</div>
+			<?php endif; ?>
 		</td>
 	</tr>
 	<tr>
@@ -197,21 +198,39 @@ $tabControl->Begin();
 	<?php
 	$previewOptions = \Titlo\Relevance\CatalogRepository::catalogTextFieldOptions('E');
 	$sectionOptions = \Titlo\Relevance\CatalogRepository::catalogTextFieldOptions('S');
-	$renderFieldSelect = static function (string $name, string $current, array $options): void {
+	$iblockConfigured = Config::iblockId() > 0;
+	$renderFieldSelect = static function (string $name, string $customName, string $current, array $options) use ($iblockConfigured): void {
 		$known = [];
-		echo '<select name="' . htmlspecialcharsbx($name) . '" style="max-width:520px">';
+		$inList = false;
+		echo '<select name="' . htmlspecialcharsbx($name) . '" style="max-width:520px;display:block">';
 		foreach ($options as $opt) {
 			$value = (string) $opt['value'];
 			$known[$value] = true;
+			$sel = ($current === $value);
+			if ($sel) {
+				$inList = true;
+			}
 			echo '<option value="' . htmlspecialcharsbx($value) . '"'
-				. ($current === $value ? ' selected' : '') . '>'
+				. ($sel ? ' selected' : '') . '>'
 				. htmlspecialcharsbx((string) $opt['label']) . '</option>';
 		}
 		if ($current !== '' && !isset($known[$current])) {
+			$inList = true;
 			echo '<option value="' . htmlspecialcharsbx($current) . '" selected>'
 				. htmlspecialcharsbx($current) . '</option>';
 		}
 		echo '</select>';
+		$customVal = $inList ? '' : $current;
+		echo '<div style="margin-top:6px">'
+			. htmlspecialcharsbx((string) Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_CUSTOM'))
+			. ': <input type="text" name="' . htmlspecialcharsbx($customName) . '" value="'
+			. htmlspecialcharsbx($customVal) . '" size="40" placeholder="UF_DESC / PROP:DESCRIPTION" style="max-width:360px">'
+			. '</div>';
+		if (!$iblockConfigured) {
+			echo '<div class="adm-info-message" style="display:block;margin-top:6px">'
+				. Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_FIELDS_NEED_IBLOCK')
+				. '</div>';
+		}
 	};
 	?>
 	<tr class="heading">
@@ -225,21 +244,21 @@ $tabControl->Begin();
 		</td>
 	</tr>
 	<tr>
-		<td style="vertical-align:middle"><?= Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_PREVIEW') ?></td>
-		<td style="vertical-align:middle">
-			<?php $renderFieldSelect('text_field_preview', Config::previewTextField(), $previewOptions); ?>
+		<td style="vertical-align:top;padding-top:10px"><?= Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_PREVIEW') ?></td>
+		<td style="vertical-align:top">
+			<?php $renderFieldSelect('text_field_preview', 'text_field_preview_custom', Config::previewTextField(), $previewOptions); ?>
 		</td>
 	</tr>
 	<tr>
-		<td style="vertical-align:middle"><?= Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_DETAIL') ?></td>
-		<td style="vertical-align:middle">
-			<?php $renderFieldSelect('text_field_detail', Config::detailTextField(), $previewOptions); ?>
+		<td style="vertical-align:top;padding-top:10px"><?= Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_DETAIL') ?></td>
+		<td style="vertical-align:top">
+			<?php $renderFieldSelect('text_field_detail', 'text_field_detail_custom', Config::detailTextField(), $previewOptions); ?>
 		</td>
 	</tr>
 	<tr>
-		<td style="vertical-align:middle"><?= Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_SECTION') ?></td>
-		<td style="vertical-align:middle">
-			<?php $renderFieldSelect('text_field_section', Config::sectionTextField(), $sectionOptions); ?>
+		<td style="vertical-align:top;padding-top:10px"><?= Loc::getMessage('TITLO_RELEVANCE_OPT_TEXT_SECTION') ?></td>
+		<td style="vertical-align:top">
+			<?php $renderFieldSelect('text_field_section', 'text_field_section_custom', Config::sectionTextField(), $sectionOptions); ?>
 		</td>
 	</tr>
 	<tr>

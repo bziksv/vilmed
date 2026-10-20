@@ -328,7 +328,9 @@ class ProductDuplicates
 		// Кандидаты по значимым словам названия (без полной выгрузки каталога)
 		$likeParts = [];
 		global $DB;
-		foreach (array_slice($tokens !== [] ? $tokens : preg_split('/\s+/u', $bucket) ?: [], 0, 3) as $tok) {
+		// PHP 8+: вложенный ternary без скобок (a ? b : c ?: d) — Parse/Fatal.
+		$likeSource = $tokens !== [] ? $tokens : (preg_split('/\s+/u', $bucket) ?: []);
+		foreach (array_slice($likeSource, 0, 3) as $tok) {
 			$tok = trim((string) $tok);
 			if ($tok === '' || mb_strlen($tok) < 3) {
 				continue;
@@ -615,7 +617,7 @@ class ProductDuplicates
 		}
 
 		usort($clusters, static function ($a, $b) {
-			return $b['size'] <=> $a['size'] ?: $b['score'] <=> $a['score'];
+			return ($b['size'] <=> $a['size']) ?: ($b['score'] <=> $a['score']);
 		});
 
 		return $clusters;

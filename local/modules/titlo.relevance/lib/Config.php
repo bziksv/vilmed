@@ -143,7 +143,7 @@ class Config
 	}
 
 	/**
-	 * PREVIEW_TEXT | DETAIL_TEXT | DESCRIPTION | UF_* | PROP:CODE
+	 * PREVIEW_TEXT | DETAIL_TEXT | DESCRIPTION | UF_* | PROP:CODE | PROP_ID:N
 	 */
 	public static function normalizeCatalogTextField(string $raw, string $fallback): string
 	{
@@ -160,6 +160,9 @@ class Config
 		}
 		if (preg_match('/^PROP:[A-Z0-9_]+$/', $raw)) {
 			return $raw;
+		}
+		if (preg_match('/^PROP_ID:(\d+)$/', $raw, $m) && (int) $m[1] > 0) {
+			return 'PROP_ID:' . (int) $m[1];
 		}
 
 		return $fallback;

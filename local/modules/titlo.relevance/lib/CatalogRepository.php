@@ -110,22 +110,43 @@ class CatalogRepository
 		} else {
 			$out[] = ['value' => 'DESCRIPTION', 'label' => 'Описание раздела (DESCRIPTION)'];
 		}
-		if ($iblockId <= 0 || !class_exists('CUserTypeEntity')) {
+		if ($iblockId <= 0) {
 			return $out;
 		}
 
+		$seen = [];
+		foreach ($out as $opt) {
+			$seen[$opt['value']] = true;
+		}
+
 		$entityId = 'IBLOCK_' . $iblockId . ($entityType === 'S' ? '_SECTION' : '_ELEMENT');
-		$uf = \CUserTypeEntity::GetList(['SORT' => 'ASC', 'ID' => 'ASC'], ['ENTITY_ID' => $entityId]);
-		while ($row = $uf->Fetch()) {
-			$code = strtoupper((string) ($row['FIELD_NAME'] ?? ''));
-			if (!preg_match('/^UF_[A-Z0-9_]+$/', $code)) {
-				continue;
+		if (class_exists('CUserTypeEntity')) {
+			$uf = \CUserTypeEntity::GetList(['SORT' => 'ASC', 'ID' => 'ASC'], ['ENTITY_ID' => $entityId]);
+			while ($row = $uf->Fetch()) {
+				$code = strtoupper(trim((string) ($row['FIELD_NAME'] ?? '')));
+				if (!preg_match('/^UF_[A-Z0-9_]+$/', $code) || isset($seen[$code])) {
+					continue;
+				}
+				$label = '';
+				foreach (['EDIT_FORM_LABEL', 'LIST_COLUMN_LABEL', 'LIST_FILTER_LABEL'] as $lk) {
+					$raw = $row[$lk] ?? '';
+					if (is_array($raw)) {
+						$lang = defined('LANGUAGE_ID') ? (string) LANGUAGE_ID : 'ru';
+						$label = trim((string) ($raw[$lang] ?? reset($raw) ?: ''));
+					} else {
+						$label = trim((string) $raw);
+					}
+					if ($label !== '' && strcasecmp($label, 'Array') !== 0) {
+						break;
+					}
+					$label = '';
+				}
+				$seen[$code] = true;
+				$out[] = [
+					'value' => $code,
+					'label' => ($label !== '' ? $label : $code) . ' (' . $code . ')',
+				];
 			}
-			$label = trim((string) ($row['EDIT_FORM_LABEL'] ?? $row['LIST_COLUMN_LABEL'] ?? ''));
-			$out[] = [
-				'value' => $code,
-				'label' => ($label !== '' ? $label : $code) . ' (' . $code . ')',
-			];
 		}
 
 		if ($entityType === 'E' && class_exists('CIBlockProperty')) {
@@ -136,20 +157,35 @@ class CatalogRepository
 			while ($row = $props->Fetch()) {
 				$type = (string) ($row['PROPERTY_TYPE'] ?? '');
 				$userType = (string) ($row['USER_TYPE'] ?? '');
-				if ($type === 'F' || $type === 'G' || $type === 'E' || $type === 'L') {
+				// Текст / число / HTML — без файлов, привязок, списков
+				if (in_array($type, ['F', 'G', 'E', 'L'], true)) {
 					continue;
 				}
-				if ($userType !== '' && !in_array($userType, ['HTML', 'SASDString'], true) && $type !== 'S') {
+				if ($type === 'N' && $userType === '') {
+					// числа обычно не для SEO-текстов
 					continue;
 				}
-				$code = strtoupper((string) ($row['CODE'] ?? ''));
-				if (!preg_match('/^[A-Z0-9_]+$/', $code)) {
+				if ($userType !== '' && !in_array($userType, ['HTML', 'SASDString', 'Date', 'DateTime'], true) && $type !== 'S') {
 					continue;
 				}
+				$code = strtoupper(trim((string) ($row['CODE'] ?? '')));
+				$propId = (int) ($row['ID'] ?? 0);
+				if ($code !== '' && preg_match('/^[A-Z0-9_]+$/', $code)) {
+					$value = 'PROP:' . $code;
+				} elseif ($propId > 0) {
+					$value = 'PROP_ID:' . $propId;
+				} else {
+					continue;
+				}
+				if (isset($seen[$value])) {
+					continue;
+				}
+				$seen[$value] = true;
 				$name = trim((string) ($row['NAME'] ?? $code));
+				$suffix = $code !== '' ? $code : ('ID ' . $propId);
 				$out[] = [
-					'value' => 'PROP:' . $code,
-					'label' => $name . ' (свойство ' . $code . ')',
+					'value' => $value,
+					'label' => ($name !== '' ? $name : $suffix) . ' (свойство ' . $suffix . ')',
 				];
 			}
 		}
@@ -178,6 +214,13 @@ class CatalogRepository
 				. ' WHERE P.IBLOCK_ELEMENT_ID = ' . $alias . '.ID'
 				. ' AND IP.IBLOCK_ID = ' . $iblockId
 				. " AND IP.CODE = '" . $code . "'"
+				. ' LIMIT 1)';
+		}
+		if (preg_match('/^PROP_ID:(\d+)$/', $field, $m)) {
+			$propId = (int) $m[1];
+			return '(SELECT P.VALUE FROM b_iblock_element_property P'
+				. ' WHERE P.IBLOCK_ELEMENT_ID = ' . $alias . '.ID'
+				. ' AND P.IBLOCK_PROPERTY_ID = ' . $propId
 				. ' LIMIT 1)';
 		}
 
@@ -221,6 +264,23 @@ class CatalogRepository
 				$id,
 				[],
 				['CODE' => $m[1], 'EMPTY' => 'N']
+			)->Fetch();
+			if (!$prop) {
+				return '';
+			}
+			$value = $prop['~VALUE'] ?? $prop['VALUE'] ?? '';
+			if (is_array($value)) {
+				return (string) ($value['TEXT'] ?? '');
+			}
+
+			return (string) $value;
+		}
+		if ($entityType === 'E' && preg_match('/^PROP_ID:(\d+)$/', $field, $m)) {
+			$prop = \CIBlockElement::GetProperty(
+				Config::iblockId(),
+				$id,
+				[],
+				['ID' => (int) $m[1], 'EMPTY' => 'N']
 			)->Fetch();
 			if (!$prop) {
 				return '';
@@ -277,6 +337,17 @@ class CatalogRepository
 				? ['VALUE' => ['TEXT' => $value, 'TYPE' => 'HTML']]
 				: $value;
 			\CIBlockElement::SetPropertyValuesEx($id, Config::iblockId(), [$m[1] => $stored]);
+
+			return true;
+		}
+		if ($entityType === 'E' && preg_match('/^PROP_ID:(\d+)$/', $field, $m)) {
+			$propId = (int) $m[1];
+			$meta = \CIBlockProperty::GetByID($propId, Config::iblockId())->Fetch();
+			$userType = (string) ($meta['USER_TYPE'] ?? '');
+			$stored = $userType === 'HTML'
+				? ['VALUE' => ['TEXT' => $value, 'TYPE' => 'HTML']]
+				: $value;
+			\CIBlockElement::SetPropertyValuesEx($id, Config::iblockId(), [$propId => $stored]);
 
 			return true;
 		}

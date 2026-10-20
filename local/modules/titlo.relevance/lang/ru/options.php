@@ -18,4 +18,6 @@ $MESS['TITLO_RELEVANCE_OPT_NOINDEX_SEO_LABEL'] = 'Писать ELEMENT_META_ROBO
 $MESS['TITLO_RELEVANCE_OPT_TEXT_PREVIEW'] = 'Поле анонса товара';
 $MESS['TITLO_RELEVANCE_OPT_TEXT_DETAIL'] = 'Поле подробного описания товара';
 $MESS['TITLO_RELEVANCE_OPT_TEXT_SECTION'] = 'Поле описания категории';
-$MESS['TITLO_RELEVANCE_OPT_TEXT_FIELDS_HINT'] = 'Откуда подгружать и куда сохранять тексты. Пусто / стандарт — PREVIEW_TEXT, DETAIL_TEXT и DESCRIPTION. Для нестандартного сайта выберите пользовательское поле (UF_) или свойство инфоблока.';
+$MESS['TITLO_RELEVANCE_OPT_TEXT_FIELDS_HINT'] = 'Откуда подгружать и куда сохранять тексты. Стандарт — PREVIEW_TEXT, DETAIL_TEXT и DESCRIPTION. UF и свойства появляются только после указания ID инфоблока каталога выше и сохранения настроек. Можно выбрать из списка или вписать код вручную (UF_… / PROP:CODE).';
+$MESS['TITLO_RELEVANCE_OPT_TEXT_FIELDS_NEED_IBLOCK'] = 'Сначала укажите ID инфоблока каталога и нажмите «Сохранить» — тогда в списках появятся UF и свойства этого инфоблока.';
+$MESS['TITLO_RELEVANCE_OPT_TEXT_CUSTOM'] = 'или вручную';
