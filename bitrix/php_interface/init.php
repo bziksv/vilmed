@@ -87,6 +87,26 @@ function bxModifySaleMails($orderID, &$eventName, &$arFields)
     $arFields["ROI_VISIT"] = $_COOKIE['roistat_visit'];
 }
 
+// Planfix CRM: с 22.10.2026 у ALTOP_FORM_* BCC из шаблона перестал попадать в конверт
+// (21.10 было for info@ + vilmed@almamed.planfix.ru, 22.10 — только info@).
+// Дублируем адрес в EMAIL_TO, чтобы письмо снова шло в Planfix.
+AddEventHandler("main", "OnBeforeEventSend", "vilmedForcePlanfixOnAltopForms");
+function vilmedForcePlanfixOnAltopForms(&$arFields, &$arTemplate)
+{
+	$eventName = (string)($arTemplate["EVENT_NAME"] ?? "");
+	if ($eventName === "" || strpos($eventName, "ALTOP_FORM_") !== 0) {
+		return;
+	}
+	$planfix = "vilmed@almamed.planfix.ru";
+	$bcc = (string)($arTemplate["BCC"] ?? "");
+	if ($bcc === "" || stripos($bcc, $planfix) === false) {
+		$arTemplate["BCC"] = ($bcc === "" ? $planfix : rtrim($bcc, ", ") . ", " . $planfix);
+	}
+	if (!empty($arFields["EMAIL_TO"]) && stripos((string)$arFields["EMAIL_TO"], $planfix) === false) {
+		$arFields["EMAIL_TO"] = rtrim((string)$arFields["EMAIL_TO"], ", ") . ", " . $planfix;
+	}
+}
+
 if(file_exists($_SERVER['DOCUMENT_ROOT'].'/bitrix/php_interface/include/catalog_section_list_json.php')){
    require_once($_SERVER['DOCUMENT_ROOT'].'/bitrix/php_interface/include/catalog_section_list_json.php');
 }
