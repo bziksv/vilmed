@@ -87,7 +87,8 @@ function bxModifySaleMails($orderID, &$eventName, &$arFields)
     $arFields["ROI_VISIT"] = $_COOKIE['roistat_visit'];
 }
 
-// ALTOP forms → как SALE_NEW_ORDER: TO менеджеру, BCC в Planfix (шаблон иногда терял BCC в конверте).
+// ALTOP forms → как рабочий SALE_NEW_ORDER / ask_price 21.10:
+// TO info@ + Planfix в конверте. Один BCC из шаблона у ALTOP в exim часто не попадает.
 AddEventHandler("main", "OnBeforeEventSend", "vilmedForcePlanfixOnAltopForms");
 function vilmedForcePlanfixOnAltopForms(&$arFields, &$arTemplate)
 {
@@ -96,7 +97,16 @@ function vilmedForcePlanfixOnAltopForms(&$arFields, &$arTemplate)
 		return;
 	}
 	$planfix = "vilmed@almamed.planfix.ru";
+	$info = "info@vilmed.ru";
 	$arTemplate["BCC"] = $planfix;
+	$to = trim((string)($arFields["EMAIL_TO"] ?? ""));
+	if ($to === "" || stripos($to, "@") === false) {
+		$to = $info;
+	}
+	if (stripos($to, $planfix) === false) {
+		$to = rtrim($to, ", ") . ", " . $planfix;
+	}
+	$arFields["EMAIL_TO"] = $to;
 }
 
 if(file_exists($_SERVER['DOCUMENT_ROOT'].'/bitrix/php_interface/include/catalog_section_list_json.php')){
