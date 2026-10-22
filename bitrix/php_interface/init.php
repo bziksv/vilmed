@@ -87,12 +87,7 @@ function bxModifySaleMails($orderID, &$eventName, &$arFields)
     $arFields["ROI_VISIT"] = $_COOKIE['roistat_visit'];
 }
 
-// Planfix CRM (ALTOP forms):
-// 1) BCC из шаблона с 22.10 иногда не попадал в конверт — шлём Planfix в TO.
-// 2) mail_additional_parameters=-f info@vilmed.ru (envelope=From) — иначе Planfix spam
-//    из‑за Return-Path vilmed_ru_usr@s2.prime-ltd.su.
-// 3) info@vilmed.ru на mail.vilmed.ru при From=info@ даёт 550 smtp auth required —
-//    в TO только Planfix (CRM). Копия на info@ — после SMTP auth на mail.vilmed.ru.
+// ALTOP forms → как SALE_NEW_ORDER: TO менеджеру, BCC в Planfix (шаблон иногда терял BCC в конверте).
 AddEventHandler("main", "OnBeforeEventSend", "vilmedForcePlanfixOnAltopForms");
 function vilmedForcePlanfixOnAltopForms(&$arFields, &$arTemplate)
 {
@@ -101,8 +96,7 @@ function vilmedForcePlanfixOnAltopForms(&$arFields, &$arTemplate)
 		return;
 	}
 	$planfix = "vilmed@almamed.planfix.ru";
-	$arFields["EMAIL_TO"] = $planfix;
-	$arTemplate["BCC"] = "";
+	$arTemplate["BCC"] = $planfix;
 }
 
 if(file_exists($_SERVER['DOCUMENT_ROOT'].'/bitrix/php_interface/include/catalog_section_list_json.php')){

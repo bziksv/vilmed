@@ -218,8 +218,8 @@ if($elementId = $el->Add($arFields)) {
 	//SEND_MAIL//
 	$arPropsMess["FORM_NAME"] = $iblock["NAME"];
 	$arPropsMess["ROI_VISIT"] = $_COOKIE['roistat_visit'] ?: "";
-	// Planfix CRM (см. vilmedForcePlanfixOnAltopForms + mail_additional_parameters=-f info@vilmed.ru)
-	$arPropsMess["EMAIL_TO"] = "vilmed@almamed.planfix.ru";
+	// как SALE_NEW_ORDER: TO = менеджер, BCC Planfix из шаблона / OnBeforeEventSend
+	$arPropsMess["EMAIL_TO"] = Option::get("main", "email_from");
 	
 	$arFiles = array();
 	foreach($iblock["PROPERTIES"] as $arProp) {
