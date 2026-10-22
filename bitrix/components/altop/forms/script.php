@@ -218,12 +218,7 @@ if($elementId = $el->Add($arFields)) {
 	//SEND_MAIL//
 	$arPropsMess["FORM_NAME"] = $iblock["NAME"];
 	$arPropsMess["ROI_VISIT"] = $_COOKIE['roistat_visit'] ?: "";
-	// info@ + Planfix в TO (BCC у ALTOP в exim нестабилен; 21.10 так доезжало)
 	$arPropsMess["EMAIL_TO"] = Option::get("main", "email_from");
-	$planfix = "vilmed@almamed.planfix.ru";
-	if ($arPropsMess["EMAIL_TO"] && stripos($arPropsMess["EMAIL_TO"], $planfix) === false) {
-		$arPropsMess["EMAIL_TO"] = rtrim($arPropsMess["EMAIL_TO"], ", ") . ", " . $planfix;
-	}
 	
 	$arFiles = array();
 	foreach($iblock["PROPERTIES"] as $arProp) {
