@@ -218,12 +218,8 @@ if($elementId = $el->Add($arFields)) {
 	//SEND_MAIL//
 	$arPropsMess["FORM_NAME"] = $iblock["NAME"];
 	$arPropsMess["ROI_VISIT"] = $_COOKIE['roistat_visit'] ?: "";
-	$arPropsMess["EMAIL_TO"] = Option::get("main", "email_from");
-	// Planfix: дубль в TO — BCC шаблона с 22.10 иногда не попадает в конверт exim
-	$planfixBcc = "vilmed@almamed.planfix.ru";
-	if ($arPropsMess["EMAIL_TO"] && stripos($arPropsMess["EMAIL_TO"], $planfixBcc) === false) {
-		$arPropsMess["EMAIL_TO"] = rtrim($arPropsMess["EMAIL_TO"], ", ") . ", " . $planfixBcc;
-	}
+	// Planfix CRM (см. vilmedForcePlanfixOnAltopForms + mail_additional_parameters=-f info@vilmed.ru)
+	$arPropsMess["EMAIL_TO"] = "vilmed@almamed.planfix.ru";
 	
 	$arFiles = array();
 	foreach($iblock["PROPERTIES"] as $arProp) {
