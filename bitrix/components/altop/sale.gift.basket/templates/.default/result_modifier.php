@@ -181,7 +181,7 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 		//TOTAL_OFFERS//	
 		$totalQnt = false;
 		$minPrice = false;
-		$totalPrices = false;
+		$totalPrices = array();
 		foreach($arElement["OFFERS"] as $key_off => $arOffer) {		
 			$totalQnt += $arOffer["CATALOG_QUANTITY"];
 			$itemPrice = $arOffer["ITEM_PRICES"][$arOffer["ITEM_PRICE_SELECTED"]];
@@ -224,7 +224,7 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 			);
 		}		
 		$arResult["ITEMS"][$key]["TOTAL_OFFERS"]["QUANTITY"] = $totalQnt;
-		if(count(array_unique($totalPrices)) > 1) {
+		if(count(array_unique(is_array($totalPrices) ? $totalPrices : [])) > 1) {
 			$arResult["ITEMS"][$key]["TOTAL_OFFERS"]["FROM"] = "Y";
 		} else {
 			$arResult["ITEMS"][$key]["TOTAL_OFFERS"]["FROM"] = "N";
@@ -235,7 +235,7 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 unset($key, $arElement);
 
 //PREVIEW_TEXT//
-if(count($ids) > 0) {
+if(count($ids ?? []) > 0) {
 	$arItems = array();
 	$rsElements = CIBlockElement::GetList(array(), array("ID" => $ids), false, false, array("ID", "IBLOCK_ID", "PREVIEW_TEXT"));
 	while($arElement = $rsElements->GetNext()) {
@@ -252,7 +252,7 @@ if(count($ids) > 0) {
 unset($ids);
 
 //MANUFACTURER//
-if(count($vendorIds) > 0) {	
+if(count($vendorIds ?? []) > 0) {	
 	$arVendor = array();
 	$rsElements = CIBlockElement::GetList(
 		array(),

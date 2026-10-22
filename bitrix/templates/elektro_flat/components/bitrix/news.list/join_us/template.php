@@ -2,7 +2,7 @@
 
 $this->setFrameMode(true);
 
-if(count($arResult["ITEMS"]) < 1)
+if(count($arResult["ITEMS"] ?? []) < 1)
 	return;?>
 
 <div class="h3"><?=GetMessage("JOIN_US")?></div>

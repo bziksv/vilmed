@@ -3,7 +3,7 @@ IncludeModuleLangFile(__FILE__);
 
 class Nb_class
 {
-    function GetList($arSort = Array("SORT"=>"ASC"),$arFilter=Array(),$arSelect = Array())
+    public static function GetList($arSort = Array("SORT"=>"ASC"),$arFilter=Array(),$arSelect = Array())
     {
         if(is_array($arSelect))
         {
@@ -65,7 +65,7 @@ class Nb_class
 
     }
 
-    function GetByID($ID)
+    public static function GetByID($ID)
     {
         $ID = intval($ID);
         if($ID>0)
@@ -81,7 +81,7 @@ class Nb_class
         }
     }
 
-    function copyRow($ID){
+    public static function copyRow($ID){
 
         $ID = intval($ID);
         if($ID>0)
@@ -109,7 +109,7 @@ class Nb_class
         }
     }
 
-    function Add(&$arFields)
+    public static function Add(&$arFields)
     {
         if(!$this->requireField($arFields))
             return false;
@@ -119,7 +119,7 @@ class Nb_class
         return $ID = $DB->Add("b_prime_smartbanners",$arFields);
     }
 
-    function Update($ID,$arFields)
+    public static function Update($ID,$arFields)
     {
         if(!$this->requireField($arFields))
             return false;
@@ -138,7 +138,7 @@ class Nb_class
         return true;
     }
 
-    function UpdateActive($ID,$arFields){
+    public static function UpdateActive($ID,$arFields){
         global $DB;
         $ID = intval($ID);
         $strUpdate = $DB->PrepareUpdate("b_prime_smartbanners", $arFields);
@@ -150,7 +150,7 @@ class Nb_class
         return true;
     }
 
-    function SaveFile($arImage,$ID = 0)
+    public static function SaveFile($arImage,$ID = 0)
     {
         if (is_array($arImage))
         {
@@ -184,7 +184,7 @@ class Nb_class
         return "";
     }
 
-    function ShowBanner(){
+    public static function ShowBanner(){
         if(CSite::InDir('/bitrix/'))
             return true;
 
@@ -213,7 +213,7 @@ class Nb_class
         }
     }
 
-    function requireField(&$arFields){
+    public static function requireField(&$arFields){
 
         global $DB, $APPLICATION, $USER;
         $this->LAST_ERROR = "";
@@ -234,7 +234,7 @@ class Nb_class
     }
 
 
-    function Delete($ID)
+    public static function Delete($ID)
     {
         global $DB,$strError;
         $ID = intval($ID);
@@ -255,7 +255,7 @@ class Nb_class
 
     }
 
-    function statUpdate($ID,$strUpdate){
+    public static function statUpdate($ID,$strUpdate){
         global $DB,$strError;
         $ID = intval($ID);
         if($ID>0 and $strUpdate)

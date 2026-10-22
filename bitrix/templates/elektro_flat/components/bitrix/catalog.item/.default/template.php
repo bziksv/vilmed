@@ -110,11 +110,11 @@ if(isset($arResult['ITEM'])) {
 	}
 
 	//PRICE_MATRIX//
-	if(count($arElement["PRICE_MATRIX_SHOW"]["COLS"]) > 1 && empty($arElement["CURRENT_DISCOUNT"]["ACTIVE_TO"])) {
+	if(count($arElement["PRICE_MATRIX_SHOW"]["COLS"] ?? []) > 1 && empty($arElement["CURRENT_DISCOUNT"]["ACTIVE_TO"])) {
 		$class = " item-pm";
 	}
 	if($haveOffers) {
-		if(count($arElement["TOTAL_OFFERS"]["PRICE_MATRIX_SHOW"]["COLS"]) > 1 && empty($arElement["CURRENT_DISCOUNT"]["ACTIVE_TO"])) {
+		if(count($arElement["TOTAL_OFFERS"]["PRICE_MATRIX_SHOW"]["COLS"] ?? []) > 1 && empty($arElement["CURRENT_DISCOUNT"]["ACTIVE_TO"])) {
 			$class = " item-pm";
 		}
 	}

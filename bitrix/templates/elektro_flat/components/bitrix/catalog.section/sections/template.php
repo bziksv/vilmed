@@ -2,7 +2,7 @@
 
 $this->setFrameMode(true);
 
-if(count($arResult["ITEMS"]) < 1)
+if(count($arResult["ITEMS"] ?? []) < 1)
 return;
 
 $curPage = $APPLICATION->GetCurPage();
@@ -70,7 +70,7 @@ $inQuickView = in_array("QUICK_VIEW", $arSetting["GENERAL_SETTINGS"]["VALUE"]);
 				<span class="items-section__title">
 					<span class="items-section__title-text"><?=$arSection["NAME"]?></span>
 					<span class="items-section__title-qnt-wrap">
-						<span class="items-section__title-qnt"><?=count($arSection["ITEMS"])?></span>
+						<span class="items-section__title-qnt"><?=count($arSection["ITEMS"] ?? [])?></span>
 					</span>
 				</span>
 				<i class="items-section__title-icon fa<?=($arParams['HIDE_SECTION'] != 'Y' ? ' fa-minus' : ' fa-plus')?>"></i>
@@ -150,11 +150,11 @@ $inQuickView = in_array("QUICK_VIEW", $arSetting["GENERAL_SETTINGS"]["VALUE"]);
 						}
 
 						//PRICE_MATRIX//
-						if(count($arElement["PRICE_MATRIX_SHOW"]["COLS"]) > 1 && empty($arElement["CURRENT_DISCOUNT"]["ACTIVE_TO"])) {
+						if(count($arElement["PRICE_MATRIX_SHOW"]["COLS"] ?? []) > 1 && empty($arElement["CURRENT_DISCOUNT"]["ACTIVE_TO"])) {
 							$class = " item-pm";
 						}
 						if(isset($arElement["OFFERS"]) && !empty($arElement["OFFERS"])) {
-							if(count($arResult["ITEMS"][$key]["TOTAL_OFFERS"]["PRICE_MATRIX_SHOW"]["COLS"]) && empty($arElement["CURRENT_DISCOUNT"]["ACTIVE_TO"])) {
+							if(count($arResult["ITEMS"][$key]["TOTAL_OFFERS"]["PRICE_MATRIX_SHOW"]["COLS"] ?? []) && empty($arElement["CURRENT_DISCOUNT"]["ACTIVE_TO"])) {
 								$class = " item-pm";
 							}
 						}
@@ -267,7 +267,7 @@ $inQuickView = in_array("QUICK_VIEW", $arSetting["GENERAL_SETTINGS"]["VALUE"]);
 														<?=$currency?>
 														<span><?=GetMessage("CATALOG_ELEMENT_UNIT")." ".(($inPriceRatio) ? $arElement["TOTAL_OFFERS"]["MIN_PRICE"]["CATALOG_MEASURE_RATIO"] : "1")." ".$arElement["TOTAL_OFFERS"]["MIN_PRICE"]["CATALOG_MEASURE_NAME"];?></span>
 													</span>
-													<?if($arParams["USE_PRICE_COUNT"] && count($arElement["TOTAL_OFFERS"]["MIN_PRICE"]["ITEM_QUANTITY_RANGES"]) > 1) {?>
+													<?if($arParams["USE_PRICE_COUNT"] && count($arElement["TOTAL_OFFERS"]["MIN_PRICE"]["ITEM_QUANTITY_RANGES"] ?? []) > 1) {?>
 														<span class="catalog-item-price-ranges-wrap">
 															<a id="<?=$arItemIDs['PRICE_RANGES_BTN']?>" class="catalog-item-price-ranges" href="javascript:void(0);"><i class="fa fa-question-circle-o"></i></a>
 														</span>
@@ -304,7 +304,7 @@ $inQuickView = in_array("QUICK_VIEW", $arSetting["GENERAL_SETTINGS"]["VALUE"]);
 													<?}
 												}?>
 												<span class="catalog-item-price">
-													<?if(count($arElement["ITEM_QUANTITY_RANGES"]) > 1 && $inMinPrice) {?>
+													<?if(count($arElement["ITEM_QUANTITY_RANGES"] ?? []) > 1 && $inMinPrice) {?>
 														<span class="from"><?=GetMessage("CATALOG_ELEMENT_FROM")?></span>
 													<?}
 													echo number_format($arElement["MIN_PRICE"]["RATIO_PRICE"], $arCurFormat["DECIMALS"], $arCurFormat["DEC_POINT"], $arCurFormat["THOUSANDS_SEP"]);?>
@@ -312,7 +312,7 @@ $inQuickView = in_array("QUICK_VIEW", $arSetting["GENERAL_SETTINGS"]["VALUE"]);
 														<?=$currency?>
 														<span><?=GetMessage("CATALOG_ELEMENT_UNIT")." ".(($inPriceRatio) ? $arElement["CATALOG_MEASURE_RATIO"] : "1")." ".$arElement["CATALOG_MEASURE_NAME"];?></span>
 													</span>
-													<?if($arParams["USE_PRICE_COUNT"] && count($arElement["ITEM_QUANTITY_RANGES"]) > 1) {?>
+													<?if($arParams["USE_PRICE_COUNT"] && count($arElement["ITEM_QUANTITY_RANGES"] ?? []) > 1) {?>
 														<span class="catalog-item-price-ranges-wrap">
 															<a id="<?=$arItemIDs['PRICE_RANGES_BTN']?>" class="catalog-item-price-ranges" href="javascript:void(0);"><i class="fa fa-question-circle-o"></i></a>
 														</span>
@@ -329,13 +329,13 @@ $inQuickView = in_array("QUICK_VIEW", $arSetting["GENERAL_SETTINGS"]["VALUE"]);
 								</div>
 								<?//OTHER_PRICE//
 								if(isset($arElement["OFFERS"]) && !empty($arElement["OFFERS"])) {
-									if(count($arElement["TOTAL_OFFERS"]["PRICE_MATRIX_SHOW"]["COLS"]) > 1) {?>
+									if(count($arElement["TOTAL_OFFERS"]["PRICE_MATRIX_SHOW"]["COLS"] ?? []) > 1) {?>
 										<div class="catalog-price-ranges">
 											<?foreach($arElement["TOTAL_OFFERS"]["PRICE_MATRIX_SHOW"]["COLS"] as $key_matrix => $item) {
 												$priceMatrix[$key_matrix] = $arElement["TOTAL_OFFERS"]["PRICE_MATRIX_SHOW"]["MATRIX"][$key_matrix];
 												$oneRange = array_pop($priceMatrix[$key_matrix]);
 												array_push($priceMatrix[$key], $oneRange);
-												$countRange = count($arElement["TOTAL_OFFERS"]["PRICE_MATRIX_SHOW"]["MATRIX"][$key_matrix]);?>
+												$countRange = count($arElement["TOTAL_OFFERS"]["PRICE_MATRIX_SHOW"]["MATRIX"][$key_matrix] ?? []);?>
 												<div class="catalog-detail-price-ranges__row">
 													<div class="catalog-detail-price-ranges__sort">
 														<?=$item["NAME_LANG"]?>
@@ -360,13 +360,13 @@ $inQuickView = in_array("QUICK_VIEW", $arSetting["GENERAL_SETTINGS"]["VALUE"]);
 										</div>
 									<?}
 								} else {
-									if(count($arElement["PRICE_MATRIX_SHOW"]["COLS"]) > 1) {?>
+									if(count($arElement["PRICE_MATRIX_SHOW"]["COLS"] ?? []) > 1) {?>
 										<div class="catalog-price-ranges">
 											<?foreach($arElement["PRICE_MATRIX_SHOW"]["COLS"] as $key_matrix => $item) {
 												$priceMatrix[$key_matrix] = $arElement["PRICE_MATRIX_SHOW"]["MATRIX"][$key_matrix];
 												$oneRange = array_pop($priceMatrix[$key_matrix]);
 												array_push($priceMatrix[$key_matrix], $oneRange);
-												$countRange = count($arElement["PRICE_MATRIX_SHOW"]["MATRIX"][$key_matrix]);?>
+												$countRange = count($arElement["PRICE_MATRIX_SHOW"]["MATRIX"][$key_matrix] ?? []);?>
 												<div class="catalog-detail-price-ranges__row">
 													<div class="catalog-detail-price-ranges__sort">
 														<?=$item["NAME_LANG"]?>

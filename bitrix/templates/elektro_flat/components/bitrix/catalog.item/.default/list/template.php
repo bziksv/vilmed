@@ -191,12 +191,12 @@ $arElement['DETAIL_PAGE_URL'] = "/product/".$arElement['CODE']."/";
 			<?} else {?>
 				<span class="catalog-item-price">
 					<?=($arElement["TOTAL_OFFERS"]["FROM"] == "Y" ? "<span class='from'>".Loc::getMessage("CT_BCS_ELEMENT_FROM")."</span> " : "").number_format($arElement["TOTAL_OFFERS"]["MIN_PRICE"]["RATIO_PRICE"], $arCurFormat["DECIMALS"], $arCurFormat["DEC_POINT"], $arCurFormat["THOUSANDS_SEP"]);
-					if($arParams["USE_PRICE_COUNT"] && count($arElement["TOTAL_OFFERS"]["MIN_PRICE"]["ITEM_QUANTITY_RANGES"]) > 1) {?>
+					if($arParams["USE_PRICE_COUNT"] && count($arElement["TOTAL_OFFERS"]["MIN_PRICE"]["ITEM_QUANTITY_RANGES"] ?? []) > 1) {?>
 						<span class="catalog-item-price-ranges-wrap">
 							<a id="<?=$itemIds['PRICE_RANGES_BTN']?>" class="catalog-item-price-ranges" href="javascript:void(0);"><i class="fa fa-question-circle-o"></i></a>
 						</span>
 					<?}?>
-					<?if(count($arElement["TOTAL_OFFERS"]["MATRIX"]["MATRIX"]) > 1 && count($arElement["TOTAL_OFFERS"]["MIN_PRICE"]["ITEM_QUANTITY_RANGES"]) <= 1) {?>
+					<?if(count($arElement["TOTAL_OFFERS"]["MATRIX"]["MATRIX"] ?? []) > 1 && count($arElement["TOTAL_OFFERS"]["MIN_PRICE"]["ITEM_QUANTITY_RANGES"] ?? []) <= 1) {?>
 						<span class="catalog-item-price-ranges-wrap">
 							<a id="<?=$itemIds['PRICE_RANGES_BTN']?>" class="catalog-item-price-ranges" href="javascript:void(0);"><i class="fa fa-question-circle-o"></i></a>
 						</span>
@@ -240,16 +240,16 @@ $arElement['DETAIL_PAGE_URL'] = "/product/".$arElement['CODE']."/";
 				</span>
 			<?} else {?>
 				<span class="catalog-item-price">
-					<?if(count($arElement["ITEM_QUANTITY_RANGES"]) > 1 && $inMinPrice) {?>
+					<?if(count($arElement["ITEM_QUANTITY_RANGES"] ?? []) > 1 && $inMinPrice) {?>
 						<span class="from"><?=Loc::getMessage("CT_BCS_ELEMENT_FROM")?></span>
 					<?}
 					echo number_format($arElement["MIN_PRICE"]["RATIO_PRICE"], $arCurFormat["DECIMALS"], $arCurFormat["DEC_POINT"], $arCurFormat["THOUSANDS_SEP"]);
-					if($arParams["USE_PRICE_COUNT"] && count($arElement["ITEM_QUANTITY_RANGES"]) > 1) {?>
+					if($arParams["USE_PRICE_COUNT"] && count($arElement["ITEM_QUANTITY_RANGES"] ?? []) > 1) {?>
 						<span class="catalog-item-price-ranges-wrap">
 							<a id="<?=$itemIds['PRICE_RANGES_BTN']?>" class="catalog-item-price-ranges" href="javascript:void(0);"><i class="fa fa-question-circle-o"></i></a>
 						</span>
 					<?}?>
-					<?if(count($arElement["PRICE_MATRIX"]["MATRIX"]) > 1 && count($arElement["ITEM_QUANTITY_RANGES"]) <= 1) {?>
+					<?if(count($arElement["PRICE_MATRIX"]["MATRIX"] ?? []) > 1 && count($arElement["ITEM_QUANTITY_RANGES"] ?? []) <= 1) {?>
 						<span class="catalog-item-price-ranges-wrap">
 							<a id="<?=$itemIds['PRICE_RANGES_BTN']?>" class="catalog-item-price-ranges" href="javascript:void(0);"><i class="fa fa-question-circle-o"></i></a>
 						</span>

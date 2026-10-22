@@ -2,7 +2,7 @@
 
 $this->setFrameMode(true);
 
-if(count($arResult["ITEMS"]) < 1)
+if(count($arResult["ITEMS"] ?? []) < 1)
 	return;
 
 global $arSetting;
@@ -136,7 +136,7 @@ $inMinPrice = in_array("MIN_PRICE", $arSetting["PRODUCT_TABLE_VIEW"]["VALUE"]);
 							</span>
 						<?} else {?>
 							<span class="catalog-item-price">
-								<?if(count($arElement["ITEM_QUANTITY_RANGES"]) > 1 && $inMinPrice) {?>
+								<?if(count($arElement["ITEM_QUANTITY_RANGES"] ?? []) > 1 && $inMinPrice) {?>
 									<span class="from"><?=GetMessage("CATALOG_ELEMENT_FROM")?></span>
 								<?}
 								echo number_format($arElement["MIN_PRICE"]["RATIO_PRICE"], $arCurFormat["DECIMALS"], $arCurFormat["DEC_POINT"], $arCurFormat["THOUSANDS_SEP"]);?>

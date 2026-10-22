@@ -562,7 +562,7 @@ rsync -avz user@217.28.220.186:/var/www/.../upload/ ~/Documents/projects/vilmed/
 ### Локальный dev-сервер
 
 ```bash
-./start-dev.sh   # nginx + php-fpm 7.4, порт 8082
+./start-dev.sh   # nginx + php-fpm 8.2, порт 8082
 ./stop-dev.sh
 ```
 

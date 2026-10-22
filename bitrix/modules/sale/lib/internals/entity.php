@@ -61,14 +61,16 @@ abstract class Entity
 	 */
 	public static function getAvailableFieldsMap()
 	{
-		static $fieldsMap = null;
+		// Key by called class — plain static $fieldsMap is shared across subclasses.
+		static $fieldsMap = array();
+		$class = get_called_class();
 
-		if ($fieldsMap === null)
+		if (!isset($fieldsMap[$class]))
 		{
-			$fieldsMap = array_fill_keys(static::getAvailableFields(), true);
+			$fieldsMap[$class] = array_fill_keys(static::getAvailableFields(), true);
 		}
 
-		return $fieldsMap;
+		return $fieldsMap[$class];
 	}
 
 	/**
@@ -78,19 +80,23 @@ abstract class Entity
 	 */
 	public static function getAllFields()
 	{
+		// Key by called class — plain static $mapFields is shared across subclasses
+		// (Order/Shipment/Payment), which breaks setFieldNoDemand on PHP 8+.
 		static $mapFields = array();
-		if ($mapFields)
+		$class = get_called_class();
+		if (!empty($mapFields[$class]))
 		{
-			return $mapFields;
+			return $mapFields[$class];
 		}
 
+		$mapFields[$class] = array();
 		$fields = static::getFieldsDescription();
 		foreach ($fields as $field)
 		{
-			$mapFields[$field['CODE']] = $field['CODE'];
+			$mapFields[$class][$field['CODE']] = $field['CODE'];
 		}
 
-		return $mapFields;
+		return $mapFields[$class];
 	}
 
 	/**

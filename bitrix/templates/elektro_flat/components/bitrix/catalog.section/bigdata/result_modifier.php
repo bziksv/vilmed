@@ -9,7 +9,7 @@ $arParams = $component->applyTemplateModifications();
 // Гейтится параметром VMD_RANDOM из include-файла (recommend.php).
 if(isset($arParams["VMD_RANDOM"]) && $arParams["VMD_RANDOM"] === "Y" && is_array($arResult["ITEMS"]) && !empty($arResult["ITEMS"])) {
 	$vmdCount = isset($arParams["VMD_RANDOM_COUNT"]) ? (int)$arParams["VMD_RANDOM_COUNT"] : 4;
-	if($vmdCount > 0 && count($arResult["ITEMS"]) > $vmdCount) {
+	if($vmdCount > 0 && count($arResult["ITEMS"] ?? []) > $vmdCount) {
 		$vmdKeys = array_keys($arResult["ITEMS"]);
 		shuffle($vmdKeys);
 		$vmdKeys = array_slice($vmdKeys, 0, $vmdCount);
@@ -34,7 +34,7 @@ if(!$inPriceRatio) {
 	foreach($arResult["ITEMS"] as $key => $arElement) {	
 		if(isset($arElement["OFFERS"]) && !empty($arElement["OFFERS"])) {
 			foreach($arElement["OFFERS"] as $key_off => $arOffer) {
-				foreach($arOffer["ITEM_PRICES"] as $keyPrice => $itemPrice) {
+				foreach(($arOffer["ITEM_PRICES"] ?? []) as $keyPrice => $itemPrice) {
 					$arResult["ITEMS"][$key]["OFFERS"][$key_off]["ITEM_PRICES"][$keyPrice]["RATIO_BASE_PRICE"] = $itemPrice["BASE_PRICE"];
 					$arResult["ITEMS"][$key]["OFFERS"][$key_off]["ITEM_PRICES"][$keyPrice]["PRINT_RATIO_BASE_PRICE"] = $itemPrice["PRINT_BASE_PRICE"];
 					$arResult["ITEMS"][$key]["OFFERS"][$key_off]["ITEM_PRICES"][$keyPrice]["RATIO_PRICE"] = $itemPrice["PRICE"];
@@ -43,7 +43,7 @@ if(!$inPriceRatio) {
 				}
 			}
 		} else {
-			foreach($arElement["ITEM_PRICES"] as $keyPrice => $itemPrice) {
+			foreach(($arElement["ITEM_PRICES"] ?? []) as $keyPrice => $itemPrice) {
 				$arResult["ITEMS"][$key]["ITEM_PRICES"][$keyPrice]["RATIO_BASE_PRICE"] = $arElement["ITEM_PRICES"][$keyPrice]["BASE_PRICE"];
 				$arResult["ITEMS"][$key]["ITEM_PRICES"][$keyPrice]["PRINT_RATIO_BASE_PRICE"] = $arElement["ITEM_PRICES"][$keyPrice]["PRINT_BASE_PRICE"];
 				$arResult["ITEMS"][$key]["ITEM_PRICES"][$keyPrice]["RATIO_PRICE"] = $arElement["ITEM_PRICES"][$keyPrice]["PRICE"];
@@ -58,12 +58,12 @@ if(!$inPriceRatio) {
 	foreach($arResult["ITEMS"] as $key => $arElement) {	
 		if(isset($arElement["OFFERS"]) && !empty($arElement["OFFERS"])) {
 			foreach($arElement["OFFERS"] as $key_off => $arOffer) {
-				foreach($arOffer["ITEM_PRICES"] as $keyPrice => $itemPrice) {
+				foreach(($arOffer["ITEM_PRICES"] ?? []) as $keyPrice => $itemPrice) {
 					$arResult["ITEMS"][$key]["OFFERS"][$key_off]["ITEM_PRICES"][$keyPrice]["PRICE"] = $arOffer["CATALOG_MEASURE_RATIO"]*$arOffer["ITEM_PRICES"][$keyPrice]["PRICE"];
 				}
 			}
 		} else {
-			foreach($arElement["ITEM_PRICES"] as $keyPrice => $itemPrice) {
+			foreach(($arElement["ITEM_PRICES"] ?? []) as $keyPrice => $itemPrice) {
 				$arResult["ITEMS"][$key]["ITEM_PRICES"][$keyPrice]["PRICE"] =  $arElement["CATALOG_MEASURE_RATIO"]*$arElement["ITEM_PRICES"][$keyPrice]["PRICE"];
 			}
 		}
@@ -74,12 +74,12 @@ if(!$inPriceRatio) {
 
 //MIN_QUANTITY//
 foreach($arResult["ITEMS"] as $key => $arElement) {
-    if(!array_key_exists("ZERO-INF",$arElement["PRICE_MATRIX"]["ROWS"])){
-        foreach($arElement["ITEM_PRICES"] as $keyPrice => $itemPrice) {
+    if(!array_key_exists("ZERO-INF", $arElement["PRICE_MATRIX"]["ROWS"] ?? [])){
+        foreach(($arElement["ITEM_PRICES"] ?? []) as $keyPrice => $itemPrice) {
             $arResult["ITEMS"][$key]["ITEM_PRICES"][$keyPrice]["MIN_QUANTITY"] =  $itemPrice["QUANTITY_FROM"];
         }
     }else{
-        foreach($arElement["ITEM_PRICES"] as $keyPrice => $itemPrice) {
+        foreach(($arElement["ITEM_PRICES"] ?? []) as $keyPrice => $itemPrice) {
             $arResult["ITEMS"][$key]["ITEM_PRICES"][$keyPrice]["MIN_QUANTITY"] =  $arElement["CATALOG_MEASURE_RATIO"];
         }
     }
@@ -155,9 +155,9 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 		$vendorIds[] = $vendorId;
 
 	//MIN_PRICE//
-	if(count($arElement["ITEM_QUANTITY_RANGES"]) > 1 && $inMinPrice) {
+	if(count($arElement["ITEM_QUANTITY_RANGES"] ?? []) > 1 && $inMinPrice) {
 		$minPrice = false;
-		foreach($arElement["ITEM_PRICES"] as $itemPrice) {
+		foreach(($arElement["ITEM_PRICES"] ?? []) as $itemPrice) {
 			if($itemPrice["RATIO_PRICE"] == 0)
 				continue;
 			if($minPrice === false || $minPrice > $itemPrice["RATIO_PRICE"]) {								
@@ -218,10 +218,10 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 		//TOTAL_OFFERS//	
 		$totalQnt = false;
 		$minPrice = false;
-		$totalPrices = false;
+		$totalPrices = array();
 		foreach($arElement["OFFERS"] as $key_off => $arOffer) {		
 			$totalQnt += $arOffer["CATALOG_QUANTITY"];
-			foreach($arOffer["ITEM_PRICES"] as $itemPrice) {
+			foreach(($arOffer["ITEM_PRICES"] ?? []) as $itemPrice) {
 				if($itemPrice["RATIO_PRICE"] == 0)
 					continue;						
 				if($minPrice === false || $minPrice > $itemPrice["RATIO_PRICE"]) {							
@@ -290,7 +290,7 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 			);
 		}		
 		$arResult["ITEMS"][$key]["TOTAL_OFFERS"]["QUANTITY"] = $totalQnt;
-		if(count(array_unique($totalPrices)) > 1) {
+		if(count(array_unique(is_array($totalPrices) ? $totalPrices : [])) > 1) {
 			$arResult["ITEMS"][$key]["TOTAL_OFFERS"]["FROM"] = "Y";
 		} else {
 			$arResult["ITEMS"][$key]["TOTAL_OFFERS"]["FROM"] = "N";
@@ -303,7 +303,7 @@ unset($key, $arElement);
 //END_ELEMENTS//
 
 //MANUFACTURER//
-if(count($vendorIds) > 0) {	
+if(count($vendorIds ?? []) > 0) {	
 	$arVendor = array();
 	$rsElements = CIBlockElement::GetList(
 		array(),

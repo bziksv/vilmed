@@ -117,7 +117,7 @@ if(!empty($_GET["result"]) && !empty($_GET["message"])) {
 	</script>
 <?}
 
-if(count($arResult["ITEMS"]) < 1 && isset($arParams["GUEST_ACCESS"])) {	
+if(count($arResult["ITEMS"] ?? []) < 1 && isset($arParams["GUEST_ACCESS"])) {	
 	ShowNote(GetMessage("CPSL_SUBSCRIBE_NOT_FOUND"), "infotext");
 	return;
 }

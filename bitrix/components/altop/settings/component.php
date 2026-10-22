@@ -63,7 +63,11 @@ foreach($moduleClass::$arParametrsList as $blockCode => $arBlock) {
 			}
 		}***/
 		$arResult[$optionCode] = $arOption;
-		$arResult[$optionCode]["VALUE"] = $arFrontParametrs[$optionCode];
+		$frontVal = $arFrontParametrs[$optionCode] ?? null;
+		// GetFrontParametrsValues() returns ["VALUE" => …] for PHP 8; unwrap for this component.
+		$arResult[$optionCode]["VALUE"] = (is_array($frontVal) && array_key_exists("VALUE", $frontVal))
+			? $frontVal["VALUE"]
+			: $frontVal;
 		if($arResult[$optionCode]["LIST"]) {
 			foreach($arResult[$optionCode]["LIST"] as $variantCode => $variantTitle){
 				if(!is_array($variantTitle)) {
@@ -74,7 +78,7 @@ foreach($moduleClass::$arParametrsList as $blockCode => $arBlock) {
 						$arResult[$optionCode]["LIST"][$variantCode]["CURRENT"] = "Y";
 					}
 				} elseif($arResult[$optionCode]["TYPE"] == "multiselectbox") {
-					if(in_array($variantCode, $arResult[$optionCode]["VALUE"])){
+					if(is_array($arResult[$optionCode]["VALUE"]) && in_array($variantCode, $arResult[$optionCode]["VALUE"])){
 						$arResult[$optionCode]["LIST"][$variantCode]["CURRENT"] = "Y";
 					}
 				}

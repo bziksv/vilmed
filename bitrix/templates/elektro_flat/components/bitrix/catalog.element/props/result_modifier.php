@@ -21,7 +21,7 @@ if(!empty($arParams["PRICES_DEF"]))
 if(!$inPriceRatio) {
 	if(isset($arResult["OFFERS"]) && !empty($arResult["OFFERS"])) {
 		foreach($arResult["OFFERS"] as $key_off => $arOffer) {
-			foreach($arOffer["ITEM_PRICES"] as $keyPrice => $itemPrice) {
+			foreach(($arOffer["ITEM_PRICES"] ?? []) as $keyPrice => $itemPrice) {
 				$arResult["OFFERS"][$key_off]["ITEM_PRICES"][$keyPrice]["RATIO_BASE_PRICE"] = $itemPrice["BASE_PRICE"];
 				$arResult["OFFERS"][$key_off]["ITEM_PRICES"][$keyPrice]["PRINT_RATIO_BASE_PRICE"] = $itemPrice["PRINT_BASE_PRICE"];
 				$arResult["OFFERS"][$key_off]["ITEM_PRICES"][$keyPrice]["RATIO_PRICE"] = $itemPrice["PRICE"];
@@ -215,7 +215,7 @@ if(isset($arResult["OFFERS"]) && !empty($arResult["OFFERS"])) {
 		//MIN_PRICE//		
 		if(!$arParams["IS_GIFT"] && count($arOffer["ITEM_QUANTITY_RANGES"]) > 1 && $arSetting["OFFERS_VIEW"] == "LIST") {			
 			$minPrice = false;
-			foreach($arOffer["ITEM_PRICES"] as $itemPrice) {
+			foreach(($arOffer["ITEM_PRICES"] ?? []) as $itemPrice) {
 				if($itemPrice["RATIO_PRICE"] == 0)
 					continue;
 				if($minPrice === false || $minPrice > $itemPrice["RATIO_PRICE"]) {								
@@ -477,7 +477,7 @@ if($arResult["CATALOG"] && isset($arResult["OFFERS"]) && !empty($arResult["OFFER
 	$minRatioPrice = false;
 	foreach($arResult["OFFERS"] as $keyOffer => $arOffer) {
 		if(!$arParams["IS_GIFT"]) {
-			foreach($arOffer["ITEM_PRICES"] as $itemPrice) {
+			foreach(($arOffer["ITEM_PRICES"] ?? []) as $itemPrice) {
 				if($itemPrice["RATIO_PRICE"] == 0)
 					continue;		
 				if($minRatioPrice === false || $minRatioPrice > $itemPrice["RATIO_PRICE"]) {

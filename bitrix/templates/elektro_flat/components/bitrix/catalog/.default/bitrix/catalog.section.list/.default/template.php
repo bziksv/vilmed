@@ -2,7 +2,7 @@
 
 $this->setFrameMode(true);
 
-if(count($arResult["SECTIONS"]) < 1)
+if(count($arResult["SECTIONS"] ?? []) < 1)
 	return;?>
 
 <div id="catalog-section-list" class="catalog-section-list">

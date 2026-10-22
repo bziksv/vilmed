@@ -313,7 +313,7 @@ $APPLICATION->AddHeadString(
 									"SHOW_BORDER" => false,
 								));
 								?>
-								<meta content="<?=($isOfferDetailImg ? $arOffer['DETAIL_PICTURE']['SRC'] : $isDetailImg ? $arResult['DETAIL_PICTURE']['SRC'] : SITE_TEMPLATE_PATH.'/images/no-photo.jpg');?>" itemprop="image" />
+								<meta content="<?=($isOfferDetailImg ? $arOffer['DETAIL_PICTURE']['SRC'] : ($isDetailImg ? $arResult['DETAIL_PICTURE']['SRC'] : SITE_TEMPLATE_PATH.'/images/no-photo.jpg'));?>" itemprop="image" />
 								<?if($isOfferDetailImg || $isDetailImg) {?>
 									<a <?=($key == $arResult['OFFERS_SELECTED'] ? 'rel="lightbox" ' : '');?>class="catalog-detail-images fancybox" id="catalog-detail-images-<?=$arItemIDs['ID'].'-'.$arOffer['ID']?>" href="<?=($isOfferDetailImg ? $arOffer['DETAIL_PICTURE']['SRC'] : $arResult['DETAIL_PICTURE']['SRC']);?>">
 								<?} else {?>
@@ -390,8 +390,8 @@ $APPLICATION->AddHeadString(
 				<?//DETAIL_VIDEO_MORE_PHOTO//
 				// Лента миниатюр: сначала главное фото (активное), затем доп. —
 				// иначе справа «висит» похожий кадр и кажется дублем главного.
-				$vilmedShowMoreStrip = !empty($arResult["PROPERTIES"]["VIDEO"]["VALUE"]) || count($arResult["MORE_PHOTO"]) > 0 || $isDetailImg;
-				if($vilmedShowMoreStrip && (count($arResult["MORE_PHOTO"]) > 0 || !empty($arResult["PROPERTIES"]["VIDEO"]["VALUE"]))) {?>
+				$vilmedShowMoreStrip = !empty($arResult["PROPERTIES"]["VIDEO"]["VALUE"]) || count($arResult["MORE_PHOTO"] ?? []) > 0 || $isDetailImg;
+				if($vilmedShowMoreStrip && (count($arResult["MORE_PHOTO"] ?? []) > 0 || !empty($arResult["PROPERTIES"]["VIDEO"]["VALUE"]))) {?>
 					<?php
 					$APPLICATION->AddHeadString('<style id="vilmed-more-photo-stretch">@media (min-width:992px){.catalog-detail .column.first:not(.colletion) .catalog-detail-pictures .more_photo{max-height:none!important}}</style>', true);
 					?>
@@ -423,7 +423,7 @@ $APPLICATION->AddHeadString(
 									</div>
 								</li>
 							<?}
-							if(count($arResult["MORE_PHOTO"]) > 0) {
+							if(count($arResult["MORE_PHOTO"] ?? []) > 0) {
 								foreach($arResult["MORE_PHOTO"] as $PHOTO) {?>
 									<li style="<?=($arParams['DISPLAY_MORE_PHOTO_WIDTH'] ? 'width:'.$arParams['DISPLAY_MORE_PHOTO_WIDTH'].'px;' : '').($arParams['DISPLAY_MORE_PHOTO_HEIGHT'] ? 'height:'.$arParams['DISPLAY_MORE_PHOTO_HEIGHT'].'px;' : '');?>">
 										<a rel="lightbox" class="catalog-detail-images fancybox" href="<?=$PHOTO['SRC']?>">
@@ -706,7 +706,7 @@ $APPLICATION->AddHeadString(
 											<meta itemprop="price" content="<?=$arOffer['MIN_PRICE']['RATIO_PRICE']?>" />
 											<meta itemprop="priceCurrency" content="<?=$arOffer['MIN_PRICE']['CURRENCY']?>" />
 											<?//OFFERS_PRICE_RANGES//
-											if($arParams["USE_PRICE_COUNT"] && count($arOffer["ITEM_QUANTITY_RANGES"]) > 1) {?>
+											if($arParams["USE_PRICE_COUNT"] && count($arOffer["ITEM_QUANTITY_RANGES"] ?? []) > 1) {?>
 												<div class="catalog-detail-price-ranges">
 													<?$i = 0;
 													foreach($arOffer["ITEM_QUANTITY_RANGES"] as $range) {
@@ -744,13 +744,13 @@ $APPLICATION->AddHeadString(
 												<?unset($itemPrice, $range);
 											}
 											//OTHER_PRICE//
-											if(count($arOffer["PRICE_MATRIX_SHOW"]["COLS"]) > 1) {?>
+											if(count($arOffer["PRICE_MATRIX_SHOW"]["COLS"] ?? []) > 1) {?>
 												<div class="catalog-detail-price-ranges other-price">
 													<?foreach($arOffer["PRICE_MATRIX_SHOW"]["COLS"] as $key_matrix => $item) {
 														$priceMatrix[$key_matrix] = $arOffer["PRICE_MATRIX_SHOW"]["MATRIX"][$key_matrix];
 														$oneRange = array_pop($priceMatrix[$key_matrix]);
 														array_push($priceMatrix[$key_matrix], $oneRange);
-														$countRange = count($arOffer["PRICE_MATRIX_SHOW"]["MATRIX"][$key_matrix]);?>
+														$countRange = count($arOffer["PRICE_MATRIX_SHOW"]["MATRIX"][$key_matrix] ?? []);?>
 														<div class="catalog-detail-price-ranges__row">
 															<div class="catalog-detail-price-ranges__sort">
 																<?=$item["NAME_LANG"]?>
@@ -929,7 +929,7 @@ $APPLICATION->AddHeadString(
 								<meta itemprop="price" content="<?=$arResult['MIN_PRICE']['RATIO_PRICE']?>" />
 								<meta itemprop="priceCurrency" content="<?=$arResult['MIN_PRICE']['CURRENCY']?>" />
 								<?//DETAIL_PRICE_RANGES//
-								if($arParams["USE_PRICE_COUNT"] && count($arResult["ITEM_QUANTITY_RANGES"]) > 1) {?>
+								if($arParams["USE_PRICE_COUNT"] && count($arResult["ITEM_QUANTITY_RANGES"] ?? []) > 1) {?>
 									<div class="catalog-detail-price-ranges">
 										<?$i = 0;
 										foreach($arResult["ITEM_QUANTITY_RANGES"] as $range) {
@@ -966,13 +966,13 @@ $APPLICATION->AddHeadString(
 									<?unset($itemPrice, $range);
 								}?>
 								<?//OTHER_PRICE//?>
-								<?if(count($arResult["PRICE_MATRIX_SHOW"]["COLS"]) > 1) {?>
+								<?if(count($arResult["PRICE_MATRIX_SHOW"]["COLS"] ?? []) > 1) {?>
 									<div class="catalog-detail-price-ranges other-price">
 										<?foreach($arResult["PRICE_MATRIX_SHOW"]["COLS"] as $key => $item) {
 											$priceMatrix[$key] = $arResult["PRICE_MATRIX_SHOW"]["MATRIX"][$key];
 											$oneRange = array_pop($priceMatrix[$key]);
 											array_push($priceMatrix[$key], $oneRange);
-											$countRange = count($arResult["PRICE_MATRIX_SHOW"]["MATRIX"][$key]);?>
+											$countRange = count($arResult["PRICE_MATRIX_SHOW"]["MATRIX"][$key] ?? []);?>
 											<div class="catalog-detail-price-ranges__row">
 												<div class="catalog-detail-price-ranges__sort">
 													<?=$item["NAME_LANG"]?>
@@ -1806,16 +1806,16 @@ $APPLICATION->AddHeadString(
 										</span>
 									<?} else {?>
 										<span class="catalog-item-price">
-											<?if(count($arOffer["ITEM_QUANTITY_RANGES"]) > 1) {?>
+											<?if(count($arOffer["ITEM_QUANTITY_RANGES"] ?? []) > 1) {?>
 												<span class="from"><?=GetMessage("CATALOG_ELEMENT_FROM")?></span>
 											<?}
 											echo number_format($arOffer["MIN_PRICE"]["RATIO_PRICE"], $arCurFormat["DECIMALS"], $arCurFormat["DEC_POINT"], $arCurFormat["THOUSANDS_SEP"]);
-											if($arParams["USE_PRICE_COUNT"] && count($arOffer["ITEM_QUANTITY_RANGES"]) > 1) {?>
+											if($arParams["USE_PRICE_COUNT"] && count($arOffer["ITEM_QUANTITY_RANGES"] ?? []) > 1) {?>
 												<span class="catalog-item-price-ranges-wrap">
 													<a class="catalog-item-price-ranges" href="javascript:void(0);"><i class="fa fa-question-circle-o"></i></a>
 												</span>
 											<?}?>
-											<?if(count($arOffer["PRICE_MATRIX_SHOW"]["COLS"]) > 1 && count($arOffer["ITEM_QUANTITY_RANGES"]) <= 1) {?>
+											<?if(count($arOffer["PRICE_MATRIX_SHOW"]["COLS"] ?? []) > 1 && count($arOffer["ITEM_QUANTITY_RANGES"] ?? []) <= 1) {?>
 												<span class="catalog-item-price-ranges-wrap">
 													<a class="catalog-item-price-ranges" href="javascript:void(0);"><i class="fa fa-question-circle-o"></i></a>
 												</span>
@@ -2053,7 +2053,7 @@ $APPLICATION->AddHeadString(
 		);?>
 	<?}
 	//DETAIL_KIT_ITEMS//
-	if(count($arResult["KIT_ITEMS"]) > 0) {?>
+	if(count($arResult["KIT_ITEMS"] ?? []) > 0) {?>
 		<div class="kit-items">
 			<div class="h3"><?=GetMessage("CATALOG_ELEMENT_KIT_ITEMS")?></div>
 			<div class="catalog-item-cards">

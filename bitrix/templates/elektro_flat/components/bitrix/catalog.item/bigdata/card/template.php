@@ -102,7 +102,7 @@ use \Bitrix\Main\Localization\Loc;?>
 							<?=$currency?>
 							<span><?=Loc::getMessage("CT_BCS_BIGDATA_ELEMENT_UNIT")." ".(($inPriceRatio) ? $arElement["TOTAL_OFFERS"]["MIN_PRICE"]["CATALOG_MEASURE_RATIO"] : "1")." ".$arElement["TOTAL_OFFERS"]["MIN_PRICE"]["CATALOG_MEASURE_NAME"];?></span>
 						</span>
-						<?if($arParams["USE_PRICE_COUNT"] && count($arElement["TOTAL_OFFERS"]["MIN_PRICE"]["ITEM_QUANTITY_RANGES"]) > 1) {?>
+						<?if($arParams["USE_PRICE_COUNT"] && count($arElement["TOTAL_OFFERS"]["MIN_PRICE"]["ITEM_QUANTITY_RANGES"] ?? []) > 1) {?>
 							<span class="catalog-item-price-ranges-wrap">
 								<a id="<?=$itemIds['PRICE_RANGES_BTN']?>" class="catalog-item-price-ranges" href="javascript:void(0);"><i class="fa fa-question-circle-o"></i></a>
 							</span>
@@ -136,7 +136,7 @@ use \Bitrix\Main\Localization\Loc;?>
 						<?}
 					}?>
 					<span class="catalog-item-price">
-						<?if(count($arElement["ITEM_QUANTITY_RANGES"]) > 1 && $inMinPrice) {?>
+						<?if(count($arElement["ITEM_QUANTITY_RANGES"] ?? []) > 1 && $inMinPrice) {?>
 							<span class="from"><?=Loc::getMessage("CT_BCS_BIGDATA_ELEMENT_FROM")?></span>
 						<?}
 						echo number_format($arElement["MIN_PRICE"]["RATIO_PRICE"], $arCurFormat["DECIMALS"], $arCurFormat["DEC_POINT"], $arCurFormat["THOUSANDS_SEP"]);?>
@@ -144,7 +144,7 @@ use \Bitrix\Main\Localization\Loc;?>
 							<?=$currency?>
 							<span><?=Loc::getMessage("CT_BCS_BIGDATA_ELEMENT_UNIT")." ".(($inPriceRatio) ? $arElement["CATALOG_MEASURE_RATIO"] : "1")." ".$arElement["CATALOG_MEASURE_NAME"];?></span>
 						</span>
-						<?if($arParams["USE_PRICE_COUNT"] && count($arElement["ITEM_QUANTITY_RANGES"]) > 1) {?>
+						<?if($arParams["USE_PRICE_COUNT"] && count($arElement["ITEM_QUANTITY_RANGES"] ?? []) > 1) {?>
 							<span class="catalog-item-price-ranges-wrap">
 								<a id="<?=$itemIds['PRICE_RANGES_BTN']?>" class="catalog-item-price-ranges" href="javascript:void(0);"><i class="fa fa-question-circle-o"></i></a>
 							</span>
@@ -161,13 +161,13 @@ use \Bitrix\Main\Localization\Loc;?>
 	</div>
 	<?//OTHER_PRICE//
 	if($haveOffers) {
-		if(count($arElement["TOTAL_OFFERS"]["PRICE_MATRIX_SHOW"]["COLS"]) > 1) {?>
+		if(count($arElement["TOTAL_OFFERS"]["PRICE_MATRIX_SHOW"]["COLS"] ?? []) > 1) {?>
 			<div class="catalog-price-ranges">
 				<?foreach($arElement["TOTAL_OFFERS"]["PRICE_MATRIX_SHOW"]["COLS"] as $key_matrix => $item) {
 					$priceMatrix[$key_matrix] = $arElement["TOTAL_OFFERS"]["PRICE_MATRIX_SHOW"]["MATRIX"][$key_matrix];
 					$oneRange = array_pop($priceMatrix[$key_matrix]);
 					array_push($priceMatrix[$key], $oneRange);
-					$countRange = count($arElement["TOTAL_OFFERS"]["PRICE_MATRIX_SHOW"]["MATRIX"][$key_matrix]);?>
+					$countRange = count($arElement["TOTAL_OFFERS"]["PRICE_MATRIX_SHOW"]["MATRIX"][$key_matrix] ?? []);?>
 					<div class="catalog-detail-price-ranges__row">
 						<div class="catalog-detail-price-ranges__sort">
 							<?=$item["NAME_LANG"]?>
@@ -193,13 +193,13 @@ use \Bitrix\Main\Localization\Loc;?>
 			</div>
 		<?}
 	} else {?>
-		<?if(count($arElement["PRICE_MATRIX_SHOW"]["COLS"]) > 1) {?>
+		<?if(count($arElement["PRICE_MATRIX_SHOW"]["COLS"] ?? []) > 1) {?>
 			<div class="catalog-price-ranges">
 				<?foreach($arElement["PRICE_MATRIX_SHOW"]["COLS"] as $key_matrix => $item) {
 					$priceMatrix[$key_matrix] = $arElement["PRICE_MATRIX_SHOW"]["MATRIX"][$key_matrix];
 					$oneRange = array_pop($priceMatrix[$key_matrix]);
 					array_push($priceMatrix[$key_matrix], $oneRange);
-					$countRange = count($arElement["PRICE_MATRIX_SHOW"]["MATRIX"][$key_matrix]);?>
+					$countRange = count($arElement["PRICE_MATRIX_SHOW"]["MATRIX"][$key_matrix] ?? []);?>
 					<div class="catalog-detail-price-ranges__row">
 						<div class="catalog-detail-price-ranges__sort">
 							<?=$item["NAME_LANG"]?>

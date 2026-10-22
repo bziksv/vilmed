@@ -13,7 +13,7 @@ class CElektroinstrument {
 	static $arParametrsList = array();
 	private static $arMetaParams = array();
 	
-	function checkModuleRight($reqRight = "R", $bShowError = false) {
+	public static function checkModuleRight($reqRight = "R", $bShowError = false) {
 		global $APPLICATION;
 		
 		if($APPLICATION->GetGroupRight(self::MODULE_ID) < $reqRight) {
@@ -26,7 +26,7 @@ class CElektroinstrument {
 		return true;
 	}
 
-	function GetBackParametrsValues($SITE_ID, $bStatic = true){
+	public static function GetBackParametrsValues($SITE_ID, $bStatic = true){
 		if($bStatic){
 			static $arValues;
 		}
@@ -63,14 +63,18 @@ class CElektroinstrument {
 		return $arValues;
 	}
 
-	function GetFrontParametrsValues($SITE_ID){
+	public static function GetFrontParametrsValues($SITE_ID){
 		if(!strlen($SITE_ID)) $SITE_ID = SITE_ID;
-		$arBackParametrs = self::GetBackParametrsValues($SITE_ID);		
-		$arValues = (array)$arBackParametrs;
+		$arBackParametrs = self::GetBackParametrsValues($SITE_ID);
+		// PHP 8: templates expect $arSetting[$code]["VALUE"]. Flat strings made ["VALUE"] a TypeError.
+		$arValues = array();
+		foreach ((array)$arBackParametrs as $optionCode => $value) {
+			$arValues[$optionCode] = array("VALUE" => $value);
+		}
 		return $arValues;
 	}
 	
-	function CheckColor($strColor) {
+	public static function CheckColor($strColor) {
 		if(strlen($strColor) > 0) {
 			$strColor = str_replace("#", "", $strColor);
 			if(strlen($strColor) < 6) {
@@ -89,7 +93,7 @@ class CElektroinstrument {
 		return $strColor;
 	}
 
-	function UpdateParametrsValues() {
+	public static function UpdateParametrsValues() {
 		$request = Bitrix\Main\Application::getInstance()->getContext()->getRequest();		
 		$theme = $request->getPost("THEME");
 		if(self::$arParametrsList && is_array(self::$arParametrsList)) {
@@ -141,7 +145,7 @@ class CElektroinstrument {
 		BXClearCache(true, "/".SITE_ID."/bitrix/sale.products.gift.section/");
 	}
 
-	function GenerateColorScheme() {		
+	public static function GenerateColorScheme() {		
 		$arBackParametrs = self::GetBackParametrsValues(SITE_ID);		
 		$colorScheme = $arBackParametrs["COLOR_SCHEME"];
 		$arColorSchemes = self::$arParametrsList["MAIN"]["OPTIONS"]["COLOR_SCHEME"]["LIST"];		
@@ -171,7 +175,7 @@ class CElektroinstrument {
 		}
 	}
 
-	function StartFallingSnow($SITE_TEMPLATE_PATH){
+	public static function StartFallingSnow($SITE_TEMPLATE_PATH){
 		if(!strlen($SITE_TEMPLATE_PATH)) $SITE_TEMPLATE_PATH = SITE_TEMPLATE_PATH;
 		
 		$snowJsOptions = "<script type='text/javascript'>
@@ -194,11 +198,11 @@ class CElektroinstrument {
 		$GLOBALS["APPLICATION"]->AddHeadScript($SITE_TEMPLATE_PATH."/js/snowfall.jquery.js");				
 	}
 
-	function start($siteID) {	
+	public static function start($siteID) {	
 		return true;
 	}
 	
-	function showPanel() {
+	public static function showPanel() {
 		global $APPLICATION, $USER;
 		if($USER->IsAdmin() && COption::GetOptionString("main", "wizard_solution", "", SITE_ID) == self::SOLUTION_NAME) {
 			$APPLICATION->SetAdditionalCSS("/bitrix/wizards/".self::PARTNER_NAME."/".self::SOLUTION_NAME."/css/panel.css"); 
@@ -228,7 +232,7 @@ class CElektroinstrument {
 		}
 	}
 	
-	function correctInstall(){
+	public static function correctInstall(){
 		if(CModule::IncludeModule("main")) {
 			if(COption::GetOptionString(self::MODULE_ID, "WIZARD_DEMO_INSTALLED") == "Y") {
 				require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/classes/general/wizard.php");
@@ -245,7 +249,7 @@ class CElektroinstrument {
 		}  
 	}
 	
-	function DeleteEventTypeEventMessage(&$arFields) {
+	public static function DeleteEventTypeEventMessage(&$arFields) {
 		if($arFields["IBLOCK_TYPE_ID"] == "forms" && !empty($arFields["CODE"])) {
 			$eventName = "ALTOP_FORM_".$arFields["CODE"];
 			
@@ -259,7 +263,7 @@ class CElektroinstrument {
 		}
 	}
 
-	function DoIBlockAfterSave($arg1, $arg2 = false) {
+	public static function DoIBlockAfterSave($arg1, $arg2 = false) {
 		$elementId = false;
 		$iblockId = false;
 		$offersIblockId = false;
@@ -388,7 +392,7 @@ class CElektroinstrument {
 		}
 	}
 
-	function SetOrderPropertiesLocation(&$arUserResult, $request, &$arParams, &$arResult) {
+	public static function SetOrderPropertiesLocation(&$arUserResult, $request, &$arParams, &$arResult) {
 		$arSetting = self::GetFrontParametrsValues(SITE_ID);
 		if($arSetting["USE_GEOLOCATION"] != "Y" || $arSetting["GEOLOCATION_ORDER_CITY"] != "Y")
 			return;
@@ -420,7 +424,7 @@ class CElektroinstrument {
 		$arUserResult["DELIVERY_LOCATION_BCODE"] = $locationCode;
 	}
 	
-	function getBackground($SITE_ID) {
+	public static function getBackground($SITE_ID) {
 		global $APPLICATION;
 		$arSetting = self::GetBackParametrsValues($SITE_ID, false);
 		
@@ -454,7 +458,7 @@ class CElektroinstrument {
 		}
 	}
 
-    function SetCannonicalURL($param) {
+    public static function SetCannonicalURL($param) {
 
         global $APPLICATION;
 		static $done = false;

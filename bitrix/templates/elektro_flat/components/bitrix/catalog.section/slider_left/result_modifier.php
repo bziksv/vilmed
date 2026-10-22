@@ -13,7 +13,7 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 	if(!$inPriceRatio) {
 		if(isset($arElement["OFFERS"]) && !empty($arElement["OFFERS"])) {
 			foreach($arElement["OFFERS"] as $key_off => $arOffer) {
-				foreach($arOffer["ITEM_PRICES"] as $keyPrice => $itemPrice) {
+				foreach(($arOffer["ITEM_PRICES"] ?? []) as $keyPrice => $itemPrice) {
 					$arResult["ITEMS"][$key]["OFFERS"][$key_off]["ITEM_PRICES"][$keyPrice]["RATIO_BASE_PRICE"] = $itemPrice["BASE_PRICE"];
 					$arResult["ITEMS"][$key]["OFFERS"][$key_off]["ITEM_PRICES"][$keyPrice]["PRINT_RATIO_BASE_PRICE"] = $itemPrice["PRINT_BASE_PRICE"];
 					$arResult["ITEMS"][$key]["OFFERS"][$key_off]["ITEM_PRICES"][$keyPrice]["RATIO_PRICE"] = $itemPrice["PRICE"];
@@ -63,9 +63,9 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 		$vendorIds[] = $vendorId;
 
 	//MIN_PRICE//
-	if(count($arElement["ITEM_QUANTITY_RANGES"]) > 1 && $inMinPrice) {
+	if(count($arElement["ITEM_QUANTITY_RANGES"] ?? []) > 1 && $inMinPrice) {
 		$minPrice = false;
-		foreach($arElement["ITEM_PRICES"] as $itemPrice) {
+		foreach(($arElement["ITEM_PRICES"] ?? []) as $itemPrice) {
 			if($itemPrice["RATIO_PRICE"] == 0)
 				continue;
 			if($minPrice === false || $minPrice > $itemPrice["RATIO_PRICE"]) {								
@@ -93,9 +93,9 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 	if(isset($arElement["OFFERS"]) && !empty($arElement["OFFERS"])) {
 		//TOTAL_OFFERS//		
 		$minPrice = false;
-		$totalPrices = false;
+		$totalPrices = array();
 		foreach($arElement["OFFERS"] as $key_off => $arOffer) {
-			foreach($arOffer["ITEM_PRICES"] as $itemPrice) {
+			foreach(($arOffer["ITEM_PRICES"] ?? []) as $itemPrice) {
 				if($itemPrice["RATIO_PRICE"] == 0)
 					continue;						
 				if($minPrice === false || $minPrice > $itemPrice["RATIO_PRICE"]) {							
@@ -117,7 +117,7 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 				"CURRENCY" => $arElement["OFFERS"][0]["ITEM_PRICES"][$arElement["OFFERS"][0]["ITEM_PRICE_SELECTED"]]["CURRENCY"]
 			);
 		}
-		if(count(array_unique($totalPrices)) > 1) {
+		if(count(array_unique(is_array($totalPrices) ? $totalPrices : [])) > 1) {
 			$arResult["ITEMS"][$key]["TOTAL_OFFERS"]["FROM"] = "Y";
 		} else {
 			$arResult["ITEMS"][$key]["TOTAL_OFFERS"]["FROM"] = "N";
@@ -129,7 +129,7 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 //END_ELEMENTS//
 
 //MANUFACTURER//
-if(count($vendorIds) > 0) {	
+if(count($vendorIds ?? []) > 0) {	
 	$arVendor = array();
 	$rsElements = CIBlockElement::GetList(
 		array(),

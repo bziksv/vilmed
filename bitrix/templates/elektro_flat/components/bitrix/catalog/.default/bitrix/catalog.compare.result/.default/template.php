@@ -5,7 +5,7 @@ $curPage = $APPLICATION->GetCurPage();
 global $arSetting;
 $inProductQnt = in_array("PRODUCT_QUANTITY", $arSetting["GENERAL_SETTINGS"]["VALUE"]);
 
-$itemsCnt = count($arResult["ITEMS"]);
+$itemsCnt = count($arResult["ITEMS"] ?? []);
 $delUrlID = "";
 
 foreach($arResult["ITEMS"] as $arElement) {

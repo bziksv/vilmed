@@ -353,7 +353,7 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 //END_ELEMENTS//
 
 //MANUFACTURER//
-if(count($vendorIds) > 0) {
+if(count($vendorIds ?? []) > 0) {
 	$arVendor = array();
 	$rsElements = CIBlockElement::GetList(
 		array(),

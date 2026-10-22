@@ -4051,7 +4051,11 @@ function InitURLParam($url=false)
 		parse_str($params, $_GET);
 		parse_str($params, $arr);
 		$_REQUEST += $arr;
-		$GLOBALS += $arr;
+		// PHP 8.1+: $GLOBALS += ? is a fatal error
+		foreach ($arr as $key => $val)
+		{
+			$GLOBALS[$key] = $val;
+		}
 	}
 }
 

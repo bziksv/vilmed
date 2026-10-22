@@ -24,7 +24,7 @@ if(!$inPriceRatio) {
 	foreach($arResult["ITEMS"] as $key => $arElement) {	
 		if(isset($arElement["OFFERS"]) && !empty($arElement["OFFERS"])) {
 			foreach($arElement["OFFERS"] as $key_off => $arOffer) {
-				foreach($arOffer["ITEM_PRICES"] as $keyPrice => $itemPrice) {
+				foreach(($arOffer["ITEM_PRICES"] ?? []) as $keyPrice => $itemPrice) {
 					$arResult["ITEMS"][$key]["OFFERS"][$key_off]["ITEM_PRICES"][$keyPrice]["RATIO_BASE_PRICE"] = $itemPrice["BASE_PRICE"];
 					$arResult["ITEMS"][$key]["OFFERS"][$key_off]["ITEM_PRICES"][$keyPrice]["PRINT_RATIO_BASE_PRICE"] = $itemPrice["PRINT_BASE_PRICE"];
 					$arResult["ITEMS"][$key]["OFFERS"][$key_off]["ITEM_PRICES"][$keyPrice]["RATIO_PRICE"] = $itemPrice["PRICE"];
@@ -35,7 +35,7 @@ if(!$inPriceRatio) {
 			}
 			unset($key_off, $arOffer);
 		} else {
-			foreach($arElement["ITEM_PRICES"] as $keyPrice => $itemPrice) {
+			foreach(($arElement["ITEM_PRICES"] ?? []) as $keyPrice => $itemPrice) {
 				$arResult["ITEMS"][$key]["ITEM_PRICES"][$keyPrice]["RATIO_BASE_PRICE"] = $arElement["ITEM_PRICES"][$keyPrice]["BASE_PRICE"];
 				$arResult["ITEMS"][$key]["ITEM_PRICES"][$keyPrice]["PRINT_RATIO_BASE_PRICE"] = $arElement["ITEM_PRICES"][$keyPrice]["PRINT_BASE_PRICE"];
 				$arResult["ITEMS"][$key]["ITEM_PRICES"][$keyPrice]["RATIO_PRICE"] = $arElement["ITEM_PRICES"][$keyPrice]["PRICE"];
@@ -51,14 +51,14 @@ if(!$inPriceRatio) {
 	foreach($arResult["ITEMS"] as $key => $arElement) {	
 		if(isset($arElement["OFFERS"]) && !empty($arElement["OFFERS"])) {
 			foreach($arElement["OFFERS"] as $key_off => $arOffer) {
-				foreach($arOffer["ITEM_PRICES"] as $keyPrice => $itemPrice) {
+				foreach(($arOffer["ITEM_PRICES"] ?? []) as $keyPrice => $itemPrice) {
 					$arResult["ITEMS"][$key]["OFFERS"][$key_off]["ITEM_PRICES"][$keyPrice]["PRICE"] = $arOffer["ITEM_MEASURE_RATIOS"][$arOffer["ITEM_MEASURE_RATIO_SELECTED"]]["RATIO"]*$arOffer["ITEM_PRICES"][$keyPrice]["PRICE"];
 				}
 				unset($keyPrice, $itemPrice);
 			}
 			unset($key_off, $arOffer);
 		} else {
-			foreach($arElement["ITEM_PRICES"] as $keyPrice => $itemPrice) {
+			foreach(($arElement["ITEM_PRICES"] ?? []) as $keyPrice => $itemPrice) {
 				$arResult["ITEMS"][$key]["ITEM_PRICES"][$keyPrice]["PRICE"] = $arElement["ITEM_MEASURE_RATIOS"][$arElement["ITEM_MEASURE_RATIO_SELECTED"]]["RATIO"]*$arElement["ITEM_PRICES"][$keyPrice]["PRICE"];
 			}
 			unset($keyPrice, $itemPrice);
@@ -70,7 +70,7 @@ if(!$inPriceRatio) {
 
 //MIN_QUANTITY//
 foreach($arResult["ITEMS"] as $key => $arElement) {	
-	foreach($arElement["ITEM_PRICES"] as $keyPrice => $itemPrice) {
+	foreach(($arElement["ITEM_PRICES"] ?? []) as $keyPrice => $itemPrice) {
 		$arResult["ITEMS"][$key]["ITEM_PRICES"][$keyPrice]["MIN_QUANTITY"] = $arElement["ITEM_MEASURE_RATIOS"][$arElement["ITEM_MEASURE_RATIO_SELECTED"]]["RATIO"];
 	}
 	unset($keyPrice, $itemPrice);
@@ -161,7 +161,7 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 		//TOTAL_OFFERS//	
 		$totalQnt = false;
 		$minPrice = false;
-		$totalPrices = false;
+		$totalPrices = array();
 		foreach($arElement["OFFERS"] as $key_off => $arOffer) {		
 			$totalQnt += $arOffer["CATALOG_QUANTITY"];
 			$itemPrice = $arOffer["ITEM_PRICES"][$arOffer["ITEM_PRICE_SELECTED"]];
@@ -204,7 +204,7 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 			);
 		}
 		$arResult["ITEMS"][$key]["TOTAL_OFFERS"]["QUANTITY"] = $totalQnt;
-		if(count(array_unique($totalPrices)) > 1) {
+		if(count(array_unique(is_array($totalPrices) ? $totalPrices : [])) > 1) {
 			$arResult["ITEMS"][$key]["TOTAL_OFFERS"]["FROM"] = "Y";
 		} else {
 			$arResult["ITEMS"][$key]["TOTAL_OFFERS"]["FROM"] = "N";
@@ -215,7 +215,7 @@ foreach($arResult["ITEMS"] as $key => $arElement) {
 unset($key, $arElement);
 
 //MANUFACTURER//
-if(count($vendorIds) > 0) {	
+if(count($vendorIds ?? []) > 0) {	
 	$arVendor = array();
 	$rsElements = CIBlockElement::GetList(
 		array(),

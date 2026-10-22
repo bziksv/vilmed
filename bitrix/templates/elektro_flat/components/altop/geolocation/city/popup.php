@@ -7,8 +7,9 @@ use Bitrix\Main\Application;
 
 $request = Application::getInstance()->getContext()->getRequest();
 
-if(!empty($arParams))
-	$arParams = $arParams["PARAMS_STRING"];
+// Keep $arParams as array (PHP 8: string offset access TypeError if overwritten with PARAMS_STRING)
+$cacheType = (is_array($arParams) && isset($arParams["CACHE_TYPE"])) ? $arParams["CACHE_TYPE"] : "A";
+$cacheTime = (is_array($arParams) && isset($arParams["CACHE_TIME"])) ? $arParams["CACHE_TIME"] : 36000000;
 
 $locationId = $request->getCookie("GEOLOCATION_LOCATION_ID");?>
 
@@ -24,8 +25,8 @@ $APPLICATION->IncludeComponent("bitrix:sale.location.selector.search", "geolocat
 		"JS_CALLBACK" => "",
 		"FILTER_BY_SITE" => "Y",
 		"SHOW_DEFAULT_LOCATIONS" => "Y",
-		"CACHE_TYPE" => $arParams["CACHE_TYPE"],
-		"CACHE_TIME" => $arParams["CACHE_TIME"],
+		"CACHE_TYPE" => $cacheType,
+		"CACHE_TIME" => $cacheTime,
 		"FILTER_SITE_ID" => SITE_ID,
 		"INITIALIZE_BY_GLOBAL_EVENT" => "",
 		"SUPPRESS_ERRORS" => "N"

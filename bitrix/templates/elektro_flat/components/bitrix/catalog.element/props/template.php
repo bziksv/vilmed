@@ -303,8 +303,8 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_PREVIEW_PICTURE_FILE_T
 											$arCurFormat["THOUSANDS_SEP"] = " ";
 										$arCurFormat["REFERENCE_DECIMALS"] = $arCurFormat["DECIMALS"];
 										if($arCurFormat["HIDE_ZERO"] == "Y") {
-											if($arSetting["REFERENCE_PRICE"] == "Y" && !empty($arSetting["REFERENCE_PRICE_COEF"]))
-												if(round($arOffer["MIN_PRICE"]["RATIO_PRICE"] * $arSetting["REFERENCE_PRICE_COEF"], $arCurFormat["DECIMALS"]) == round($arOffer["MIN_PRICE"]["RATIO_PRICE"] * $arSetting["REFERENCE_PRICE_COEF"], 0))
+											if($arSetting["REFERENCE_PRICE"]["VALUE"] == "Y" && !empty($arSetting["REFERENCE_PRICE_COEF"]["VALUE"]))
+												if(round($arOffer["MIN_PRICE"]["RATIO_PRICE"] * $arSetting["REFERENCE_PRICE_COEF"]["VALUE"], $arCurFormat["DECIMALS"]) == round($arOffer["MIN_PRICE"]["RATIO_PRICE"] * $arSetting["REFERENCE_PRICE_COEF"]["VALUE"], 0))
 													$arCurFormat["REFERENCE_DECIMALS"] = 0;
 											if(round($arOffer["MIN_PRICE"]["RATIO_PRICE"], $arCurFormat["DECIMALS"]) == round($arOffer["MIN_PRICE"]["RATIO_PRICE"], 0))
 												$arCurFormat["DECIMALS"] = 0;
@@ -329,16 +329,16 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_PREVIEW_PICTURE_FILE_T
 											</span>
 										<?} else {?>
 											<span class="catalog-item-price">
-												<?if(!$arParams["IS_GIFT"] && count($arOffer["ITEM_QUANTITY_RANGES"]) > 1) {?>
+												<?if(!$arParams["IS_GIFT"] && count($arOffer["ITEM_QUANTITY_RANGES"] ?? []) > 1) {?>
 													<span class="from"><?=GetMessage("CATALOG_ELEMENT_FROM")?></span>
 												<?}
 												echo number_format($arOffer["MIN_PRICE"]["RATIO_PRICE"], $arCurFormat["DECIMALS"], $arCurFormat["DEC_POINT"], $arCurFormat["THOUSANDS_SEP"]);
-												if(!$arParams["IS_GIFT"] && $arParams["USE_PRICE_COUNT"] && count($arOffer["ITEM_QUANTITY_RANGES"]) > 1) {?>
+												if(!$arParams["IS_GIFT"] && $arParams["USE_PRICE_COUNT"] && count($arOffer["ITEM_QUANTITY_RANGES"] ?? []) > 1) {?>
 													<span class="catalog-item-price-ranges-wrap">
 														<a class="catalog-item-price-ranges" href="javascript:void(0);"><i class="fa fa-question-circle-o"></i></a>
 													</span>
 												<?}
-												if(!$arParams["IS_GIFT"] && count($arOffer["PRICE_MATRIX_SHOW"]["COLS"]) > 1 && count($arOffer["ITEM_QUANTITY_RANGES"]) <= 1) {?>
+												if(!$arParams["IS_GIFT"] && count($arOffer["PRICE_MATRIX_SHOW"]["COLS"] ?? []) > 1 && count($arOffer["ITEM_QUANTITY_RANGES"] ?? []) <= 1) {?>
 													<span class="catalog-item-price-ranges-wrap">
 														<a class="catalog-item-price-ranges" href="javascript:void(0);"><i class="fa fa-question-circle-o"></i></a>
 													</span>
@@ -347,9 +347,9 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_PREVIEW_PICTURE_FILE_T
 													<?=$currency?>
 													<span><?=Loc::getMessage("CATALOG_ELEMENT_UNIT")." ".(!$arParams["IS_GIFT"] ? $arOffer["CATALOG_MEASURE_RATIO"] : $arOffer["ITEM_MEASURE_RATIOS"][$arOffer["ITEM_MEASURE_RATIO_SELECTED"]]["RATIO"])." ".(!$arParams["IS_GIFT"] ? $arOffer["CATALOG_MEASURE_NAME"] : $arOffer["ITEM_MEASURE"]["TITLE"]);?></span>
 												</span>
-												<?if($arSetting["REFERENCE_PRICE"] == "Y" && !empty($arSetting["REFERENCE_PRICE_COEF"])) {?>
+												<?if($arSetting["REFERENCE_PRICE"]["VALUE"] == "Y" && !empty($arSetting["REFERENCE_PRICE_COEF"]["VALUE"])) {?>
 													<span class="catalog-item-price-reference">
-														<?=number_format($arOffer["MIN_PRICE"]["RATIO_PRICE"] * $arSetting["REFERENCE_PRICE_COEF"], $arCurFormat["REFERENCE_DECIMALS"], $arCurFormat["DEC_POINT"], $arCurFormat["THOUSANDS_SEP"]);?>
+														<?=number_format($arOffer["MIN_PRICE"]["RATIO_PRICE"] * $arSetting["REFERENCE_PRICE_COEF"]["VALUE"], $arCurFormat["REFERENCE_DECIMALS"], $arCurFormat["DEC_POINT"], $arCurFormat["THOUSANDS_SEP"]);?>
 														<span><?=$currency?></span>
 													</span>
 												<?}?>
@@ -518,14 +518,14 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_PREVIEW_PICTURE_FILE_T
 											<?=Loc::getMessage("CATALOG_ELEMENT_UNIT")." ".(($inPriceRatio) ? (!$arParams["IS_GIFT"] ? $arOffer["CATALOG_MEASURE_RATIO"] : $arOffer["ITEM_MEASURE_RATIOS"][$arOffer["ITEM_MEASURE_RATIO_SELECTED"]]["RATIO"]) : "1")." ".(!$arParams["IS_GIFT"] ? $arOffer["CATALOG_MEASURE_NAME"] : $arOffer["ITEM_MEASURE"]["TITLE"]);?>
 										</span>
 									</span>
-									<?if($arSetting["REFERENCE_PRICE"] == "Y" && !empty($arSetting["REFERENCE_PRICE_COEF"])) {?>
+									<?if($arSetting["REFERENCE_PRICE"]["VALUE"] == "Y" && !empty($arSetting["REFERENCE_PRICE_COEF"]["VALUE"])) {?>
 										<span class="price-reference">
-											<?=CCurrencyLang::CurrencyFormat($arOffer["MIN_PRICE"]["RATIO_PRICE"] * $arSetting["REFERENCE_PRICE_COEF"], $arOffer["MIN_PRICE"]["CURRENCY"], true);?>
+											<?=CCurrencyLang::CurrencyFormat($arOffer["MIN_PRICE"]["RATIO_PRICE"] * $arSetting["REFERENCE_PRICE_COEF"]["VALUE"], $arOffer["MIN_PRICE"]["CURRENCY"], true);?>
 										</span>
 									<?}
 								}
 								//OFFERS_PRICE_RANGES//
-								if(!$arParams["IS_GIFT"] && $arParams["USE_PRICE_COUNT"] && count($arOffer["ITEM_QUANTITY_RANGES"]) > 1) {?>
+								if(!$arParams["IS_GIFT"] && $arParams["USE_PRICE_COUNT"] && count($arOffer["ITEM_QUANTITY_RANGES"] ?? []) > 1) {?>
 									<div class="price-ranges">
 										<?foreach($arOffer["ITEM_QUANTITY_RANGES"] as $range) {
 											if($range["HASH"] !== "ZERO-INF") {
@@ -560,7 +560,7 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_PREVIEW_PICTURE_FILE_T
 									<?unset($itemPrice, $range);
 								}
 								//OTHER_PRICE//
-								if(!$arParams["IS_GIFT"] && count($arOffer["PRICE_MATRIX_SHOW"]["COLS"]) > 1) {?>
+								if(!$arParams["IS_GIFT"] && count($arOffer["PRICE_MATRIX_SHOW"]["COLS"] ?? []) > 1) {?>
 									<div class="price-ranges">
 										<?foreach($arOffer["PRICE_MATRIX_SHOW"]["COLS"] as $key_matrix => $item) {
 											$priceMatrix[$key_matrix] = $arOffer["PRICE_MATRIX_SHOW"]["MATRIX"][$key_matrix];
@@ -639,13 +639,13 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_PREVIEW_PICTURE_FILE_T
 								<?=Loc::getMessage("CATALOG_ELEMENT_UNIT")." ".(($inPriceRatio) ? $arResult["CATALOG_MEASURE_RATIO"] : "1")." ".$arResult["CATALOG_MEASURE_NAME"];?>
 							</span>
 						</span>
-						<?if($arSetting["REFERENCE_PRICE"] == "Y" && !empty($arSetting["REFERENCE_PRICE_COEF"])) {?>
+						<?if($arSetting["REFERENCE_PRICE"]["VALUE"] == "Y" && !empty($arSetting["REFERENCE_PRICE_COEF"]["VALUE"])) {?>
 							<span class="price-reference">
-								<?=CCurrencyLang::CurrencyFormat($arResult["MIN_PRICE"]["RATIO_PRICE"] * $arSetting["REFERENCE_PRICE_COEF"], $arResult["MIN_PRICE"]["CURRENCY"], true);?>
+								<?=CCurrencyLang::CurrencyFormat($arResult["MIN_PRICE"]["RATIO_PRICE"] * $arSetting["REFERENCE_PRICE_COEF"]["VALUE"], $arResult["MIN_PRICE"]["CURRENCY"], true);?>
 							</span>
 						<?}
 						//ITEM_PRICE_RANGES//
-						if(!$arParams["IS_GIFT"] && $arParams["USE_PRICE_COUNT"] && count($arResult["ITEM_QUANTITY_RANGES"]) > 1) {?>
+						if(!$arParams["IS_GIFT"] && $arParams["USE_PRICE_COUNT"] && count($arResult["ITEM_QUANTITY_RANGES"] ?? []) > 1) {?>
 							<div class="price-ranges">
 								<?foreach($arResult["ITEM_QUANTITY_RANGES"] as $range) {
 									if($range["HASH"] !== "ZERO-INF") {
@@ -680,7 +680,7 @@ $strTitle = (isset($arResult["IPROPERTY_VALUES"]["ELEMENT_PREVIEW_PICTURE_FILE_T
 							<?unset($itemPrice, $range);
 						}
 						//OTHER_PRICE//
-						if(!$arParams["IS_GIFT"] && count($arResult["PRICE_MATRIX_SHOW"]["COLS"]) > 1) {?>
+						if(!$arParams["IS_GIFT"] && count($arResult["PRICE_MATRIX_SHOW"]["COLS"] ?? []) > 1) {?>
 							<div class="price-ranges">
 								<?foreach($arResult["PRICE_MATRIX_SHOW"]["COLS"] as $key => $item) {
 									$priceMatrix[$key] = $arResult["PRICE_MATRIX_SHOW"]["MATRIX"][$key];
@@ -855,7 +855,7 @@ if(isset($arResult["OFFERS"]) && !empty($arResult["OFFERS"])) {
 	$arJSParams = array(
 		"CONFIG" => array(
 			"USE_CATALOG" => $arResult["CATALOG"],
-			"REFERENCE_PRICE_COEF" => $arSetting["REFERENCE_PRICE_COEF"]
+			"REFERENCE_PRICE_COEF" => $arSetting["REFERENCE_PRICE_COEF"]["VALUE"]
 		),
 		"PRODUCT_TYPE" => $arResult["CATALOG_TYPE"],
 		"VISUAL" => array(
@@ -886,7 +886,7 @@ if(isset($arResult["OFFERS"]) && !empty($arResult["OFFERS"])) {
 	$arJSParams = array(
 		"CONFIG" => array(
 			"USE_CATALOG" => $arResult["CATALOG"],
-			"REFERENCE_PRICE_COEF" => $arSetting["REFERENCE_PRICE_COEF"]
+			"REFERENCE_PRICE_COEF" => $arSetting["REFERENCE_PRICE_COEF"]["VALUE"]
 		),
 		"PRODUCT_TYPE" => $arResult["CATALOG_TYPE"],
 		"VISUAL" => array(

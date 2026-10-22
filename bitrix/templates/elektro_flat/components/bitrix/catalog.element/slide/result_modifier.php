@@ -10,7 +10,7 @@ $inMinPrice = in_array("MIN_PRICE", $arSetting["PRODUCT_TABLE_VIEW"]["VALUE"]);
 if(!$inPriceRatio) {
 	if(isset($arResult["OFFERS"]) && !empty($arResult["OFFERS"])) {
 		foreach($arResult["OFFERS"] as $key_off => $arOffer) {
-			foreach($arOffer["ITEM_PRICES"] as $keyPrice => $itemPrice) {
+			foreach(($arOffer["ITEM_PRICES"] ?? []) as $keyPrice => $itemPrice) {
 				$arResult["OFFERS"][$key_off]["ITEM_PRICES"][$keyPrice]["RATIO_BASE_PRICE"] = $itemPrice["BASE_PRICE"];
 				$arResult["OFFERS"][$key_off]["ITEM_PRICES"][$keyPrice]["PRINT_RATIO_BASE_PRICE"] = $itemPrice["PRINT_BASE_PRICE"];
 				$arResult["OFFERS"][$key_off]["ITEM_PRICES"][$keyPrice]["RATIO_PRICE"] = $itemPrice["PRICE"];
@@ -125,9 +125,9 @@ if(count($arResult["ITEM_QUANTITY_RANGES"]) > 1 && $inMinPrice) {
 if(isset($arResult["OFFERS"]) && !empty($arResult["OFFERS"])) {
 	//TOTAL_OFFERS//		
 	$minPrice = false;
-	$totalPrices = false;
+	$totalPrices = array();
 	foreach($arResult["OFFERS"] as $key_off => $arOffer) {
-		foreach($arOffer["ITEM_PRICES"] as $itemPrice) {
+		foreach(($arOffer["ITEM_PRICES"] ?? []) as $itemPrice) {
 			if($itemPrice["RATIO_PRICE"] == 0)
 				continue;						
 			if($minPrice === false || $minPrice > $itemPrice["RATIO_PRICE"]) {							
@@ -149,7 +149,7 @@ if(isset($arResult["OFFERS"]) && !empty($arResult["OFFERS"])) {
 			"CURRENCY" => $arResult["OFFERS"][0]["ITEM_PRICES"][$arResult["OFFERS"][0]["ITEM_PRICE_SELECTED"]]["CURRENCY"]
 		);
 	}
-	if(count(array_unique($totalPrices)) > 1) {
+	if(count(array_unique(is_array($totalPrices) ? $totalPrices : [])) > 1) {
 		$arResult["TOTAL_OFFERS"]["FROM"] = "Y";
 	} else {
 		$arResult["TOTAL_OFFERS"]["FROM"] = "N";

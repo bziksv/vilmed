@@ -2,7 +2,7 @@
 
 $this->setFrameMode(true);
 
-if(count($arResult["ITEMS"]) < 1) return;
+if(count($arResult["ITEMS"] ?? []) < 1) return;
 
 $arAspectRatios = array(
 	'DEFAULT' => '958/304',

@@ -2,7 +2,7 @@
 
 $this->setFrameMode(true);
 
-if(count($arResult["SECTIONS"]) < 1)
+if(count($arResult["SECTIONS"] ?? []) < 1)
 	return;?>
 
 <div class="payments-section-list">
@@ -27,7 +27,7 @@ if(count($arResult["SECTIONS"]) < 1)
 		echo "\n",str_repeat("\t", $arSection["DEPTH_LEVEL"] - $TOP_DEPTH);?>
 		
 		<li><div class="payment-section-title"><?=$arSection["NAME"]?></div>
-		<?if(is_array($arSection["ITEMS"]) && count($arSection["ITEMS"]) > 0):?>
+		<?if(is_array($arSection["ITEMS"]) && count($arSection["ITEMS"] ?? []) > 0):?>
 			<div class="payment-items">
 				<?foreach($arSection["ITEMS"] as $arItem):?>
 					<div class="payment-item">								

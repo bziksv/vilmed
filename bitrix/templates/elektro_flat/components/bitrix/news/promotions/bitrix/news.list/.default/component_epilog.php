@@ -1,6 +1,6 @@
 <?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
 
-if(count($arResult["ITEMS"]) < 1)
+if(count($arResult["ITEMS"] ?? []) < 1)
 	return;
 
 use \Bitrix\Main\Localization\Loc;

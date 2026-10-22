@@ -228,7 +228,7 @@ $curJsId = $arParams["STR_MAIN_ID"];?>
 						<span class="cont">
 							<span class="text"><?=$arSection["NAME"]?></span>
 							<span class="qnt_cont">
-								<span class="qnt"><?=count($arSection["ITEMS"])?></span>
+								<span class="qnt"><?=count($arSection["ITEMS"] ?? [])?></span>
 							</span>
 						</span>
 						<i class="fa fa-minus"></i>

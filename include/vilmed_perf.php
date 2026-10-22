@@ -930,13 +930,8 @@ if (!function_exists('vilmedDisablePullOnStorefront')) {
 		if (!defined('BX_PULL_SKIP_INIT')) {
 			define('BX_PULL_SKIP_INIT', true);
 		}
-		if (!\Bitrix\Main\Loader::includeModule('pull')) {
-			return;
-		}
-
-		$em = \Bitrix\Main\EventManager::getInstance();
-		$em->removeEventHandler('main', 'OnProlog', ['CPullOptions', 'OnProlog']);
-		$em->removeEventHandler('main', 'OnEpilog', ['CPullOptions', 'OnEpilog']);
+		// BX_PULL_SKIP_INIT is enough for CPullOptions::OnEpilog.
+		// removeEventHandler() expects an int key, not a callback — on PHP 8+ that TypeErrors.
 	}
 }
 

@@ -108,7 +108,7 @@ $rand = $this->randString();
 						</span>
 					<?} else {?>
 						<span class="price">
-							<?if(count($arResult["ITEM_QUANTITY_RANGES"]) > 1 && $inMinPrice) {?>
+							<?if(count($arResult["ITEM_QUANTITY_RANGES"] ?? []) > 1 && $inMinPrice) {?>
 								<span class="from"><?=Loc::getMessage("CATALOG_ELEMENT_FROM")?></span>
 							<?}
 							echo number_format($arResult["MIN_PRICE"]["RATIO_PRICE"], $arCurFormat["DECIMALS"], $arCurFormat["DEC_POINT"], $arCurFormat["THOUSANDS_SEP"]);?>
