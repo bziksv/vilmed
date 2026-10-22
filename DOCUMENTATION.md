@@ -572,6 +572,7 @@ rsync -avz user@217.28.220.186:/var/www/.../upload/ ~/Documents/projects/vilmed/
 - `/upload/` — proxy на `vilmed.ru`, если файла нет локально
 - Bitrix 22.x + PHP 8.2 (локальные совместимости):
   - `$GLOBALS += …` → foreach (`tools.php` / `urlrewrite.php` / `404.php`)
+  - `admin_list.php` / `admin_ui_list.php`: убран `&$GLOBALS` в `EditAction` (PHP 8.1+ fatal в админке)
   - `vilmed_perf.php`: убран `removeEventHandler` с callback (ждал int-ключ)
   - `sale/.../entity.php`: static-кеш полей по `get_called_class()` (иначе Order/Shipment шарят map)
   - Altop: `GetFrontParametrsValues()` — dual-access (scalar `FrontOption` + multiselect list с ключом `VALUE`); `static` у event-методов; `count($x ?? [])`; скобки у nested ternary

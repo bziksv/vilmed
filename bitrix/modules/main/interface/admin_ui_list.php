@@ -175,7 +175,8 @@ class CAdminUiList extends CAdminList
 			check_bitrix_sessid()
 		)
 		{
-			$arrays = array(&$_POST, &$_REQUEST, &$GLOBALS);
+			// PHP 8.1+: нельзя брать ссылку на весь $GLOBALS (&$GLOBALS)
+			$arrays = array(&$_POST, &$_REQUEST);
 			foreach ($arrays as $i => &$array)
 			{
 				$customFields = [];
