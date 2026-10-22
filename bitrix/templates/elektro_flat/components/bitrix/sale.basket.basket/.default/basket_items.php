@@ -152,8 +152,8 @@ use Bitrix\Sale\DiscountCouponsManager;?>
 					</div>
 					<?$i++;
 				}?>
-				<input type="hidden" id="column_headers" value="<?=CUtil::JSEscape(implode($arParams['COLUMNS_LIST'], ','))?>" />
-				<input type="hidden" id="offers_props" value="<?=CUtil::JSEscape(implode($arParams['OFFERS_PROPS'], ','))?>" />
+				<input type="hidden" id="column_headers" value="<?=CUtil::JSEscape(implode(',', (array)$arParams['COLUMNS_LIST']))?>" />
+				<input type="hidden" id="offers_props" value="<?=CUtil::JSEscape(implode(',', (array)$arParams['OFFERS_PROPS']))?>" />
 				<input type="hidden" id="action_var" value="<?=CUtil::JSEscape($arParams['ACTION_VARIABLE'])?>" />
 				<input type="hidden" id="quantity_float" value="<?=$arParams['QUANTITY_FLOAT']?>" />
 				<input type="hidden" id="count_discount_4_all_quantity" value="<?=($arParams['COUNT_DISCOUNT_4_ALL_QUANTITY'] == 'Y') ? 'Y' : 'N'?>" />
