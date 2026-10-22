@@ -63,7 +63,14 @@ foreach($moduleClass::$arParametrsList as $blockCode => $arBlock) {
 			}
 		}***/
 		$arResult[$optionCode] = $arOption;
-		$arResult[$optionCode]["VALUE"] = $arFrontParametrs[$optionCode];
+		$frontVal = $arFrontParametrs[$optionCode] ?? null;
+		if ($frontVal instanceof CElektroinstrumentFrontOption) {
+			$arResult[$optionCode]["VALUE"] = $frontVal->getValue();
+		} elseif (is_array($frontVal) && array_key_exists("VALUE", $frontVal)) {
+			$arResult[$optionCode]["VALUE"] = $frontVal["VALUE"];
+		} else {
+			$arResult[$optionCode]["VALUE"] = $frontVal;
+		}
 		if($arResult[$optionCode]["LIST"]) {
 			foreach($arResult[$optionCode]["LIST"] as $variantCode => $variantTitle){
 				if(!is_array($variantTitle)) {

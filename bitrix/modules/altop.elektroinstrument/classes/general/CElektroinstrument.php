@@ -5,6 +5,53 @@ IncludeModuleLangFile(__FILE__);
 //initialize module parametrs list and default values
 include_once __DIR__."/../../parametrs.php";
 
+/**
+ * Scalar theme option: works as string (echo / == "Y") and as ["VALUE"].
+ * PHP 8-safe replacement for flat string vs array("VALUE"=>…) mismatch.
+ */
+class CElektroinstrumentFrontOption implements \ArrayAccess, \Stringable {
+	/** @var mixed */
+	private $value;
+
+	public function __construct($value) {
+		$this->value = $value;
+	}
+
+	public function getValue() {
+		return $this->value;
+	}
+
+	public function offsetExists($offset): bool {
+		return $offset === "VALUE";
+	}
+
+	public function offsetGet($offset): mixed {
+		return ($offset === "VALUE") ? $this->value : null;
+	}
+
+	public function offsetSet($offset, $value): void {
+		if ($offset === "VALUE") {
+			$this->value = $value;
+		}
+	}
+
+	public function offsetUnset($offset): void {
+		if ($offset === "VALUE") {
+			$this->value = null;
+		}
+	}
+
+	public function __toString(): string {
+		if (is_array($this->value)) {
+			return "";
+		}
+		if ($this->value === null || $this->value === false) {
+			return "";
+		}
+		return (string)$this->value;
+	}
+}
+
 class CElektroinstrument {
 	const MODULE_ID = ELEKTROINSTRUMENT_MODULE_ID;
 	const PARTNER_NAME = "altop"; 
@@ -66,10 +113,17 @@ class CElektroinstrument {
 	public static function GetFrontParametrsValues($SITE_ID){
 		if(!strlen($SITE_ID)) $SITE_ID = SITE_ID;
 		$arBackParametrs = self::GetBackParametrsValues($SITE_ID);
-		// PHP 8: templates expect $arSetting[$code]["VALUE"]. Flat strings made ["VALUE"] a TypeError.
+		// PHP 8: support both flat access (echo / in_array / == "Y") and ["VALUE"].
 		$arValues = array();
 		foreach ((array)$arBackParametrs as $optionCode => $value) {
-			$arValues[$optionCode] = array("VALUE" => $value);
+			if (is_array($value)) {
+				// Multiselect: keep list for in_array($code, $arSetting["X"]) and expose ["VALUE"].
+				$list = $value;
+				$list["VALUE"] = $value;
+				$arValues[$optionCode] = $list;
+			} else {
+				$arValues[$optionCode] = new CElektroinstrumentFrontOption($value);
+			}
 		}
 		return $arValues;
 	}
