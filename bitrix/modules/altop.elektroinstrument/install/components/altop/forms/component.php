@@ -31,19 +31,19 @@ if(SITE_CHARSET != "utf-8")
 global $USER;
 $arParams["IS_AUTHORIZED"] = $USER->IsAuthorized() ? "Y" : "N";
 $arSetting = CElektroinstrument::GetFrontParametrsValues(SITE_ID);
-$arParams["USE_CAPTCHA"] = $arParams["IS_AUTHORIZED"] != "Y" && $arSetting["FORMS_USE_CAPTCHA"] == "Y" ? "Y" : "N";
+$arParams["USE_CAPTCHA"] = $arParams["IS_AUTHORIZED"] != "Y" && (string)$arSetting["FORMS_USE_CAPTCHA"] == "Y" ? "Y" : "N";
 
 $request = Application::getInstance()->getContext()->getRequest();
 
 $arParams["PHONE_MASK"] = $request->getCookie("GEOLOCATION_PHONE_MASK");
 if(empty($arParams["PHONE_MASK"]))
-	$arParams["PHONE_MASK"] = $arSetting["FORMS_PHONE_MASK"];
+	$arParams["PHONE_MASK"] = (string)$arSetting["FORMS_PHONE_MASK"];
 
 $arParams["VALIDATE_PHONE_MASK"] = $request->getCookie("GEOLOCATION_VALIDATE_PHONE_MASK");
 if(empty($arParams["VALIDATE_PHONE_MASK"]))
-	$arParams["VALIDATE_PHONE_MASK"] = $arSetting["FORMS_VALIDATE_PHONE_MASK"];
+	$arParams["VALIDATE_PHONE_MASK"] = (string)$arSetting["FORMS_VALIDATE_PHONE_MASK"];
 
-$arParams["SHOW_PERSONAL_DATA"] = $arSetting["SHOW_PERSONAL_DATA"];
+$arParams["SHOW_PERSONAL_DATA"] = (string)$arSetting["SHOW_PERSONAL_DATA"];
 $arParams["TEXT_PERSONAL_DATA"] = $arSetting["TEXT_PERSONAL_DATA"];
 
 $arParams["PARAMS_STRING"] = array(
@@ -70,9 +70,12 @@ if($this->StartResultCache()) {
 	$arResult["ELEMENT_AREA_ID"] = !empty($arParams["ELEMENT_AREA_ID"]) ? $arParams["ELEMENT_AREA_ID"] : $arResult["IBLOCK"]["CODE"];
 	
 	//IBLOCK_PROPS//
-	$rsProps = CIBlock::GetProperties($arIblock["ID"], array("SORT" => "ASC", "NAME" => "ASC"), array("ACTIVE" => "Y", array("LOGIC" => "OR", array("PROPERTY_TYPE" => "S"), array("PROPERTY_TYPE" => "F"))));
+	// PHP 8: nested OR-filter array is passed to mysqli_real_escape_string → TypeError.
+	$rsProps = CIBlock::GetProperties($arIblock["ID"], array("SORT" => "ASC", "NAME" => "ASC"), array("ACTIVE" => "Y"));
 	while($arProps = $rsProps->fetch()) {
-		$arResult["IBLOCK"]["PROPERTIES"][] = $arProps;
+		if ($arProps["PROPERTY_TYPE"] === "S" || $arProps["PROPERTY_TYPE"] === "F") {
+			$arResult["IBLOCK"]["PROPERTIES"][] = $arProps;
+		}
 	}
 	
 	if(!isset($arResult["IBLOCK"]["PROPERTIES"]) || empty($arResult["IBLOCK"]["PROPERTIES"])) {

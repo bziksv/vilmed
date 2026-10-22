@@ -42,22 +42,22 @@ if(empty($arParams["BUY_MODE"]))
 global $USER;
 $arParams["IS_AUTHORIZED"] = $USER->IsAuthorized() ? "Y" : "N";
 $arSetting = CElektroinstrument::GetFrontParametrsValues(SITE_ID);
-$arParams["USE_CAPTCHA"] = $arParams["IS_AUTHORIZED"] != "Y" && $arSetting["FORMS_USE_CAPTCHA"] == "Y" ? "Y" : "N";
+$arParams["USE_CAPTCHA"] = $arParams["IS_AUTHORIZED"] != "Y" && (string)$arSetting["FORMS_USE_CAPTCHA"] == "Y" ? "Y" : "N";
 
 $request = Application::getInstance()->getContext()->getRequest();
 
 $arParams["PHONE_MASK"] = $request->getCookie("GEOLOCATION_PHONE_MASK");
 if(empty($arParams["PHONE_MASK"]))
-	$arParams["PHONE_MASK"] = $arSetting["FORMS_PHONE_MASK"];
+	$arParams["PHONE_MASK"] = (string)$arSetting["FORMS_PHONE_MASK"];
 
 $arParams["VALIDATE_PHONE_MASK"] = $request->getCookie("GEOLOCATION_VALIDATE_PHONE_MASK");
 if(empty($arParams["VALIDATE_PHONE_MASK"]))
-	$arParams["VALIDATE_PHONE_MASK"] = $arSetting["FORMS_VALIDATE_PHONE_MASK"];
+	$arParams["VALIDATE_PHONE_MASK"] = (string)$arSetting["FORMS_VALIDATE_PHONE_MASK"];
 
-$arParams["SHOW_PERSONAL_DATA"] = $arSetting["SHOW_PERSONAL_DATA"];
+$arParams["SHOW_PERSONAL_DATA"] = (string)$arSetting["SHOW_PERSONAL_DATA"];
 $arParams["TEXT_PERSONAL_DATA"] = function_exists('vilmedLegalFormPersonalDataText')
 	? vilmedLegalFormPersonalDataText()
-	: $arSetting["TEXT_PERSONAL_DATA"];
+	: (string)$arSetting["TEXT_PERSONAL_DATA"];
 
 $arParams["PROPERTIES"] = array("NAME", "PHONE", "EMAIL", "MESSAGE");
 
