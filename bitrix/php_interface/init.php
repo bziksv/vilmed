@@ -87,18 +87,28 @@ function bxModifySaleMails($orderID, &$eventName, &$arFields)
     $arFields["ROI_VISIT"] = $_COOKIE['roistat_visit'];
 }
 
-// ALTOP forms → как рабочий SALE_NEW_ORDER / ask_price 21.10:
-// TO info@ + Planfix в конверте. Один BCC из шаблона у ALTOP в exim часто не попадает.
-AddEventHandler("main", "OnBeforeEventSend", "vilmedForcePlanfixOnAltopForms");
-function vilmedForcePlanfixOnAltopForms(&$arFields, &$arTemplate)
+// Planfix: BCC из шаблона с 22.10 иногда не попадает в конверт exim
+// (заказ 4931: only sv6@list.ru, Planfix нет → CRM пусто; list.ru ещё и 550 spam).
+// Дублируем Planfix в TO для SALE_NEW_ORDER и ALTOP_FORM_*.
+AddEventHandler("main", "OnBeforeEventSend", "vilmedForcePlanfixRecipients");
+function vilmedForcePlanfixRecipients(&$arFields, &$arTemplate)
 {
 	$eventName = (string)($arTemplate["EVENT_NAME"] ?? "");
-	if ($eventName === "" || strpos($eventName, "ALTOP_FORM_") !== 0) {
+	$planfix = "vilmed@almamed.planfix.ru";
+	$isAltop = ($eventName !== "" && strpos($eventName, "ALTOP_FORM_") === 0);
+	$isNewOrder = ($eventName === "SALE_NEW_ORDER");
+	if (!$isAltop && !$isNewOrder) {
 		return;
 	}
-	$planfix = "vilmed@almamed.planfix.ru";
-	$info = "info@vilmed.ru";
 	$arTemplate["BCC"] = $planfix;
+	if ($isNewOrder) {
+		$email = trim((string)($arFields["EMAIL"] ?? ""));
+		if ($email !== "" && stripos($email, $planfix) === false) {
+			$arFields["EMAIL"] = rtrim($email, ", ") . ", " . $planfix;
+		}
+		return;
+	}
+	$info = "info@vilmed.ru";
 	$to = trim((string)($arFields["EMAIL_TO"] ?? ""));
 	if ($to === "" || stripos($to, "@") === false) {
 		$to = $info;
