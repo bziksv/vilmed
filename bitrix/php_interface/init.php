@@ -87,6 +87,23 @@ function bxModifySaleMails($orderID, &$eventName, &$arFields)
     $arFields["ROI_VISIT"] = $_COOKIE['roistat_visit'];
 }
 
+/**
+ * PHP 8.2 mail() пишет To/Subject с CRLF, Bitrix — доп. заголовки с LF.
+ * Смесь EOL ломает разбор -t в Exim: BCC (в т.ч. Planfix) не попадает в envelope.
+ * Нормализуем заголовки в CRLF; получателей/From не трогаем.
+ */
+function custom_mail($to, $subject, $message, $additional_headers = '', $additional_parameters = '', $context = null)
+{
+	if (is_string($additional_headers) && $additional_headers !== '') {
+		$additional_headers = preg_replace("/\r\n|\r|\n/", "\r\n", $additional_headers);
+		$additional_headers = rtrim($additional_headers, "\r\n") . "\r\n";
+	}
+	if ($additional_parameters != '') {
+		return @mail($to, $subject, $message, $additional_headers, $additional_parameters);
+	}
+	return @mail($to, $subject, $message, $additional_headers);
+}
+
 if(file_exists($_SERVER['DOCUMENT_ROOT'].'/bitrix/php_interface/include/catalog_section_list_json.php')){
    require_once($_SERVER['DOCUMENT_ROOT'].'/bitrix/php_interface/include/catalog_section_list_json.php');
 }

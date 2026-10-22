@@ -780,13 +780,17 @@ ssh vilmed 'cd /var/www/vilmed_ru_usr/data/www/vilmed.ru && \
 
 ### Cron-задачи
 
-Рекомендуемые агенты Bitrix + импорт:
+На **prod** (`vilmed_ru_usr`):
 
 ```bash
-# Агенты Bitrix (каждую минуту)
-*/1 * * * * php /path/to/vilmed.ru/bitrix/modules/main/tools/cron_events.php
+* * * * * /opt/php82/bin/php -f /var/www/vilmed_ru_usr/data/www/vilmed.ru/bitrix/modules/main/tools/cron_events.php >/dev/null 2>&1
+```
 
-# Импорт XML (если используется очередь esol.importxml)
+PHP 8.2 `mail()` пишет To/Subject CRLF, Bitrix — доп. заголовки с LF → Exim `-t` теряет BCC (Planfix). Фикс: `custom_mail()` в `bitrix/php_interface/init.php` (нормализация заголовков в CRLF).
+
+Импорт XML (если используется очередь esol.importxml):
+
+```bash
 */5 * * * * php /path/to/vilmed.ru/bitrix/php_interface/include/esol.importxml/cron_events.php
 ```
 
