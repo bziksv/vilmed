@@ -574,6 +574,7 @@ rsync -avz user@217.28.220.186:/var/www/.../upload/ ~/Documents/projects/vilmed/
   - `$GLOBALS += …` → foreach (`tools.php` / `urlrewrite.php` / `404.php`)
   - `admin_list.php` / `admin_ui_list.php`: убран `&$GLOBALS` в `EditAction` (PHP 8.1+ fatal в админке)
   - Planfix / ALTOP forms: с 22.10.2026 BCC `vilmed@almamed.planfix.ru` перестал попадать в конверт (21.10 был `info@`+Planfix). Фикс: дубль в `EMAIL_TO` + `OnBeforeEventSend` в `init.php`
+  - Planfix spam: Return-Path был `vilmed_ru_usr@s2.prime-ltd.su` при From `info@vilmed.ru` → DMARC fail. В `b_option` main/`mail_additional_parameters` = `-f info@vilmed.ru` (envelope = From, SPF ip4:217.28.220.186)
   - `vilmed_perf.php`: убран `removeEventHandler` с callback (ждал int-ключ)
   - `sale/.../entity.php`: static-кеш полей по `get_called_class()` (иначе Order/Shipment шарят map)
   - Altop: `GetFrontParametrsValues()` — dual-access (scalar `FrontOption` + multiselect list с ключом `VALUE`); `static` у event-методов; `count($x ?? [])`; скобки у nested ternary
