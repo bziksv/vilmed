@@ -56,7 +56,7 @@ function altopAjaxGetPhoneValidateMask()
 	if (\Bitrix\Main\Loader::includeModule("altop.elektroinstrument")) {
 		$arSetting = \CElektroinstrument::GetFrontParametrsValues(SITE_ID);
 		if (!empty($arSetting["FORMS_VALIDATE_PHONE_MASK"])) {
-			return $arSetting["FORMS_VALIDATE_PHONE_MASK"];
+			return (string)$arSetting["FORMS_VALIDATE_PHONE_MASK"];
 		}
 	}
 	return "";
@@ -81,13 +81,16 @@ function altopAjaxLoadIblockFormData($iblockId)
 		"NAME" => $arIblock["NAME"],
 		"PROPERTIES" => [],
 	];
+	// PHP 8: nested OR-filter is passed to mysqli_real_escape_string → TypeError (AJAX returns HTML → «Ошибка соединения»).
 	$rsProps = CIBlock::GetProperties(
 		$iblockId,
 		["SORT" => "ASC", "NAME" => "ASC"],
-		["ACTIVE" => "Y", ["LOGIC" => "OR", ["PROPERTY_TYPE" => "S"], ["PROPERTY_TYPE" => "F"]]]
+		["ACTIVE" => "Y"]
 	);
 	while ($arProps = $rsProps->fetch()) {
-		$iblock["PROPERTIES"][] = $arProps;
+		if (($arProps["PROPERTY_TYPE"] ?? "") === "S" || ($arProps["PROPERTY_TYPE"] ?? "") === "F") {
+			$iblock["PROPERTIES"][] = $arProps;
+		}
 	}
 	if (empty($iblock["PROPERTIES"])) {
 		return null;
