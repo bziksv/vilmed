@@ -269,7 +269,8 @@ if(strlen($request->get('ORDER_ID')) > 0) {
 					</div>
 				<?endif?>
 				<?//AGREEMENT//
-				if($arSetting["SHOW_PERSONAL_DATA"]["VALUE"] == "Y" && (CUser::IsAuthorized() || $arParams["ALLOW_AUTO_REGISTER"] == "Y")) {?>
+				global $USER;
+				if($arSetting["SHOW_PERSONAL_DATA"]["VALUE"] == "Y" && ((is_object($USER) && $USER->IsAuthorized()) || $arParams["ALLOW_AUTO_REGISTER"] == "Y")) {?>
 					<div id="hint_agreement" class="hint_agreement">
 						<input type="hidden" name="PERSONAL_DATA" id="PERSONAL_DATA_order" value="N">
 						<div class="checkbox">
