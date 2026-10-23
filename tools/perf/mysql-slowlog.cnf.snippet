@@ -1,0 +1,7 @@
+# Фрагмент /etc/mysql/conf.d/mysql.cnf на s2.prime-ltd.su (prod)
+# 2026-10-23: log_queries_not_using_indexes выключен — иначе slow.log 3–5GB/день и CPU mysqld.
+
+slow_query_log = 1
+slow_query_log_file = /var/log/mysql/slow.log
+long_query_time = 1
+log_queries_not_using_indexes = 0

@@ -614,6 +614,7 @@ rsync -avz user@217.28.220.186:/var/www/.../upload/ ~/Documents/projects/vilmed/
 | Document root | `/var/www/vilmed_ru_usr/data/www/vilmed.ru/` |
 | Владелец файлов | `vilmed_ru_usr:vilmed_ru_usr` |
 | RAM | 11 GiB, **swap 6 GiB** (`/swapfile`, в `/etc/fstab`, с 2026-08-05) |
+| MySQL slow.log | `log_queries_not_using_indexes = 0` (с 2026-10-23; было ON → 3–5+ GB/день и CPU). Эталон: `tools/perf/mysql-slowlog.cnf.snippet` |
 | MySQL buffer pool | **4G** (было 9G → OOM). Правки в **обоих** файлах: `/etc/mysql/conf.d/mysql.cnf` и `/etc/mysql/my.cnf.fastpanel/99-fastpanel.cnf` (FastPanel подключается последним через `!include`) |
 | `innodb_log_buffer_size` | **64M** (было 1024M) |
 
