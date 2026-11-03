@@ -526,9 +526,11 @@ rsync -avz user@217.28.220.186:/var/www/.../upload/ ~/Documents/projects/vilmed/
 | `worker_connections` | `4096` |
 | systemd `LimitNOFILE` | `65535` (`/etc/systemd/system/nginx.service.d/override.conf`) |
 | rate-limit | `conf.d/00-rate-limit-zone.conf` zone `perip` 50r/s + `fastpanel2-includes/rate-limit.conf` burst 100 |
-| fail2ban | jails `sshd` + `nginx-limit-req` (maxretry 25 / 60s, bantime 1h) |
+| fail2ban | jails `sshd` + `nginx-limit-req` (maxretry 25 / 60s, bantime 1h) + `nginx-exploit-scan` |
 
 Повод: 2026-10-14 nginx workers упёрлись в soft FD=1024 (`Too many open files`), сайты недоступны. Backup на сервере: `/root/nginx-hardening-backup-*`.
+
+`nginx-exploit-scan` (с 2026-11-03, как на s4 `37.46.134.70`): банит по access-логу запросы к `/.git`, `.env`, `wp-login` и известным сканерам. `3` попадания за `10` минут, бан `24` часа, порты 80/443. Логи: `/var/www/*/data/logs/*-frontend.access.log`. Google/Яндекс/Bing в фильтре исключены. `nginx-limit-req` этот перебор не ловит: зона `50 r/s`, а сканер `/.git` шёл около `2 r/s` и в error.log не попадал. Шаблоны: `.local/security-audit/fail2ban-nginx-exploit-scan.conf`, `fail2ban-filter-nginx-exploit-scan.conf`.
 
 ## Развёртывание
 
