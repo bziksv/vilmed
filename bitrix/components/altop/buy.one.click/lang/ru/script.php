@@ -4,6 +4,7 @@ $MESS["PHONE_NOT_FILLED"] = "Заполните поле «Телефон»";
 $MESS["EMAIL_NOT_FILLED"] = "Заполните поле «Email»";
 $MESS["MESSAGE_NOT_FILLED"] = "Заполните поле «Сообщение»";
 $MESS["FILE_NOT_FILLED"] = "Заполните поле для загрузки файлов";
+$MESS["FILE_BAD_TYPE"] = "Можно прикрепить только документы: pdf, doc, docx, txt, rtf, odt, ods, odp";
 $MESS["FIELD_NOT_FILLED_PERSONAL_DATA"] = "Подтвердите согласие на обработку персональных данных";
 $MESS["PHONE_INVALID"] = "Неверный формат поля «Телефон»";
 $MESS["WRONG_CAPTCHA"] = "Неверно введен «Код с картинки»";

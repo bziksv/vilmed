@@ -185,12 +185,49 @@ if ($locId > 0)
     $locCode = CSaleLocation::getLocationCODEbyID($locId);
 
 $fileIds = array();
-if (!empty($file) && Loader::IncludeModule("iblock")) {
-    foreach ($file as $arFile) {
-        $arFile["name"] = iconv("UTF-8", SITE_CHARSET, $arFile["name"]);
-        $fileIds[] = CFile::SaveFile(CIBlock::makeFileArray($arFile), "sale/order/properties");
+if (!empty($file) && is_array($file) && Loader::IncludeModule("iblock")) {
+    if (count($file) > 5) {
+        $error .= Loc::getMessage("FILE_BAD_TYPE") . "<br />";
+    } else {
+        foreach ($file as $arFile) {
+            if (!is_array($arFile)) {
+                $error .= Loc::getMessage("FILE_BAD_TYPE") . "<br />";
+                break;
+            }
+            if (!empty($arFile["name"])) {
+                $arFile["name"] = iconv("UTF-8", SITE_CHARSET, (string)$arFile["name"]);
+            }
+            $prepared = CIBlock::makeFileArray($arFile);
+            if (!is_array($prepared) || !altopAjaxBocFileAllowed($prepared)) {
+                $error .= Loc::getMessage("FILE_BAD_TYPE") . "<br />";
+                break;
+            }
+            $savedId = CFile::SaveFile($prepared, "sale/order/properties");
+            if ((int)$savedId <= 0) {
+                $error .= Loc::getMessage("FILE_BAD_TYPE") . "<br />";
+                break;
+            }
+            $fileIds[] = (int)$savedId;
+        }
+        unset($arFile);
     }
-    unset($arFile);
+    if ($error !== "" && !empty($fileIds)) {
+        foreach ($fileIds as $savedId) {
+            CFile::Delete($savedId);
+        }
+        $fileIds = array();
+    }
+}
+
+if ($error !== "") {
+    $result = array(
+        "error" => array(
+            "text" => $error,
+            "captcha_code" => !empty($captchaSid) ? $APPLICATION->CaptchaGetCode() : ""
+        )
+    );
+    echo Bitrix\Main\Web\Json::encode($result);
+    return;
 }
 
 //USER//

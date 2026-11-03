@@ -86,11 +86,101 @@ if (strpos($_SERVER['REQUEST_URI'], '/bitrix/') === false) {
 }	
 
 AddEventHandler("sale", "OnOrderNewSendEmail", "bxModifySaleMails");
-function bxModifySaleMails($orderID, &$eventName, &$arFields)
-{	
-  if($_COOKIE['roistat_visit'])
-    $arFields["ROI_VISIT"] = $_COOKIE['roistat_visit'];
+function vilmedBocFlattenFileIds($value)
+{
+  $out = array();
+  $stack = is_array($value) ? $value : array($value);
+  while ($stack) {
+    $item = array_shift($stack);
+    if (is_array($item)) {
+      foreach ($item as $inner) {
+        $stack[] = $inner;
+      }
+      continue;
+    }
+    if (is_string($item) && strncmp($item, "a:", 2) === 0) {
+      $un = @unserialize($item, array("allowed_classes" => false));
+      if (is_array($un)) {
+        foreach ($un as $inner) {
+          $stack[] = $inner;
+        }
+        continue;
+      }
+    }
+    $id = (int)$item;
+    if ($id > 0) {
+      $out[$id] = $id;
+    }
+  }
+  return array_values($out);
 }
+
+function vilmedBocOrderFileIds($order)
+{
+  $allowed = array("pdf", "doc", "docx", "txt", "rtf", "odt", "ods", "odp");
+  $ids = array();
+  foreach ($order->getPropertyCollection() as $prop) {
+    if ($prop->getField("CODE") !== "BOC_FILE") {
+      continue;
+    }
+    foreach (vilmedBocFlattenFileIds($prop->getValue()) as $id) {
+      $info = CFile::GetFileArray($id);
+      if (!$info) {
+        continue;
+      }
+      $ext = strtolower((string)pathinfo((string)$info["ORIGINAL_NAME"], PATHINFO_EXTENSION));
+      if (!in_array($ext, $allowed, true)) {
+        continue;
+      }
+      $ids[$id] = $id;
+    }
+  }
+  return array_values($ids);
+}
+
+function bxModifySaleMails($orderID, &$eventName, &$arFields)
+{
+  if (!empty($_COOKIE["roistat_visit"])) {
+    $arFields["ROI_VISIT"] = $_COOKIE["roistat_visit"];
+  }
+  if ($eventName !== "SALE_NEW_ORDER" || !\Bitrix\Main\Loader::includeModule("sale")) {
+    return;
+  }
+  $order = \Bitrix\Sale\Order::load((int)$orderID);
+  if (!$order) {
+    return;
+  }
+  $extra = "";
+  $comment = trim((string)$order->getField("USER_DESCRIPTION"));
+  if ($comment !== "") {
+    $extra .= "<br />Комментарий: " . htmlspecialcharsbx($comment);
+  }
+  if (vilmedBocOrderFileIds($order)) {
+    $extra .= "<br />Реквизиты приложены к письму.";
+  }
+  if ($extra !== "") {
+    $arFields["ORDER_LIST"] = (string)($arFields["ORDER_LIST"] ?? "") . $extra;
+  }
+}
+
+AddEventHandler("main", "OnBeforeEventAdd", static function (&$event, &$lid, &$arFields, &$messageId, &$files) {
+  if ($event !== "SALE_NEW_ORDER" || empty($arFields["ORDER_REAL_ID"])) {
+    return;
+  }
+  if (!\Bitrix\Main\Loader::includeModule("sale")) {
+    return;
+  }
+  $order = \Bitrix\Sale\Order::load((int)$arFields["ORDER_REAL_ID"]);
+  if (!$order) {
+    return;
+  }
+  if (!is_array($files)) {
+    $files = array();
+  }
+  foreach (vilmedBocOrderFileIds($order) as $id) {
+    $files[] = $id;
+  }
+});
 
 /**
  * PHP 8.2 mail() пишет To/Subject с CRLF, Bitrix — доп. заголовки с LF.

@@ -39,7 +39,7 @@ if($arResult["ELEMENT"]["ID"] > 0) {?>
 						"name" => "FILE[n#IND#]",
 						"description" => false,
 						"upload" => true,
-						"allowUpload" => "A",
+						"allowUpload" => "F",
 						"allowUploadExt" => $arParams["FILE_FIELD_TYPE"],
 						"medialib" => false,
 						"fileDialog" => false,

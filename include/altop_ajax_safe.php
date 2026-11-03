@@ -141,3 +141,62 @@ function altopAjaxSanitizeBasketProps(array $props)
 	}
 	return $result;
 }
+
+/** Расширения реквизитов в «Купить в 1 клик». Список только на сервере. */
+function altopAjaxBocAllowedExtensions()
+{
+	return array("pdf", "doc", "docx", "txt", "rtf", "odt", "ods", "odp");
+}
+
+/**
+ * Файл реквизитов: только документы из белого списка, без исполняемых и скриптов.
+ * @param array $fileArray результат CFile/makeFileArray: name, tmp_name, size
+ */
+function altopAjaxBocFileAllowed(array $fileArray)
+{
+	$name = str_replace("\0", "", (string)($fileArray["name"] ?? ""));
+	$base = basename(str_replace("\\", "/", $name));
+	if ($base === "" || strpos($base, ".") === false) {
+		return false;
+	}
+	if (preg_match('/\.(php\d*|phtml|phar|exe|dll|so|bat|cmd|com|scr|js|mjs|vbs|jse|wsf|jsp|asp|aspx|cgi|pl|py|htaccess|svg|html?|shtml|msi|jar|ps1)(\.|$)/i', $base)) {
+		return false;
+	}
+	$ext = strtolower((string)pathinfo($base, PATHINFO_EXTENSION));
+	if (!in_array($ext, altopAjaxBocAllowedExtensions(), true)) {
+		return false;
+	}
+	$tmp = (string)($fileArray["tmp_name"] ?? "");
+	if ($tmp === "" || !is_file($tmp)) {
+		return false;
+	}
+	$size = filesize($tmp);
+	if ($size === false || $size <= 0 || $size > 20 * 1024 * 1024) {
+		return false;
+	}
+	$fh = fopen($tmp, "rb");
+	if (!$fh) {
+		return false;
+	}
+	$head = fread($fh, 16);
+	fclose($fh);
+	if (!is_string($head) || $head === "") {
+		return false;
+	}
+	if (strncmp($head, "MZ", 2) === 0 || strncmp($head, "\x7fELF", 4) === 0 || strncmp($head, "<?", 2) === 0) {
+		return false;
+	}
+	if ($ext === "pdf") {
+		return strncmp($head, "%PDF", 4) === 0;
+	}
+	if ($ext === "docx" || $ext === "odt" || $ext === "ods" || $ext === "odp") {
+		return strncmp($head, "PK\x03\x04", 4) === 0;
+	}
+	if ($ext === "rtf") {
+		return strncmp($head, '{\rtf', 5) === 0;
+	}
+	if ($ext === "doc") {
+		return strncmp($head, "\xD0\xCF\x11\xE0", 4) === 0 || strncmp($head, '{\rtf', 5) === 0;
+	}
+	return strpos($head, "\0") === false;
+}
