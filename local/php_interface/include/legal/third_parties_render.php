@@ -22,9 +22,7 @@ function vilmedLegalRenderThirdPartyPolicyLine(array $service): string
         $parts[0] .= ' (ИНН ' . legal_var($service['inn']) . ')';
     }
 
-    $line = $parts[0] . ' — ';
-    $line .= '<a href="' . legal_h($service['url']) . '" target="_blank" rel="noopener">'
-        . legal_var($service['link_label']) . '</a>';
+    $line = $parts[0] . ' — ' . legal_var($service['link_label']);
     if (!empty($service['suffix'])) {
         $line .= ', ' . legal_var($service['suffix']);
     }
@@ -44,9 +42,7 @@ function vilmedLegalRenderThirdPartyConsentLine(array $service): string
         $description .= ', ' . $service['suffix'];
     }
 
-    return $parts[0] . ' (' . legal_var($description) . ') — '
-        . '<a href="' . legal_h($service['url']) . '" target="_blank" rel="noopener">'
-        . legal_var($service['url']) . '</a>';
+    return $parts[0] . ' (' . legal_var($description) . ') — ' . legal_var($service['url']);
 }
 
 function vilmedLegalRenderThirdPartyServiceName(array $service): string
@@ -63,8 +59,7 @@ function vilmedLegalRenderThirdPartyRecommendationLine(array $block, ?array $ser
 {
     $links = [];
     foreach ($block['urls'] as $url) {
-        $links[] = '<a href="' . legal_h($url) . '" target="_blank" rel="noopener">'
-            . legal_var($url) . '</a>';
+        $links[] = legal_var($url);
     }
 
     $line = implode(', ', $links) . ' — ' . legal_var($block['text']);
