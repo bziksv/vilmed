@@ -426,6 +426,27 @@ Loc::loadMessages(__FILE__);?>
 		flyingCart(jQuery(btn), cartEl, catalogItem);
 	}
 
+	function vilmedQuantityInput(form) {
+		var inside = form.querySelector('input[name="quantity"]');
+		if (inside) {
+			return inside;
+		}
+		var idInput = form.querySelector('input[name="ID"]');
+		var productId = idInput && idInput.value ? String(idInput.value) : "";
+		if (productId) {
+			var byId = document.getElementById("quantity_" + productId);
+			if (byId) {
+				return byId;
+			}
+			var offer = document.querySelector('input[name="quantity"][id$="_' + productId + '"]');
+			if (offer) {
+				return offer;
+			}
+		}
+		var scope = form.closest(".catalog-detail") || document;
+		return scope.querySelector(".qnt_cont:not(.hidden) input[name='quantity']");
+	}
+
 	function vilmedBindAdd2BasketFallback() {
 		if (window.__vilmedAdd2BasketBound) {
 			return;
@@ -460,6 +481,12 @@ Loc::loadMessages(__FILE__);?>
 					params[input.name] = input.value;
 				}
 			});
+			// .qnt_cont переносится к цене и выходит из формы, поэтому
+			// input[name=quantity] в form больше нет — берём перенесённый.
+			var qInput = vilmedQuantityInput(form);
+			if (qInput && qInput.name) {
+				params[qInput.name] = qInput.value;
+			}
 			params.sessid = BX.bitrix_sessid();
 
 			BX.ajax.post(action, params, function() {
