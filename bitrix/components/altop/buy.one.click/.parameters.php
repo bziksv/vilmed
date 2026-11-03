@@ -51,7 +51,7 @@ if($arCurrentValues["USE_FILE_FIELD"] == "Y") {
 		"jpg, gif, bmp, png, jpeg" => GetMessage("1CB_PARAMETER_FILE_FIELD_TYPE_IMAGES"),
 		"mp3, wav, midi, snd, au, wma" => GetMessage("1CB_PARAMETER_FILE_FIELD_TYPE_SOUNDS"),
 		"mpg, avi, wmv, mpeg, mpe, flv" => GetMessage("1CB_PARAMETER_FILE_FIELD_TYPE_VIDEO"),
-		"doc, docx, txt, rtf" => GetMessage("1CB_PARAMETER_FILE_FIELD_TYPE_DOCS")
+		"pdf, doc, docx, txt, rtf, odt, ods, odp" => GetMessage("1CB_PARAMETER_FILE_FIELD_TYPE_DOCS")
 	);
 	$arComponentParameters["PARAMETERS"]["FILE_FIELD_TYPE"] = array(
 		"PARENT" => "BASE",

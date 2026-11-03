@@ -13,7 +13,7 @@ $APPLICATION->SetTitle("Каталог медицинского оборудов
 		"1CB_FILE_FIELD_MAX_COUNT" => "5",
 		"1CB_FILE_FIELD_MULTIPLE" => "Y",
 		"1CB_FILE_FIELD_NAME" => "Реквизиты",
-		"1CB_FILE_FIELD_TYPE" => "doc, docx, txt, rtf",
+		"1CB_FILE_FIELD_TYPE" => "pdf, doc, docx, txt, rtf, odt, ods, odp",
 		"1CB_REQUIRED_FIELDS" => array(0=>"NAME",1=>"PHONE",2=>"EMAIL",),
 		"1CB_USE_FILE_FIELD" => "Y",
 		"ACTION_VARIABLE" => "",
