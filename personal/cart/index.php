@@ -1,5 +1,57 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
-$APPLICATION->SetTitle("Моя корзина");?>
+$APPLICATION->SetTitle("Моя корзина");
+
+// Удаление и очистка корзины сами делают LocalRedirect. На php-cgi этот
+// редирект уходит клиенту как 200 с пустым телом — белая страница.
+$vilmedCartAction = (string)($_REQUEST["action"] ?? "");
+$vilmedBasketClear = (($_REQUEST["BasketClear"] ?? "") === "Y");
+$vilmedDelayClear = (($_REQUEST["DelayClear"] ?? "") === "Y");
+if (
+	\Bitrix\Main\Loader::includeModule("sale")
+	&& ($vilmedBasketClear || $vilmedDelayClear || $vilmedCartAction === "delete" || $vilmedCartAction === "delay")
+) {
+	$vilmedBasket = \Bitrix\Sale\Basket::loadItemsForFUser(
+		\Bitrix\Sale\Fuser::getId(),
+		SITE_ID
+	);
+	$vilmedChanged = false;
+	if ($vilmedBasketClear || $vilmedDelayClear) {
+		$vilmedDelayFlag = $vilmedDelayClear ? "Y" : "N";
+		foreach ($vilmedBasket as $vilmedItem) {
+			if ((string)$vilmedItem->getField("DELAY") === $vilmedDelayFlag) {
+				$vilmedItem->delete();
+				$vilmedChanged = true;
+			}
+		}
+	} else {
+		$vilmedItemId = (int)($_REQUEST["id"] ?? 0);
+		$vilmedItem = $vilmedItemId > 0 ? $vilmedBasket->getItemById($vilmedItemId) : null;
+		if (!$vilmedItem && $vilmedItemId > 0) {
+			$vilmedItem = $vilmedBasket->getItemByBasketCode($vilmedItemId);
+		}
+		if ($vilmedItem) {
+			if ($vilmedCartAction === "delete") {
+				$vilmedItem->delete();
+			} else {
+				$vilmedItem->setField("DELAY", "Y");
+			}
+			$vilmedChanged = true;
+		}
+	}
+	if ($vilmedChanged) {
+		$vilmedBasket->save();
+	}
+
+	$vilmedCartUrl = (string)$APPLICATION->GetCurPage();
+	if (!headers_sent()) {
+		header("Location: ".$vilmedCartUrl, true, 302);
+		exit;
+	}
+	echo '<meta http-equiv="refresh" content="0;url='.htmlspecialcharsbx($vilmedCartUrl).'">';
+	echo '<script>location.replace('.CUtil::PhpToJSObject($vilmedCartUrl).');</script>';
+	exit;
+}
+?>
 
 <?$APPLICATION->IncludeComponent(
 	"bitrix:sale.basket.basket",
