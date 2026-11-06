@@ -43,13 +43,16 @@ if (
 	}
 
 	$vilmedCartUrl = (string)$APPLICATION->GetCurPage();
-	if (!headers_sent()) {
-		header("Location: ".$vilmedCartUrl, true, 302);
-		exit;
-	}
-	echo '<meta http-equiv="refresh" content="0;url='.htmlspecialcharsbx($vilmedCartUrl).'">';
-	echo '<script>location.replace('.CUtil::PhpToJSObject($vilmedCartUrl).');</script>';
-	exit;
+	$vilmedCartHtml = '<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8">'
+		. '<meta http-equiv="refresh" content="0;url=' . htmlspecialcharsbx($vilmedCartUrl) . '">'
+		. '<title>Корзина</title></head><body>'
+		. '<script>location.replace(' . CUtil::PhpToJSObject($vilmedCartUrl) . ');</script>'
+		. '<p><a href="' . htmlspecialcharsbx($vilmedCartUrl) . '">Вернуться в корзину</a></p>'
+		. '</body></html>';
+	$vilmedResponse = new \Bitrix\Main\HttpResponse();
+	$vilmedResponse->addHeader("Content-Type", "text/html; charset=UTF-8");
+	$vilmedResponse->setContent($vilmedCartHtml);
+	\Bitrix\Main\Application::getInstance()->end(0, $vilmedResponse);
 }
 ?>
 
