@@ -3935,6 +3935,7 @@ a.catalog_item_toogle_filter_reset{
 	display:table;
 	margin:0px;
 	padding:0px;
+	overflow:hidden;
 }
 
 #addItemInCart .item_image_full{
@@ -3942,6 +3943,13 @@ a.catalog_item_toogle_filter_reset{
 	vertical-align:middle;
 	margin:0px;
 	padding:0px;
+}
+
+#addItemInCart .item_image_full img{
+	width:auto;
+	max-width:100%;
+	height:auto;
+	max-height:178px;
 }
 
 #addItemInCart .item_title{
