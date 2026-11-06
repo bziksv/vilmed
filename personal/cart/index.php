@@ -43,16 +43,17 @@ if (
 	}
 
 	$vilmedCartUrl = (string)$APPLICATION->GetCurPage();
-	$vilmedCartHtml = '<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8">'
+	if (class_exists('\\Bitrix\\Main\\Composite\\Engine')) {
+		\Bitrix\Main\Composite\Engine::setEnable(false);
+	}
+	$APPLICATION->RestartBuffer();
+	echo '<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8">'
 		. '<meta http-equiv="refresh" content="0;url=' . htmlspecialcharsbx($vilmedCartUrl) . '">'
 		. '<title>Корзина</title></head><body>'
 		. '<script>location.replace(' . CUtil::PhpToJSObject($vilmedCartUrl) . ');</script>'
 		. '<p><a href="' . htmlspecialcharsbx($vilmedCartUrl) . '">Вернуться в корзину</a></p>'
 		. '</body></html>';
-	$vilmedResponse = new \Bitrix\Main\HttpResponse();
-	$vilmedResponse->addHeader("Content-Type", "text/html; charset=UTF-8");
-	$vilmedResponse->setContent($vilmedCartHtml);
-	\Bitrix\Main\Application::getInstance()->end(0, $vilmedResponse);
+	die();
 }
 ?>
 
