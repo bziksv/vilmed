@@ -125,9 +125,24 @@ function vmCatalogGatePass(string $uri): void
 		http_response_code(200);
 	}
 	echo '<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8">'
+		. '<meta name="viewport" content="width=device-width, initial-scale=1">'
 		. '<meta http-equiv="refresh" content="0;url=' . $safe . '">'
-		. '<title>Открываем каталог</title></head><body>'
-		. '<p>Код принят. <a href="' . $safe . '">Перейти в каталог</a></p>'
+		. '<title>Открываем каталог</title>'
+		. '<style>'
+		. 'html,body{margin:0;height:100%;background:#f1f5f9;color:#1e293b;font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}'
+		. 'body{display:flex;align-items:center;justify-content:center;padding:24px;}'
+		. '.vm-gate{width:100%;max-width:420px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 12px 40px rgba(15,23,42,.08);padding:28px 24px 24px;}'
+		. '.vm-gate h1{margin:0 0 8px;font-size:22px;line-height:1.3;}'
+		. '.vm-gate p{margin:0 0 12px;color:#475569;}'
+		. '.vm-gate a{color:#0b3961;font-weight:600;}'
+		. '.vm-spin{width:28px;height:28px;margin:0 0 16px;border:3px solid #e2e8f0;border-top-color:#0b3961;border-radius:50%;animation:vm-spin .8s linear infinite;}'
+		. '@keyframes vm-spin{to{transform:rotate(360deg);}}'
+		. '</style></head><body><div class="vm-gate">'
+		. '<div class="vm-spin"></div>'
+		. '<h1>Код принят</h1>'
+		. '<p>Сейчас откроется страница каталога. Это происходит само, обычно за несколько секунд.</p>'
+		. '<p>Если страница не открылась, перейдите по ссылке: <a href="' . $safe . '">показать каталог</a>.</p>'
+		. '</div>'
 		. '<script>location.replace(' . json_encode($uri, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ');</script>'
 		. '</body></html>';
 	die();
