@@ -617,7 +617,7 @@ rsync -avz user@217.28.220.186:/var/www/.../upload/ ~/Documents/projects/vilmed/
 | Владелец файлов | `vilmed_ru_usr:vilmed_ru_usr` |
 | RAM | 11 GiB, **swap 6 GiB** (`/swapfile`, в `/etc/fstab`, с 2026-08-05) |
 | MySQL slow.log | `log_queries_not_using_indexes = 0` (с 2026-10-23; было ON → 3–5+ GB/день и CPU). Эталон: `tools/perf/mysql-slowlog.cnf.snippet` |
-| Catalog gate | `local/php_interface/include/vm_catalog_gate.php` (с 2026-10-23): прямой заход на `/catalog/?sort\|view\|PAGEN\|q\|section_id` без куки `vm_cg` → капча Битрикса. Referrer vilmed.ru / боты Google·Yandex / warmup — без капчи. С 2026-11-07 тот же заход (GET/HEAD, без куки и без referer vilmed.ru) закрывается в nginx **до PHP** (`444`), сниппет `tools/perf/nginx-catalog-gate.inc` в `vilmed.ru.includes`. Поисковики пропускаются по IP (`$search_engine`), не по User-Agent. Отдельно всегда `444` на GET `/catalog/` с тремя и более `section_id`: ферма Heine подставляет referer vilmed.ru и забирает полную выдачу. Кука и referer этот адрес не открывают. |
+| Catalog gate | `local/php_interface/include/vm_catalog_gate.php` и nginx `tools/perf/nginx-catalog-gate.inc` (в `vilmed.ru.includes`). С 2026-11-07 закрыт только перебор: GET `/catalog/` с тремя и более `section_id` (nginx `444`, PHP `403`). Обычный `?q=`, сортировка и страницы открываются сразу, в том числе в инкогнито. Поисковики по IP в nginx не режутся. |
 | MySQL buffer pool | **4G** (было 9G → OOM). Правки в **обоих** файлах: `/etc/mysql/conf.d/mysql.cnf` и `/etc/mysql/my.cnf.fastpanel/99-fastpanel.cnf` (FastPanel подключается последним через `!include`) |
 | `innodb_log_buffer_size` | **64M** (было 1024M) |
 

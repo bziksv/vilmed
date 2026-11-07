@@ -16,7 +16,7 @@ if ($isLocalDev) {
 	if (!defined('VILMED_LOCAL_FULL_MENU')) define('VILMED_LOCAL_FULL_MENU', true);
 }
 
-// Капча на прямой заход /catalog/?sort|view|PAGEN|q|section_id (порт kosmamed km_catalog_gate)
+// Перебор /catalog/ с тремя и больше section_id закрывается до сборки раздела
 if (file_exists($_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/include/vm_catalog_gate.php')) {
 	require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/include/vm_catalog_gate.php';
 }
