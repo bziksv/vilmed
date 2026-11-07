@@ -617,7 +617,7 @@ rsync -avz user@217.28.220.186:/var/www/.../upload/ ~/Documents/projects/vilmed/
 | Владелец файлов | `vilmed_ru_usr:vilmed_ru_usr` |
 | RAM | 11 GiB, **swap 6 GiB** (`/swapfile`, в `/etc/fstab`, с 2026-08-05) |
 | MySQL slow.log | `log_queries_not_using_indexes = 0` (с 2026-10-23; было ON → 3–5+ GB/день и CPU). Эталон: `tools/perf/mysql-slowlog.cnf.snippet` |
-| Catalog gate | `local/php_interface/include/vm_catalog_gate.php` и nginx `tools/perf/nginx-catalog-gate.inc` (в `vilmed.ru.includes`). С 2026-11-07 закрыт только перебор: GET `/catalog/` с тремя и более `section_id` (nginx `444`, PHP `403`). Обычный `?q=`, сортировка и страницы открываются сразу, в том числе в инкогнито. Поисковики по IP в nginx не режутся. |
+| Catalog gate | `local/php_interface/include/vm_catalog_gate.php`: прямой заход на `/catalog/?sort\|view\|PAGEN\|q\|section_id` без куки `vm_cg` показывает капчу. Переход со страницы vilmed.ru и поисковые боты проходят без капчи. Nginx `tools/perf/nginx-catalog-gate.inc` до PHP закрывает только перебор с тремя и более `section_id` (`444`). Обычный прямой `?q=` доходит до капчи, а не обрывается. |
 | MySQL buffer pool | **4G** (было 9G → OOM). Правки в **обоих** файлах: `/etc/mysql/conf.d/mysql.cnf` и `/etc/mysql/my.cnf.fastpanel/99-fastpanel.cnf` (FastPanel подключается последним через `!include`) |
 | `innodb_log_buffer_size` | **64M** (было 1024M) |
 
