@@ -251,6 +251,9 @@ class BatchQueue
 			'BATCH_KEY' => "ALTER TABLE titlo_relevance_queue ADD COLUMN BATCH_KEY varchar(64) NOT NULL DEFAULT '' AFTER RUN_MODE",
 			'WORKER_TOKEN' => "ALTER TABLE titlo_relevance_queue ADD COLUMN WORKER_TOKEN varchar(32) NOT NULL DEFAULT '' AFTER BATCH_KEY",
 			'LEASE_UNTIL' => 'ALTER TABLE titlo_relevance_queue ADD COLUMN LEASE_UNTIL datetime DEFAULT NULL AFTER WORKER_TOKEN',
+			'ANALYSIS_ENGINE' => "ALTER TABLE titlo_relevance_queue ADD COLUMN ANALYSIS_ENGINE varchar(16) NOT NULL DEFAULT '' AFTER RUN_MODE",
+			'ANALYSIS_REGION' => "ALTER TABLE titlo_relevance_queue ADD COLUMN ANALYSIS_REGION varchar(32) NOT NULL DEFAULT '' AFTER ANALYSIS_ENGINE",
+			'ANALYSIS_TOP' => 'ALTER TABLE titlo_relevance_queue ADD COLUMN ANALYSIS_TOP int(11) NOT NULL DEFAULT 0 AFTER ANALYSIS_REGION',
 		];
 		foreach ($alters as $col => $sql) {
 			if (!isset($cols[$col])) {
@@ -381,6 +384,7 @@ class BatchQueue
 		}
 		$histSql = $historyId > 0 ? (string) (int) $historyId : 'NULL';
 		$workSql = $workHistoryId > 0 ? (string) (int) $workHistoryId : 'NULL';
+		$analysis = Config::analysisParamsFromOpts($opts);
 
 		$connection = \Bitrix\Main\Application::getConnection();
 		$connection->startTransaction();
@@ -400,7 +404,9 @@ class BatchQueue
 				INSERT INTO titlo_relevance_queue
 				(ENTITY_TYPE, ENTITY_ID, URL, PHRASE, STATUS, STEP, HISTORY_ID, WORK_HISTORY_ID,
 				 PROMPT_DETAIL_ID, PROMPT_PREVIEW_ID, GEN_PREVIEW, EXISTING_POLICY,
-				 TLP_MISSING_LIMIT, TLP_DIFF_LIMIT, RUN_MODE, BATCH_KEY, CREATED_AT, UPDATED_AT)
+				 TLP_MISSING_LIMIT, TLP_DIFF_LIMIT, RUN_MODE,
+				 ANALYSIS_ENGINE, ANALYSIS_REGION, ANALYSIS_TOP,
+				 BATCH_KEY, CREATED_AT, UPDATED_AT)
 				VALUES (
 					'" . $DB->ForSql($entityType) . "',
 					" . (int) $entityId . ",
@@ -417,6 +423,9 @@ class BatchQueue
 					" . (int) $missLim . ",
 					" . (int) $diffLim . ",
 					'" . $DB->ForSql($runMode) . "',
+					'" . $DB->ForSql($analysis['engine']) . "',
+					'" . $DB->ForSql($analysis['region']) . "',
+					" . (int) $analysis['top'] . ",
 					'" . $DB->ForSql($batchKey) . "',
 					'" . $DB->ForSql($now) . "',
 					'" . $DB->ForSql($now) . "'
@@ -674,6 +683,12 @@ class BatchQueue
 			if (array_key_exists('tlp_diff_limit', $opts)) {
 				$diff = max(0, min(200, (int) $opts['tlp_diff_limit']));
 				$sets[] = 'TLP_DIFF_LIMIT = ' . $diff;
+			}
+			if (array_key_exists('engine', $opts) || array_key_exists('region', $opts) || array_key_exists('top', $opts)) {
+				$analysis = Config::analysisParamsFromOpts($opts);
+				$sets[] = "ANALYSIS_ENGINE = '" . $DB->ForSql($analysis['engine']) . "'";
+				$sets[] = "ANALYSIS_REGION = '" . $DB->ForSql($analysis['region']) . "'";
+				$sets[] = 'ANALYSIS_TOP = ' . (int) $analysis['top'];
 			}
 			$DB->Query(
 				'UPDATE titlo_relevance_queue SET ' . implode(', ', $sets)

@@ -618,6 +618,34 @@ class Config
 	}
 
 	/**
+	 * ПС, регион и топ из формы. Пустые значения — дефолты модуля.
+	 *
+	 * @param array{engine?:string,region?:string,top?:int|string} $opts
+	 * @return array{engine:string,region:string,top:int}
+	 */
+	public static function analysisParamsFromOpts(array $opts): array
+	{
+		$engine = strtolower(trim((string) ($opts['engine'] ?? '')));
+		if (!in_array($engine, ['yandex', 'google'], true)) {
+			$engine = self::analysisEngineDefault();
+		}
+		$region = trim((string) ($opts['region'] ?? ''));
+		if (!preg_match('/^\d{1,12}$/', $region)) {
+			$region = self::analysisRegionDefault($engine);
+		}
+		$top = (int) ($opts['top'] ?? 0);
+		if (!in_array($top, self::analysisTopOptions(), true)) {
+			$top = self::analysisTopDefault();
+		}
+
+		return [
+			'engine' => $engine,
+			'region' => $region,
+			'top' => $top,
+		];
+	}
+
+	/**
 	 * Популярные города Яндекс (lr) — подсказки при пустом поле.
 	 *
 	 * @return array<string, string> id => label

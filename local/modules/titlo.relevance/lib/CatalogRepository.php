@@ -232,6 +232,11 @@ class CatalogRepository
 		return trim(html_entity_decode(strip_tags($raw), ENT_QUOTES, 'UTF-8'));
 	}
 
+	protected static function catalogTextLooksLikeHtml(string $value): bool
+	{
+		return (bool) preg_match('/<\s*\/?\s*[a-z][a-z0-9]*\b[^>]*>/i', $value);
+	}
+
 	protected static function readCatalogFieldValue(string $entityType, int $id, string $field, array $standard = []): string
 	{
 		$entityType = strtoupper($entityType) === 'S' ? 'S' : 'E';
@@ -1725,7 +1730,13 @@ class CatalogRepository
 		$wrote = false;
 		if ($preview !== null) {
 			$wrote = true;
-			$ok = self::writeCatalogFieldValue('E', $id, Config::previewTextField(), $preview, false) && $ok;
+			$ok = self::writeCatalogFieldValue(
+				'E',
+				$id,
+				Config::previewTextField(),
+				$preview,
+				self::catalogTextLooksLikeHtml($preview)
+			) && $ok;
 		}
 		if ($detail !== null) {
 			$wrote = true;

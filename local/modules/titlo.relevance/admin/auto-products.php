@@ -50,6 +50,19 @@ $sort = (string) ($_GET['sort'] ?? 'score_asc');
 if ($sort !== 'id_desc') {
 	$sort = 'score_asc';
 }
+$analysisEngine = Config::getAutoOption('analysis_engine', 'E', Config::analysisEngineDefault());
+if (!in_array($analysisEngine, ['yandex', 'google'], true)) {
+	$analysisEngine = 'yandex';
+}
+$analysisRegion = Config::getAutoOption(
+	'analysis_region_' . $analysisEngine,
+	'E',
+	Config::analysisRegionDefault($analysisEngine)
+);
+$analysisTop = (int) Config::getAutoOption('analysis_top', 'E', (string) Config::analysisTopDefault());
+if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
+	$analysisTop = Config::analysisTopDefault();
+}
 ?>
 
 <?php AdminUi::renderCss(); ?>
@@ -191,6 +204,35 @@ if ($sort !== 'id_desc') {
 			<span class="titlo-panel__hint">Режим, промпт и постановка выбранных товаров в очередь</span>
 		</header>
 		<div class="titlo-panel__body bulk-bar">
+		<div class="titlo-auto-analysis" style="flex:1 1 100%">
+		<label>Поиск / регион / топ
+			<span class="titlo-help" tabindex="0" aria-label="Параметры выдачи">?
+				<span class="titlo-help__tip">Те же поля, что на проработке одного товара. Яндекс и Google используют разные номера городов. Очередь берёт то, что выбрано здесь, а не всегда Яндекс.</span>
+			</span>
+		</label>
+		<label style="margin-right:12px">ПС
+			<select id="titlo-auto-engine" class="adm-input" style="width:120px">
+				<option value="yandex" <?= $analysisEngine === 'yandex' ? 'selected' : '' ?>>Яндекс</option>
+				<option value="google" <?= $analysisEngine === 'google' ? 'selected' : '' ?>>Google</option>
+			</select>
+		</label>
+		<label style="margin-right:12px">Регион
+			<span class="titlo-region-ac" id="titlo-auto-region-ac">
+				<input type="hidden" id="titlo-auto-region" value="<?= htmlspecialcharsbx($analysisRegion) ?>">
+				<input type="text" id="titlo-auto-region-q" class="adm-input" autocomplete="off"
+					placeholder="Начните вводить город"
+					value="<?= htmlspecialcharsbx(Config::analysisRegionLabel($analysisRegion, $analysisEngine)) ?>">
+				<div id="titlo-auto-region-list" class="titlo-region-ac__list"></div>
+			</span>
+		</label>
+		<label>ТОП
+			<select id="titlo-auto-top" class="adm-input" style="width:80px">
+				<?php foreach (Config::analysisTopOptions() as $topOpt): ?>
+					<option value="<?= (int) $topOpt ?>"<?= (int) $topOpt === $analysisTop ? ' selected' : '' ?>><?= (int) $topOpt ?></option>
+				<?php endforeach; ?>
+			</select>
+		</label>
+		</div>
 		<label>Режим
 			<span class="titlo-help" tabindex="0" aria-label="Режим очереди">?
 				<span class="titlo-help__tip"><b>Только анализ</b> — считает балл и останавливается (удобно выбрать низкие).<br><b>Полная проработка</b> — анализ, генерация описания, сохранение, повторный анализ.<br><b>Повторная доработка</b> — без первого анализа: берёт последний history_id / TLP, генерирует по промпту доработки, сохраняет и снова считает балл. Без прошлого балла в очередь не ставит.</span>
@@ -382,6 +424,138 @@ if ($sort !== 'id_desc') {
 			.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 			.replace(/"/g, '&quot;');
 	}
+
+	var regionsByEngine = {
+		yandex: <?= json_encode(Config::analysisYandexRegionsList(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_UNESCAPED_UNICODE) ?>,
+		google: <?= json_encode(Config::analysisGoogleRegionsList(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_UNESCAPED_UNICODE) ?>
+	};
+	var popularByEngine = {
+		yandex: <?= json_encode(array_keys(Config::analysisRegions()), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>,
+		google: <?= json_encode(array_keys(Config::analysisGoogleRegions()), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>
+	};
+	var defaultRegionByEngine = {
+		yandex: <?= json_encode(Config::analysisRegionDefault('yandex'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>,
+		google: <?= json_encode(Config::analysisRegionDefault('google'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>
+	};
+	var savedRegionByEngine = {yandex: '', google: ''};
+
+	function currentEngine() {
+		var el = document.getElementById('titlo-auto-engine');
+		return (el && el.value === 'google') ? 'google' : 'yandex';
+	}
+	function regionList() {
+		return regionsByEngine[currentEngine()] || [];
+	}
+	function regionLabelById(id, engine) {
+		id = String(id || '');
+		engine = engine || currentEngine();
+		var list = regionsByEngine[engine] || [];
+		for (var i = 0; i < list.length; i++) {
+			if (String(list[i].id) === id) return (list[i].name || '') + ' [' + id + ']';
+		}
+		return id;
+	}
+	function filterRegions(q) {
+		q = String(q || '').trim().toLowerCase();
+		var engine = currentEngine();
+		var skip = engine === 'yandex' ? {'225': 1} : {};
+		var out = [];
+		var list = regionList();
+		if (!q) {
+			(popularByEngine[engine] || []).forEach(function (id) {
+				id = String(id);
+				if (skip[id]) return;
+				out.push({id: id, text: regionLabelById(id, engine)});
+			});
+			return out;
+		}
+		for (var i = 0; i < list.length; i++) {
+			var id = String(list[i].id || '');
+			if (skip[id]) continue;
+			var name = String(list[i].name || '');
+			if ((name + ' ' + id).toLowerCase().indexOf(q) === -1) continue;
+			out.push({id: id, text: name + ' [' + id + ']'});
+			if (out.length >= 25) break;
+		}
+		return out;
+	}
+	function closeRegionList() {
+		var wrap = document.getElementById('titlo-auto-region-ac');
+		if (wrap) wrap.classList.remove('is-open');
+	}
+	function setRegion(id, text) {
+		var hid = document.getElementById('titlo-auto-region');
+		var inp = document.getElementById('titlo-auto-region-q');
+		var engine = currentEngine();
+		if (hid) hid.value = String(id || '');
+		if (inp) inp.value = text || regionLabelById(id, engine);
+		savedRegionByEngine[engine] = String(id || '');
+		closeRegionList();
+	}
+	function applyEngineRegion() {
+		var engine = currentEngine();
+		var id = savedRegionByEngine[engine] || defaultRegionByEngine[engine];
+		setRegion(id, regionLabelById(id, engine));
+	}
+	function renderRegionList(items) {
+		var box = document.getElementById('titlo-auto-region-list');
+		var wrap = document.getElementById('titlo-auto-region-ac');
+		if (!box || !wrap) return;
+		box.innerHTML = items.length
+			? items.map(function (it) {
+				return '<div data-id="' + escapeHtml(String(it.id)) + '">' + escapeHtml(String(it.text || '')) + '</div>';
+			}).join('')
+			: '<div class="empty">Ничего не найдено — введите город, например «Казань»</div>';
+		wrap.classList.add('is-open');
+		Array.prototype.forEach.call(box.querySelectorAll('div[data-id]'), function (el) {
+			el.onclick = function () { setRegion(el.getAttribute('data-id'), el.textContent); };
+		});
+	}
+	function analysisFields() {
+		return {
+			engine: (document.getElementById('titlo-auto-engine') || {}).value || 'yandex',
+			region: (document.getElementById('titlo-auto-region') || {}).value || '',
+			top: (document.getElementById('titlo-auto-top') || {}).value || ''
+		};
+	}
+	(function initRegionSearch() {
+		var inp = document.getElementById('titlo-auto-region-q');
+		var eng = document.getElementById('titlo-auto-engine');
+		if (!inp) return;
+		inp.addEventListener('focus', function () {
+			var curId = document.getElementById('titlo-auto-region').value;
+			var curLabel = regionLabelById(curId);
+			renderRegionList(filterRegions(inp.value === curLabel ? '' : inp.value));
+		});
+		inp.addEventListener('input', function () { renderRegionList(filterRegions(inp.value)); });
+		inp.addEventListener('keydown', function (ev) {
+			if (ev.key === 'Escape') closeRegionList();
+			if (ev.key === 'Enter') {
+				ev.preventDefault();
+				var first = document.querySelector('#titlo-auto-region-list div[data-id]');
+				if (first) setRegion(first.getAttribute('data-id'), first.textContent);
+			}
+		});
+		if (eng) eng.addEventListener('change', applyEngineRegion);
+		document.addEventListener('click', function (ev) {
+			var wrap = document.getElementById('titlo-auto-region-ac');
+			if (wrap && !wrap.contains(ev.target)) closeRegionList();
+		});
+		try {
+			var saved = JSON.parse(localStorage.getItem('titlo_analysis_params_v1') || '{}') || {};
+			if (saved.engine && eng) eng.value = saved.engine;
+			if (saved.top && document.getElementById('titlo-auto-top')) {
+				document.getElementById('titlo-auto-top').value = String(saved.top);
+			}
+			if (saved.regionsByEngine) {
+				savedRegionByEngine.yandex = saved.regionsByEngine.yandex || '';
+				savedRegionByEngine.google = saved.regionsByEngine.google || '';
+			} else if (saved.region) {
+				savedRegionByEngine[(saved.engine === 'google') ? 'google' : 'yandex'] = String(saved.region);
+			}
+			if (saved.engine || saved.region) applyEngineRegion();
+		} catch (e) {}
+	})();
 
 	function safeHref(u) {
 		u = String(u || '').trim();
@@ -1196,6 +1370,7 @@ if ($sort !== 'id_desc') {
 		var ids = Object.keys(selected).filter(function (k) { return selected[k]; }).map(function (k) { return parseInt(k, 10); });
 		if (!ids.length) return;
 		setStatus('titlo-auto-run-status', 'Ставим в очередь…');
+		var analysis = analysisFields();
 		post('auto_enqueue_batch', {
 			entity_type: entityType,
 			ids: JSON.stringify(ids),
@@ -1205,7 +1380,10 @@ if ($sort !== 'id_desc') {
 			gen_preview: document.getElementById('titlo-auto-gen-preview').checked ? '1' : '0',
 			existing_policy: document.getElementById('titlo-auto-policy').value,
 			tlp_missing_limit: document.getElementById('titlo-auto-tlp-missing').value,
-			tlp_diff_limit: document.getElementById('titlo-auto-tlp-diff').value
+			tlp_diff_limit: document.getElementById('titlo-auto-tlp-diff').value,
+			engine: analysis.engine,
+			region: analysis.region,
+			top: analysis.top
 		}).then(function (res) {
 			if (!res.ok) {
 				setStatus('titlo-auto-run-status', res.error || 'Не удалось поставить', true);
@@ -1272,6 +1450,7 @@ if ($sort !== 'id_desc') {
 		var ids = Object.keys(queueSelected).filter(function (k) { return queueSelected[k]; }).map(function (k) { return parseInt(k, 10); });
 		if (!ids.length) return;
 		setStatus('titlo-auto-requeue-status', 'Ставим в очередь…');
+		var analysis = analysisFields();
 		post('auto_requeue_jobs', {
 			ids: JSON.stringify(ids),
 			entity_type: 'E',
@@ -1281,7 +1460,10 @@ if ($sort !== 'id_desc') {
 			prompt_preview_id: document.getElementById('titlo-auto-prompt-preview').value || 0,
 			gen_preview: document.getElementById('titlo-auto-gen-preview').checked ? '1' : '0',
 			tlp_missing_limit: document.getElementById('titlo-auto-tlp-missing').value,
-			tlp_diff_limit: document.getElementById('titlo-auto-tlp-diff').value
+			tlp_diff_limit: document.getElementById('titlo-auto-tlp-diff').value,
+			engine: analysis.engine,
+			region: analysis.region,
+			top: analysis.top
 		}).then(function (res) {
 			if (!res.ok) {
 				setStatus('titlo-auto-requeue-status', res.error || 'Не удалось', true);

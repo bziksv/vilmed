@@ -219,15 +219,24 @@ class Agent
 		return $crawlUrl;
 	}
 
+	/**
+	 * @param array<string, mixed> $row
+	 * @return array{engine:string,region:string,top:int}
+	 */
+	protected static function analysisParams(array $row): array
+	{
+		return Config::analysisParamsFromOpts([
+			'engine' => (string) ($row['ANALYSIS_ENGINE'] ?? ''),
+			'region' => (string) ($row['ANALYSIS_REGION'] ?? ''),
+			'top' => (int) ($row['ANALYSIS_TOP'] ?? 0),
+		]);
+	}
+
 	protected static function stepAnalyze(ApiClient $client, array $row): void
 	{
 		$id = (int) $row['ID'];
 		$crawlUrl = self::crawlUrl($row);
-		$result = $client->startAnalysis($crawlUrl, (string) $row['PHRASE'], [
-			'engine' => Config::analysisEngineDefault(),
-			'region' => Config::analysisRegionDefault(),
-			'top' => Config::analysisTopDefault(),
-		]);
+		$result = $client->startAnalysis($crawlUrl, (string) $row['PHRASE'], self::analysisParams($row));
 		$analysisId = (string) ($result['analysis_id'] ?? '');
 		if ($analysisId === '') {
 			throw new \RuntimeException('Empty analysis_id');
@@ -587,11 +596,7 @@ class Agent
 			$entityType,
 			(string) ($row['URL'] ?? '')
 		);
-		$result = $client->startAnalysis(self::crawlUrl($row), (string) $row['PHRASE'], [
-			'engine' => Config::analysisEngineDefault(),
-			'region' => Config::analysisRegionDefault(),
-			'top' => Config::analysisTopDefault(),
-		]);
+		$result = $client->startAnalysis(self::crawlUrl($row), (string) $row['PHRASE'], self::analysisParams($row));
 		$analysisId = (string) ($result['analysis_id'] ?? '');
 		if ($analysisId === '') {
 			throw new \RuntimeException('Empty recheck analysis_id');

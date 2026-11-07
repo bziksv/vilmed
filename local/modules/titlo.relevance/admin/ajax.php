@@ -529,6 +529,11 @@ try {
 			if ($items === []) {
 				titlo_json(['ok' => false, 'error' => 'ids required'], 422);
 			}
+			$analysis = Config::analysisParamsFromOpts([
+				'engine' => (string) ($_POST['engine'] ?? ''),
+				'region' => (string) ($_POST['region'] ?? ''),
+				'top' => (int) ($_POST['top'] ?? 0),
+			]);
 			$opts = [
 				'entity_type' => $entityType,
 				'prompt_detail_id' => (int) ($_POST['prompt_detail_id'] ?? 0),
@@ -538,6 +543,9 @@ try {
 				'tlp_missing_limit' => (int) ($_POST['tlp_missing_limit'] ?? 300),
 				'tlp_diff_limit' => (int) ($_POST['tlp_diff_limit'] ?? 5),
 				'run_mode' => (string) ($_POST['run_mode'] ?? BatchQueue::MODE_FULL),
+				'engine' => $analysis['engine'],
+				'region' => $analysis['region'],
+				'top' => $analysis['top'],
 			];
 			// сохранить дефолты панели
 			$runMode = BatchQueue::normalizeRunMode((string) $opts['run_mode']);
@@ -552,6 +560,9 @@ try {
 			if ($entityType !== 'S') {
 				Config::setAutoOption('gen_preview', $entityType, $opts['gen_preview'] ? 'Y' : 'N');
 			}
+			Config::setAutoOption('analysis_engine', $entityType, $analysis['engine']);
+			Config::setAutoOption('analysis_region_' . $analysis['engine'], $entityType, $analysis['region']);
+			Config::setAutoOption('analysis_top', $entityType, (string) $analysis['top']);
 			if ($opts['prompt_detail_id'] > 0) {
 				$promptType = $entityType === 'S' ? Prompts::TYPE_CATEGORY : Prompts::TYPE_DETAIL;
 				Prompts::setActiveId($promptType, $opts['prompt_detail_id']);
@@ -580,6 +591,11 @@ try {
 				$decoded = [];
 			}
 			$entityType = strtoupper((string) ($_POST['entity_type'] ?? 'E')) === 'S' ? 'S' : 'E';
+			$analysis = Config::analysisParamsFromOpts([
+				'engine' => (string) ($_POST['engine'] ?? ''),
+				'region' => (string) ($_POST['region'] ?? ''),
+				'top' => (int) ($_POST['top'] ?? 0),
+			]);
 			$opts = [
 				'entity_type' => $entityType,
 				'run_mode' => (string) ($_POST['run_mode'] ?? BatchQueue::MODE_FULL),
@@ -589,6 +605,9 @@ try {
 				'gen_preview' => $entityType !== 'S' && in_array((string) ($_POST['gen_preview'] ?? ''), ['1', 'Y', 'y', 'true'], true),
 				'tlp_missing_limit' => (int) ($_POST['tlp_missing_limit'] ?? 300),
 				'tlp_diff_limit' => (int) ($_POST['tlp_diff_limit'] ?? 5),
+				'engine' => $analysis['engine'],
+				'region' => $analysis['region'],
+				'top' => $analysis['top'],
 			];
 			if ($opts['run_mode'] === BatchQueue::MODE_FULL || $opts['run_mode'] === BatchQueue::MODE_REFINE) {
 				$opts['run_mode'] = BatchQueue::normalizeRunMode((string) $opts['run_mode']);
