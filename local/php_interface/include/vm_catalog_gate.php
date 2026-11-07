@@ -212,11 +212,9 @@ function vmCatalogGateRun(): void
 	if (vmCatalogGateCookieValid()) {
 		return;
 	}
-	if (vmCatalogGateSameSiteReferer()) {
-		vmCatalogGateSetCookie();
-		return;
-	}
 
+	// Форма капчи уходит на этот же адрес, и браузер ставит referer vilmed.ru.
+	// Проверяем код до пропуска «пришёл с сайта», иначе проходят любые цифры.
 	if ($method === 'POST' && (string)($_POST['vm_catalog_gate'] ?? '') === '1') {
 		global $APPLICATION;
 		$word = (string)($_POST['captcha_word'] ?? '');
@@ -226,6 +224,11 @@ function vmCatalogGateRun(): void
 			vmCatalogGatePass((string)($_SERVER['REQUEST_URI'] ?? '/catalog/'));
 		}
 		vmCatalogGateShow('Неверный код. Введите новый.');
+	}
+
+	if (vmCatalogGateSameSiteReferer()) {
+		vmCatalogGateSetCookie();
+		return;
 	}
 
 	if ($method === 'HEAD') {
