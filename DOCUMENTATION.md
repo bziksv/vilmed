@@ -886,3 +886,15 @@ flowchart LR
 ---
 
 *Документация сгенерирована на основе анализа кодовой базы. Дата: 22.06.2025. Обновлено 26.06.2026 (карточка товара, список подкатегорий, нюансы деплоя композита и SSH).*
+
+
+### PostgreSQL pf: удалённый доступ и веб-интерфейс (2026-11-09)
+
+- PostgreSQL 17 слушает `localhost,217.28.220.186`, порт `5432`.
+- `/etc/postgresql/17/main/conf.d/zz-pf-remote.conf` задаёт `listen_addresses`.
+- `pg_hba.conf`: локальные правила сохранены; внешние подключения разрешены только `hostssl pf pf_usr 0.0.0.0/0 md5`, остальные внешние подключения отклоняются. Существующий пароль не менялся. В клиентах использовать `sslmode=require`; это шифрует соединение, но не проверяет подлинность сертификата сервера.
+- Adminer 6.3.0 скачан с `https://www.adminer.org/latest.php`, установлен в `/usr/share/pf-adminer/index.php` (не в публичном каталоге сайта).
+- Адрес: `https://217.28.220.186:8888/adminer/?pgsql=localhost&username=pf_usr&db=pf`. Вход по паролю БД, без автологина. Форма входа Adminer может отвечать HTTP 403 до авторизации — это не ошибка nginx.
+- Интеграция: `/usr/local/fastpanel2-nginx/apps/pf-adminer.conf`, штатный PHP-пул `/var/run/fastpanel2-apps.sock`, `pdo_pgsql` уже установлен. Генерируемые файлы FastPanel не менялись.
+- Применение: `/usr/local/sbin/fastpanel2-nginx -t && systemctl reload fastpanel2-nginx`; смена listen_addresses требует `pg_ctlcluster 17 main restart`.
+- Проверено извне: порт 5432 отвечает на SSLRequest, TLS 1.3; Adminer показывает форму с PostgreSQL, пользователем pf_usr и базой pf. Вход с настоящим паролем пользователя не проверялся, пароль не запрашивался и не менялся.
