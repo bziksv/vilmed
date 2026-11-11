@@ -20,11 +20,15 @@ if ($vm_farm = 1) {
 
 # Реферер vilmed.ru, у которого путь без слеша на конце: у сайта все адреса
 # со слешем, адрес без слеша сразу уходит в 301, браузер такой не пришлёт.
+# Статику не проверяем: шрифты и картинки из CSS приходят с реферером-файлом.
 set $vm_badref 0;
 if ($http_referer ~* "^https?://(www\.)?vilmed\.ru(/[^?#]*[^/?#])?([?#].*)?$") {
     set $vm_badref 1;
 }
-if ($http_referer ~* "^https?://(www\.)?vilmed\.ru/[^?#]*\.(php|html?)([?#].*)?$") {
+if ($http_referer ~* "^https?://(www\.)?vilmed\.ru/[^?#]*\.(php|html?|css|js|json|xml)([?#].*)?$") {
+    set $vm_badref 0;
+}
+if ($vm_dyn_uri = 0) {
     set $vm_badref 0;
 }
 if ($vm_search_engine = 1) {
