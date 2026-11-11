@@ -1,0 +1,7 @@
+/var/log/vm-bot-verify.log {
+    weekly
+    rotate 8
+    compress
+    missingok
+    notifempty
+}

@@ -61,8 +61,16 @@ function vmCatalogGateSetCookie(): void
 
 function vmCatalogGateIsSearchBot(string $ua): bool
 {
+	if (preg_match('/vilmed-warmup|vilmed-psi/i', $ua)) {
+		return true;
+	}
+	// X-VM-Bot ставит nginx (proxy_params) по DNS-проверке; клиентское значение он перезаписывает.
+	$state = $_SERVER['HTTP_X_VM_BOT'] ?? null;
+	if ($state !== null) {
+		return $state === 'verified';
+	}
 	return (bool)preg_match(
-		'/Googlebot|Google-InspectionTool|Storebot-Google|AdsBot-Google|YandexBot|YandexImages|YandexMobileBot|YandexWebmaster|YandexMarket|bingbot|Mail\.RU_Bot|Applebot|vilmed-warmup|vilmed-psi/i',
+		'/Googlebot|Google-InspectionTool|Storebot-Google|AdsBot-Google|YandexBot|YandexImages|YandexMobileBot|YandexWebmaster|YandexMarket|bingbot|Mail\.RU_Bot|Applebot/i',
 		$ua
 	);
 }

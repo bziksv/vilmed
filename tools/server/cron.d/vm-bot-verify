@@ -1,0 +1,6 @@
+# Проверка поисковых роботов (tools/server/vm-bot-verify.py)
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+* * * * * root /usr/local/sbin/vm-bot-verify.py >/dev/null 2>&1
+17 4 * * * root /usr/local/sbin/vm-bot-verify.py --refresh-official >/dev/null 2>&1
+33 5 3 * * root /usr/local/sbin/vm-bot-verify.py --refresh-country >/dev/null 2>&1

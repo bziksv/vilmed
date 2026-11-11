@@ -532,6 +532,28 @@ rsync -avz user@217.28.220.186:/var/www/.../upload/ ~/Documents/projects/vilmed/
 
 `nginx-exploit-scan` (с 2026-11-03, как на s4 `37.46.134.70`): банит по access-логу запросы к `/.git`, `.env`, `wp-login` и известным сканерам. `3` попадания за `10` минут, бан `24` часа, порты 80/443. Логи: `/var/www/*/data/logs/*-frontend.access.log`. Google/Яндекс/Bing в фильтре исключены. `nginx-limit-req` этот перебор не ловит: зона `50 r/s`, а сканер `/.git` шёл около `2 r/s` и в error.log не попадал. Шаблоны: `.local/security-audit/fail2ban-nginx-exploit-scan.conf`, `fail2ban-filter-nginx-exploit-scan.conf`.
 
+### VM guard — защита всех сайтов сервера (с 2026-11-11)
+
+Повод: 11.11 две фермы (~22 тыс. домашних IP за рубежом, по 1–2 запроса с адреса, обычные User-Agent браузеров, поддельный реферер, без JavaScript) забили PHP Vilmed. 50 процессов php-cgi и ожидание до часа съели память, сервер зависал 4 раза.
+
+| Что | Где |
+|---|---|
+| Переменные: `$vm_claims_bot`, `$vm_bot_state` (`verified` / `fake` / `unverified` / `none`), `$vm_search_engine`, `$vm_bare_referer`, `$vm_geo_local`, зоны `vm_unverified_bot`, `vm_backend` | `/etc/nginx/conf.d/01-vm-guard.conf` ← `tools/server/nginx/01-vm-guard.conf` |
+| Правила во всех `server { }`: поддельный робот → `444`, реферер ровно `https://сайт` без слеша → `444`, не больше `20` одновременных запросов к PHP на сайт (статика и `/bitrix/admin/` не считаются), непроверенный робот — `10 r/s`, всплеск `30`, сверх — `503` | `/etc/nginx/fastpanel2-includes/vm-guard.conf` ← `tools/server/nginx/vm-guard.conf` |
+| Списки адресов | `/etc/nginx/vm-bots/`: `verified.geo`, `fake.geo`, `official.geo` (Google `googlebot.json` + `special-crawlers.json`, Bing `bingbot.json`), `local-country.geo` (DB-IP lite: RU, BY, KZ, KG, AM, UZ, TJ, AZ) |
+| Проверка роботов | `/usr/local/sbin/vm-bot-verify.py` ← `tools/server/vm-bot-verify.py`. cron `/etc/cron.d/vm-bot-verify`: раз в минуту новые строки логов, раз в сутки `--refresh-official`, 3-го числа `--refresh-country`. Лог `/var/log/vm-bot-verify.log`, кеш `/var/lib/vm-bots/cache.json` |
+| Заголовок для PHP | `/etc/nginx/proxy_params`: `proxy_set_header X-VM-Bot $vm_bot_state;` — капча Vilmed пропускает робота только при `verified` |
+
+Проверка робота: PTR адреса оканчивается на `yandex.ru`, `yandex.net`, `yandex.com`, `googlebot.com`, `google.com`, `googleusercontent.com`, `search.msn.com` или `mail.ru`, и этот PTR указывает обратно на тот же IP. Нет PTR или чужой PTR — подделка, на 7 дней. Ошибка DNS — повтор в следующую минуту. Подтверждение хранится 30 дней. Свои адреса (этот сервер, s3 `155.212.171.103`, офис, `*.prime-ltd.su`) подделкой не считаются. После изменения списков скрипт делает `nginx -t` и reload, при ошибке откатывает списки.
+
+Apache mod_fcgid (`/etc/apache2/mods-available/fcgid.conf`, backup `.bak.20261111`): `FcgidMaxProcessesPerClass 24` (было 50), `FcgidMaxProcesses 64`, `FcgidIOTimeout 600` (было 3600), `FcgidBusyTimeout 660`.
+
+PHP Vilmed: `.user.ini` в корне — `max_execution_time = 60`; `bitrix/admin/.user.ini` (импорт `esol.importxml`, `1c_exchange.php`) и `api/brand/.user.ini` (cron wget) — `600`. Настройка сайта в FastPanel (`max_execution_time=120`) перекрывается `.user.ini`. CLI не затрагивается.
+
+Конфиг Vilmed хранится в базе FastPanel (`/usr/local/fastpanel2/app/db/fastpanel2.db`, `virtualhost_configuration` id `17`) и при включении сайта пишется заново. 11.11 в нём: убран старый `geo $search_engine` (в нём не было основных сетей Яндекса и Bing); правило «`bot` в User-Agent → 444» больше не режет тех, кто называет себя поисковиком (подделки режет VM guard); в `location /` и `/(category|product|brand)/` — `limit_req zone=vm_unverified_bot` и `proxy_read_timeout 120s`; отдельный `location ^~ /bitrix/admin/` с `proxy_read_timeout 600s`. Backup базы: `/root/fastpanel2.db.bak.20261111-guard`, nginx целиком: `/root/nginx-backup-20261111-guard.tgz`.
+
+Попутно 11.11: включён `sysstat` (история CPU и памяти, `sar`); `fp2-php82-fpm` выключен, пул FastPanel перенесён в `/opt/php82/etc/php-fpm-apps.d/` (две службы делили `fastpanel2-apps.sock` и перезапускались по кругу); работник Supervisor несуществующего сайта Lagerplus перенесён в `/etc/supervisor/conf.d.disabled/`.
+
 ## Развёртывание
 
 ### Требования
@@ -617,7 +639,7 @@ rsync -avz user@217.28.220.186:/var/www/.../upload/ ~/Documents/projects/vilmed/
 | Владелец файлов | `vilmed_ru_usr:vilmed_ru_usr` |
 | RAM | 11 GiB, **swap 6 GiB** (`/swapfile`, в `/etc/fstab`, с 2026-08-05) |
 | MySQL slow.log | `log_queries_not_using_indexes = 0` (с 2026-10-23; было ON → 3–5+ GB/день и CPU). Эталон: `tools/perf/mysql-slowlog.cnf.snippet` |
-| Catalog gate | `local/php_interface/include/vm_catalog_gate.php`: прямой заход на `/catalog/?sort\|view\|PAGEN\|q\|section_id` без куки `vm_cg` показывает капчу. Переход со страницы vilmed.ru и поисковые боты проходят без капчи. Nginx `tools/perf/nginx-catalog-gate.inc`: перебор с тремя и более `section_id` закрывается (`444`). С 2026-11-11 обычный GET `/catalog/` и `/product/` без куки `vm_ok` не запускает PHP: браузеру отдаётся короткая страница, которая ставит куку и сразу открывает адрес заново. IP Google/Яндекса и прогрев пропускаются. |
+| Catalog gate | `local/php_interface/include/vm_catalog_gate.php`: прямой заход на `/catalog/?sort\|view\|PAGEN\|q\|section_id` без куки `vm_cg` показывает капчу. Переход со страницы vilmed.ru и поисковые боты проходят без капчи. Nginx `tools/perf/nginx-catalog-gate.inc`: перебор с тремя и более `section_id` закрывается (`444`); реферер `vilmed.ru`, у которого путь без слеша на конце (кроме `.php`/`.html`), закрывается (`444`). GET `/catalog/` и `/product/` с адреса вне России и соседних стран без куки `vm_ok` не запускает PHP: отдаётся короткая страница, кука ставится только скриптом (бот без JS не проходит). Подтверждённые роботы (`$vm_search_engine`, см. «VM guard»), прогрев и все, кто называет себя поисковиком, страницу с кукой не получают. Капча пропускает робота только при `X-VM-Bot: verified`. |
 | MySQL buffer pool | **4G** (было 9G → OOM). Правки в **обоих** файлах: `/etc/mysql/conf.d/mysql.cnf` и `/etc/mysql/my.cnf.fastpanel/99-fastpanel.cnf` (FastPanel подключается последним через `!include`) |
 | `innodb_log_buffer_size` | **64M** (было 1024M) |
 
