@@ -56,12 +56,21 @@ if [[ -f bitrix/html_pages/.enabled ]]; then
 else
   echo "  skip bitrix/html_pages/ (composite OFF)"
 fi
+# bitrix/cache/css и /js не трогаем: на эти сборки ссылаются страницы композита,
+# без них анонимный посетитель получает страницу без стилей. Bitrix сам пересобирает их при правке файлов.
 for dir in "${CACHE_DIRS[@]}"; do
   if [[ -d "$dir" ]]; then
-    find "$dir" -mindepth 1 -delete 2>/dev/null || true
+    if [[ "$dir" == "bitrix/cache" ]]; then
+      find "$dir" -mindepth 1 -maxdepth 1 ! -name css ! -name js -exec rm -rf {} + 2>/dev/null || true
+    else
+      find "$dir" -mindepth 1 -delete 2>/dev/null || true
+    fi
     echo "  cleared: $dir/"
   fi
 done
+if [[ -d bitrix/html_pages ]]; then
+  python3 "$DIR/prod-composite-drop-stale.py" "$ROOT" || true
+fi
 
 if [[ "${CLEAR_HTML_PAGES:-0}" == "1" ]]; then
   touch bitrix/html_pages/.enabled
