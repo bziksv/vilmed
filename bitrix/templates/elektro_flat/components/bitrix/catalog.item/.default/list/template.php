@@ -288,13 +288,16 @@ $arElement['DETAIL_PAGE_URL'] = "/product/".$arElement['CODE']."/";
 		}?>
 		<?//VILMED: артикул под ценой (десктоп). Рейтинг (звёзды) убран, а «Артикул: …»
 		//  из .article_rating перенесён сюда; .article_rating скрыт через CSS.
+		//  Текст всегда в HTML: вариант с data-text_script оставался пустым, пока
+		//  не отработает скрипт, и у части товаров артикула не было видно.
 		//  На ≤787px .vilmed-article-inprice скрыт (на мобиле артикул не показываем).?>
 		<?if($inArticle) {
-			$vilmedArt = !empty($arElement["PROPERTIES"]["ARTNUMBER"]["VALUE"]) ? $arElement["PROPERTIES"]["ARTNUMBER"]["VALUE"] : $arElement["PROPERTIES"]["CML2_ARTICLE"]["VALUE"];
-			if($arElement["SHOW_ARTICUL"]) {?>
-				<div class="article vilmed-article-inprice"><?=Loc::getMessage("CT_BCS_ELEMENT_ARTNUMBER")?><?=$vilmedArt?></div>
-			<?} else {?>
-				<div class="article vilmed-article-inprice" data-text_script="<?=Loc::getMessage("CT_BCS_ELEMENT_ARTNUMBER")?><?=$vilmedArt?>"></div>
+			$vilmedArt = $arElement["PROPERTIES"]["ARTNUMBER"]["VALUE"] ?: $arElement["PROPERTIES"]["CML2_ARTICLE"]["VALUE"];
+			if(is_array($vilmedArt))
+				$vilmedArt = implode(", ", $vilmedArt);
+			$vilmedArt = trim((string)$vilmedArt);
+			if($vilmedArt !== "") {?>
+				<div class="article vilmed-article-inprice"><?=Loc::getMessage("CT_BCS_ELEMENT_ARTNUMBER")?><?=htmlspecialcharsbx($vilmedArt)?></div>
 			<?}
 		}?>
 	</div>

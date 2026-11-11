@@ -2955,12 +2955,19 @@ html.vilmed-drawer-lock {
 .catalog-item .article_rating .rating { display: none !important; }
 .catalog-item-list-view .catalog-item .article_rating { display: none !important; }
 .catalog-item-list-view .catalog-item .item-price .vilmed-article-inprice {
+	/* .catalog-item .article { float:left } вытаскивал строку из колонки цены:
+	   она прилипала к заголовку или к описанию, а у короткой цены уезжала вниз. */
+	float: none;
+	clear: both;
 	display: block;
+	width: 100%;
+	box-sizing: border-box;
 	font-size: 13px;
 	line-height: 1.3;
 	color: #8a8da3;
 	font-weight: 400;
-	margin: 6px 0 0;
+	margin: 4px 0 0;
+	text-align: right;
 	text-transform: none;
 	max-width: 100%;
 	overflow-wrap: anywhere;
