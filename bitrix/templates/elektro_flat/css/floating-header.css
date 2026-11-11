@@ -2951,8 +2951,17 @@ html.vilmed-drawer-lock {
    в .item-price как .vilmed-article-inprice (см. list/template.php).
    На ≤787px артикул в списке не показываем (как было).
    ============================================================ */
-/* Рейтинг (звёзды) в каталоге не показываем нигде (в grid/card артикул остаётся). */
-.catalog-item .article_rating .rating { display: none !important; }
+/* Звёзды рейтинга не показываем: ни в списке, ни в плитке, ни в карточке товара.
+   В плитке артикул занимает всю строку, которую раньше делил со звёздами. */
+.article_rating > .rating,
+.catalog-item-card .rating,
+.column-collection .rating { display: none !important; }
+.catalog-item-card .article_rating .article {
+	float: none;
+	width: auto;
+	max-width: 100%;
+	overflow: visible;
+}
 .catalog-item-list-view .catalog-item .article_rating { display: none !important; }
 .catalog-item-list-view .catalog-item .item-price .vilmed-article-inprice {
 	/* .catalog-item .article { float:left } вытаскивал строку из колонки цены:
