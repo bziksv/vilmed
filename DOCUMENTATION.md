@@ -526,7 +526,9 @@ rsync -avz user@217.28.220.186:/var/www/.../upload/ ~/Documents/projects/vilmed/
 | `worker_connections` | `4096` |
 | systemd `LimitNOFILE` | `65535` (`/etc/systemd/system/nginx.service.d/override.conf`) |
 | rate-limit | `conf.d/00-rate-limit-zone.conf` zone `perip` 50r/s + `fastpanel2-includes/rate-limit.conf` burst 100 |
-| fail2ban | jails `sshd` + `nginx-limit-req` (maxretry 25 / 60s, bantime 1h) + `nginx-exploit-scan` |
+| fail2ban | jails `sshd` + `nginx-limit-req` (maxretry 25 / 60s, bantime 1h) + `nginx-exploit-scan` + `recidive` |
+| SSH (с 2026-11-11) | только ключи: `/etc/ssh/sshd_config.d/00-vm-hardening.conf` ← `tools/server/ssh/` (`PasswordAuthentication no`, `PermitRootLogin prohibit-password`, `LoginGraceTime 20` вместо `0`, `MaxAuthTries 3`, `MaxStartups 30:50:200`). Входов по паролю с 23.10 не было. Backup `sshd_config.bak.20261111` |
+| fail2ban SSH (с 2026-11-11) | `/etc/fail2ban/jail.d/zz-vm-sshd.local` ← `tools/server/fail2ban/`: `sshd` aggressive, 3 попытки за час → бан 24 ч; `recidive` 3 бана за сутки → неделя, все порты. `ignoreip`: s2, s3, офис |
 
 Повод: 2026-10-14 nginx workers упёрлись в soft FD=1024 (`Too many open files`), сайты недоступны. Backup на сервере: `/root/nginx-hardening-backup-*`.
 

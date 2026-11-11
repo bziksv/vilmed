@@ -1,0 +1,23 @@
+# /etc/fail2ban/jail.d/zz-vm-sshd.local (2026-11-11)
+# *.local в jail.d читается после jail.local и перекрывает его.
+
+[DEFAULT]
+# Свои серверы (s2, s3), офис и старый адрес из jail.local.
+ignoreip = 127.0.0.1/8 ::1 212.58.114.31 217.28.220.186 62.109.16.215 185.43.7.44 155.212.171.103 217.25.226.46 185.23.82.233
+
+[sshd]
+enabled  = true
+backend  = systemd
+mode     = aggressive
+maxretry = 3
+findtime = 3600
+bantime  = 86400
+
+# Повторно забаненные любым jail — на неделю, все порты.
+[recidive]
+enabled   = true
+logpath   = /var/log/fail2ban.log
+banaction = iptables-allports
+findtime  = 86400
+maxretry  = 3
+bantime   = 604800
