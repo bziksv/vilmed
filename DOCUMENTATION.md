@@ -715,7 +715,9 @@ rm -rf assets
 
 ### Канонический деплой (актуально)
 
-Рабочий скрипт — **`tools/perf/prod-deploy.sh`** (в репозитории, на проде по тому же пути). Делает: бэкап `.settings.php` → `git pull origin main` → восстановление `.settings.php` → `redis-cli FLUSHDB` (кеш Bitrix в Redis) → чистка `bitrix/cache|managed_cache|stack_cache` → `apache2ctl configtest && reload` → `chown`.
+Рабочий скрипт — **`tools/perf/prod-deploy.sh`** (в репозитории, на проде по тому же пути). Делает: бэкап `.settings.php` → `git pull origin main` → восстановление `.settings.php` → `redis-cli FLUSHDB` (кеш Bitrix в Redis) → чистка `bitrix/cache|managed_cache|stack_cache` (кроме `bitrix/cache/css` и `bitrix/cache/js`) → `prod-composite-drop-stale.py` → `apache2ctl configtest && reload` → `chown`.
+
+Сборки `bitrix/cache/css|js` с 2026-11-11 не удаляются: на них ссылаются страницы композита, и без этих файлов анонимный посетитель видел сайт без стилей до перегенерации страницы. `tools/perf/prod-composite-drop-stale.py` удаляет только страницы композита, которые ссылаются на отсутствующие сборки (`--dry-run` — только посчитать). Правки в самом `prod-deploy.sh` начинают действовать со следующего запуска: bash уже прочитал старый файл до `git pull`.
 
 ```bash
 ssh vilmed 'cd /var/www/vilmed_ru_usr/data/www/vilmed.ru && bash tools/perf/prod-deploy.sh'
