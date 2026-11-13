@@ -1019,13 +1019,16 @@ class BatchQueue
 	}
 
 	/**
-	 * @return array{items:array,active:int,counts:array}
+	 * Журнал очереди с пагинацией (новые сверху).
+	 *
+	 * @return array{items:array,active:int,counts:array,total:int,page:int,page_size:int,pages:int}
 	 */
-	public static function listRecent(int $limit = 40, string $batchKey = '', string $entityType = ''): array
+	public static function listRecent(int $limit = 50, string $batchKey = '', string $entityType = '', int $page = 1): array
 	{
 		self::ensureSchema();
 		global $DB;
-		$limit = max(1, min(100, $limit));
+		$pageSize = max(1, min(100, $limit));
+		$page = max(1, $page);
 		$where = [];
 		if ($batchKey !== '') {
 			$where[] = "BATCH_KEY = '" . $DB->ForSql($batchKey) . "'";
@@ -1035,11 +1038,19 @@ class BatchQueue
 			$where[] = "ENTITY_TYPE = '" . $DB->ForSql($entityType) . "'";
 		}
 		$whereSql = $where === [] ? '1=1' : implode(' AND ', $where);
+
+		$total = (int) ($DB->Query("SELECT COUNT(*) AS C FROM titlo_relevance_queue WHERE {$whereSql}")->Fetch()['C'] ?? 0);
+		$pages = max(1, (int) ceil($total / $pageSize));
+		if ($page > $pages) {
+			$page = $pages;
+		}
+		$offset = ($page - 1) * $pageSize;
+
 		$res = $DB->Query("
 			SELECT * FROM titlo_relevance_queue
 			WHERE {$whereSql}
 			ORDER BY ID DESC
-			LIMIT " . (int) $limit . '
+			LIMIT " . (int) $offset . ', ' . (int) $pageSize . '
 		');
 		$items = [];
 		while ($row = $res->Fetch()) {
@@ -1074,6 +1085,10 @@ class BatchQueue
 			'items' => $items,
 			'active' => $active,
 			'counts' => $counts,
+			'total' => $total,
+			'page' => $page,
+			'page_size' => $pageSize,
+			'pages' => $pages,
 		];
 	}
 

@@ -671,9 +671,10 @@ try {
 				}
 			}
 			$list = BatchQueue::listRecent(
-				(int) ($_POST['limit'] ?? 40),
+				(int) ($_POST['limit'] ?? $_POST['page_size'] ?? 50),
 				trim((string) ($_POST['batch_key'] ?? '')),
-				$entityType
+				$entityType,
+				(int) ($_POST['page'] ?? 1)
 			);
 			titlo_json(array_merge(['ok' => true], $list));
 

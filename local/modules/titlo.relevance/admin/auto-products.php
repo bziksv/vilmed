@@ -347,6 +347,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 				Журнал заданий. Отметьте нужные строки:
 				«Запустить выбранные» — снова поставить в работу (режим из панели выше);
 				«Убрать из очереди» — снять задания со статусом «в очереди», если поставили по ошибке.
+				Кнопки выбора отмечают строки на текущей странице журнала; отмеченные сохраняются при перелистывании.
 			</p>
 			<div style="margin:8px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
 				<div id="titlo-auto-queue-counts" class="bulk-status"></div>
@@ -387,6 +388,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 				<tr><td colspan="9">Пока пусто</td></tr>
 				</tbody>
 			</table>
+			<div class="pager" id="titlo-auto-queue-pager"></div>
 		</div>
 	</details>
 </div>
@@ -400,6 +402,8 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 	var entityType = 'E';
 	var selected = {};
 	var queueSelected = {};
+	var queuePage = 1;
+	var QUEUE_PAGE_SIZE = 50;
 	var lastBatchKey = '';
 	var pollTimer = null;
 	var expandCache = {};
@@ -710,6 +714,27 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 				e.preventDefault();
 				page = parseInt(a.getAttribute('data-p'), 10) || 1;
 				loadList();
+			};
+		});
+	}
+
+	function renderQueuePager(total, pageSize, pages) {
+		var host = document.getElementById('titlo-auto-queue-pager');
+		if (!host) return;
+		queuePage = Math.max(1, Math.min(queuePage, pages || 1));
+		if (pages <= 1) {
+			host.innerHTML = total ? ('В журнале: ' + total) : '';
+			return;
+		}
+		var html = 'Стр. ' + queuePage + ' / ' + pages + ' (всего ' + total + ', по ' + pageSize + ') ';
+		if (queuePage > 1) html += '<a href="#" data-qp="' + (queuePage - 1) + '" class="titlo-auto-queue-page">←</a> ';
+		if (queuePage < pages) html += '<a href="#" data-qp="' + (queuePage + 1) + '" class="titlo-auto-queue-page">→</a>';
+		host.innerHTML = html;
+		Array.prototype.forEach.call(host.querySelectorAll('.titlo-auto-queue-page'), function (a) {
+			a.onclick = function (e) {
+				e.preventDefault();
+				queuePage = parseInt(a.getAttribute('data-qp'), 10) || 1;
+				loadQueue();
 			};
 		});
 	}
@@ -1172,12 +1197,15 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 
 	function loadQueue() {
 		return post('auto_queue_status', {
-			limit: 40,
-			batch_key: lastBatchKey,
+			page: queuePage,
+			limit: QUEUE_PAGE_SIZE,
+			// полный журнал по типу сущности; не сужаем до последнего batch_key
+			batch_key: '',
 			entity_type: entityType,
 			tick: hasKey ? 1 : 0
 		}).then(function (res) {
 			if (!res.ok) return;
+			if (res.page) queuePage = parseInt(res.page, 10) || queuePage;
 			var counts = res.counts || {};
 			var cEl = document.getElementById('titlo-auto-queue-counts');
 			cEl.textContent = 'В работе: ' + (res.active || 0)
@@ -1216,6 +1244,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 			updateQueueRequeueBtn();
 			var all = document.getElementById('titlo-auto-queue-check-all');
 			if (all) all.checked = false;
+			renderQueuePager(res.total || 0, res.page_size || QUEUE_PAGE_SIZE, res.pages || 1);
 
 			if ((res.active || 0) > 0) {
 				schedulePoll();
@@ -1390,6 +1419,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 				return;
 			}
 			lastBatchKey = res.batch_key || '';
+			queuePage = 1;
 			clearSelection();
 			var errN = res.errors ? Object.keys(res.errors).length : 0;
 			setStatus(
