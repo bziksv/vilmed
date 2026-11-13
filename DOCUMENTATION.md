@@ -532,7 +532,20 @@ rsync -avz user@217.28.220.186:/var/www/.../upload/ ~/Documents/projects/vilmed/
 
 Повод: 2026-10-14 nginx workers упёрлись в soft FD=1024 (`Too many open files`), сайты недоступны. Backup на сервере: `/root/nginx-hardening-backup-*`.
 
-`nginx-exploit-scan` (с 2026-11-03, как на s4 `37.46.134.70`): банит по access-логу запросы к `/.git`, `.env`, `wp-login` и известным сканерам. `3` попадания за `10` минут, бан `24` часа, порты 80/443. Логи: `/var/www/*/data/logs/*-frontend.access.log`. Google/Яндекс/Bing в фильтре исключены. `nginx-limit-req` этот перебор не ловит: зона `50 r/s`, а сканер `/.git` шёл около `2 r/s` и в error.log не попадал. Шаблоны: `.local/security-audit/fail2ban-nginx-exploit-scan.conf`, `fail2ban-filter-nginx-exploit-scan.conf`.
+`nginx-exploit-scan` (с 2026-11-03, как на s4 `37.46.134.70`): банит по access-логу запросы к `/.git`, `.env`, `wp-login` и известным сканерам. `3` попадания за `10` минут, бан `24` часа, порты 80/443. Логи: `/var/www/*/data/logs/*-frontend.access.log`. Google/Яндекс/Bing в фильтре исключены. `nginx-limit-req` этот перебор не ловит: зона `50 r/s`, а сканер `/.git` шёл около `2 r/s` и в error.log не попадал. Шаблоны: `tools/server/fail2ban/nginx-exploit-scan.conf` (jail) и `tools/server/fail2ban/filter.d/nginx-exploit-scan.conf` (фильтр).
+
+### s3 / kosmamed (`155.212.171.103`, с 2026-11-13)
+
+Повод: 13.11 один IP `185.8.107.245` перебирал `/.git` на argument-uk.ru (~89 тыс. запросов), поднял нагрузку. IP заблокирован в iptables (`rules.v4`).
+
+| Что | Где |
+|---|---|
+| `/.git`, `/.svn`, `/.hg` → `404` для всех сайтов, запросы пишутся в access log | `/etc/nginx/fastpanel2-includes/00-block-dotgit.conf` ← `tools/server/nginx/00-block-dotgit.conf` |
+| fail2ban `sshd` + `recidive` как на s2 | `/etc/fail2ban/jail.d/zz-vm-sshd.local` ← `tools/server/fail2ban/` |
+| fail2ban `nginx-exploit-scan` как на s2 | `jail.d/nginx-exploit-scan.conf` + `filter.d/nginx-exploit-scan.conf` |
+| SSH только ключи (перекрывает `40-hosting.conf` панели) | `/etc/ssh/sshd_config.d/00-vm-hardening.conf` ← `tools/server/ssh/` |
+
+Проверено: бан по `/.git` (3 запроса → 80/443 закрыты, SSH доступен), `banip`/`unbanip` sshd, вход по ключу, пароль отклоняется. Backup: `/root/fail2ban-backup-*.tgz`, `/root/sshd_config.d.bak.*`.
 
 ### VM guard — защита всех сайтов сервера (с 2026-11-11)
 
