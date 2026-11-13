@@ -172,7 +172,11 @@ class Agent
 		$entity = $entityType === 'S'
 			? CatalogRepository::findSection($entityId)
 			: CatalogRepository::findElement($entityId);
+		$sent = self::analysisParams($row);
 		$wh = WorkHistory::recordScore([
+			'engine' => $sent['engine'],
+			'region' => $sent['region'],
+			'top' => $sent['top'],
 			'entity_type' => $entityType,
 			'entity_id' => $entityId,
 			'name' => (string) ($entity['name'] ?? ''),
@@ -303,9 +307,9 @@ class Agent
 			'coverage' => $status['coverage'] ?? null,
 			'density' => $status['density'] ?? null,
 			'position' => $status['position'] ?? null,
-			'engine' => (string) ($status['engine'] ?? Config::analysisEngineDefault()),
-			'region' => (string) ($status['region'] ?? Config::analysisRegionDefault()),
-			'top' => $status['top'] ?? Config::analysisTopDefault(),
+			'engine' => $status['engine'] ?? null,
+			'region' => $status['region'] ?? null,
+			'top' => $status['top'] ?? null,
 			'role' => $isRecheck ? 'after' : 'before',
 			'run_mode' => BatchQueue::normalizeRunMode((string) ($row['RUN_MODE'] ?? BatchQueue::MODE_FULL)),
 			'prompt_detail_id' => (int) ($row['PROMPT_DETAIL_ID'] ?? 0),
@@ -324,6 +328,13 @@ class Agent
 			}
 		} catch (\Throwable $e) {
 			// не критично
+		}
+		// кабинет не вернул параметры — берём те, с которыми запускали анализ
+		$sent = self::analysisParams($row);
+		foreach (['engine', 'region', 'top'] as $k) {
+			if ($scorePayload[$k] === null || $scorePayload[$k] === '') {
+				$scorePayload[$k] = $sent[$k];
+			}
 		}
 
 		$wh = WorkHistory::recordScore($scorePayload);
