@@ -276,6 +276,47 @@ if ($sort !== 'id_desc') {
 				«Убрать из очереди» — снять задания со статусом «в очереди», если поставили по ошибке.
 				Кнопки выбора отмечают строки на текущей странице журнала; отмеченные сохраняются при перелистывании.
 			</p>
+			<div class="filters" id="titlo-auto-queue-filters" style="margin:10px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+				<label>Статус:
+					<select id="titlo-q-status" class="adm-input">
+						<option value="">Все</option>
+						<option value="queued">в очереди</option>
+						<option value="running">выполняются</option>
+						<option value="done">готово</option>
+						<option value="failed">ошибки</option>
+						<option value="skipped">текст не писали</option>
+						<option value="cancelled">снято</option>
+					</select>
+				</label>
+				<label>Режим:
+					<select id="titlo-q-run-mode" class="adm-input">
+						<option value="">Все</option>
+						<option value="full">полная</option>
+						<option value="analyze_only">только анализ</option>
+						<option value="refine">доработка</option>
+					</select>
+				</label>
+				<label>Система:
+					<select id="titlo-q-engine" class="adm-input">
+						<option value="">Все</option>
+						<option value="yandex">Яндекс</option>
+						<option value="google">Google</option>
+						<option value="none">не указано</option>
+					</select>
+				</label>
+				<label>ТОП:
+					<select id="titlo-q-top" class="adm-input">
+						<option value="">Все</option>
+						<option value="10">ТОП-10</option>
+						<option value="20">ТОП-20</option>
+						<option value="30">ТОП-30</option>
+						<option value="50">ТОП-50</option>
+					</select>
+				</label>
+				<input type="search" id="titlo-q-q" class="adm-input" placeholder="№ / категория / фраза / анализ" style="width:220px">
+				<input type="button" id="titlo-q-apply" class="adm-btn-save" value="Показать">
+				<input type="button" id="titlo-q-clear" class="adm-btn" value="Сбросить">
+			</div>
 			<div style="margin:8px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
 				<div id="titlo-auto-queue-counts" class="bulk-status"></div>
 				<input type="button" id="titlo-auto-requeue-selected" class="adm-btn-save" value="Запустить выбранные (0)" <?= $hasKey ? '' : 'disabled' ?>>
@@ -293,7 +334,13 @@ if ($sort !== 'id_desc') {
 					<th style="width:70px">Категория</th>
 					<th>Фраза</th>
 					<th style="width:90px">Режим</th>
-					<th style="width:240px">Итог
+					<th style="width:110px">Система
+						<span class="titlo-help" tabindex="0" aria-label="Поисковая система">?
+							<span class="titlo-help__tip">Поисковик и регион, с которыми задание ушло в Titlo.</span>
+						</span>
+					</th>
+					<th style="width:70px">ТОП</th>
+					<th style="width:220px">Итог
 						<span class="titlo-help" tabindex="0" aria-label="Итог задания">?
 							<span class="titlo-help__tip">Результат задания. «Текст не писали» — анализ выполнен, описание не меняли. «Ошибка» — шаг не завершился.</span>
 						</span>
@@ -312,7 +359,7 @@ if ($sort !== 'id_desc') {
 				</tr>
 				</thead>
 				<tbody id="titlo-auto-queue-body">
-				<tr><td colspan="9">Пока пусто</td></tr>
+				<tr><td colspan="11">Пока пусто</td></tr>
 				</tbody>
 			</table>
 			<div class="pager" id="titlo-auto-queue-pager"></div>
@@ -331,6 +378,7 @@ if ($sort !== 'id_desc') {
 	var queueSelected = {};
 	var queuePage = 1;
 	var QUEUE_PAGE_SIZE = 50;
+	var QUEUE_COLSPAN = 11;
 	var lastBatchKey = '';
 	var pollTimer = null;
 	var expandCache = {};
@@ -990,14 +1038,36 @@ if ($sort !== 'id_desc') {
 		updateQueueRequeueBtn();
 	}
 
+	function queueFilters() {
+		return {
+			status: (document.getElementById('titlo-q-status') || {}).value || '',
+			run_mode: (document.getElementById('titlo-q-run-mode') || {}).value || '',
+			engine: (document.getElementById('titlo-q-engine') || {}).value || '',
+			top: (document.getElementById('titlo-q-top') || {}).value || '',
+			q: (document.getElementById('titlo-q-q') || {}).value || ''
+		};
+	}
+
+	function formatQueueEngine(it) {
+		var eng = escapeHtml(it.engine_label || '—');
+		var reg = escapeHtml(it.region_label || '');
+		if (!reg || reg === '—' || reg === eng) return eng;
+		return eng + '<div style="font-size:11px;color:#64748b">' + reg + '</div>';
+	}
+
 	function loadQueue() {
+		var f = queueFilters();
 		return post('auto_queue_status', {
 			page: queuePage,
 			limit: QUEUE_PAGE_SIZE,
-			// полный журнал по типу сущности; не сужаем до последнего batch_key
 			batch_key: '',
 			entity_type: entityType,
-			tick: hasKey ? 1 : 0
+			tick: hasKey ? 1 : 0,
+			status: f.status,
+			run_mode: f.run_mode,
+			engine: f.engine,
+			top: f.top,
+			q: f.q
 		}).then(function (res) {
 			if (!res.ok) return;
 			if (res.page) queuePage = parseInt(res.page, 10) || queuePage;
@@ -1027,6 +1097,8 @@ if ($sort !== 'id_desc') {
 					'<td><a href="' + escapeHtml(it.single_url) + '">' + it.entity_id + '</a></td>' +
 					'<td>' + escapeHtml(it.phrase) + '</td>' +
 					'<td>' + escapeHtml(it.run_mode_label || it.run_mode || '') + '</td>' +
+					'<td>' + formatQueueEngine(it) + '</td>' +
+					'<td>' + escapeHtml(it.top_label || '—') + '</td>' +
 					'<td>' + escapeHtml(it.result_label || it.status_label || it.status) + '</td>' +
 					'<td>' + (it.history_id || '—') + '</td>' +
 					'<td>' + formatQueueWhen(it) + '</td>' +
@@ -1034,7 +1106,7 @@ if ($sort !== 'id_desc') {
 					'</tr>'
 				);
 			});
-			body.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="9">Пока пусто</td></tr>';
+			body.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="' + QUEUE_COLSPAN + '">Пока пусто</td></tr>';
 			bindQueueChecks(body);
 			updateQueueRequeueBtn();
 			var all = document.getElementById('titlo-auto-queue-check-all');
@@ -1289,6 +1361,27 @@ if ($sort !== 'id_desc') {
 			loadQueue();
 			schedulePoll();
 		});
+	};
+
+	function applyQueueFilters() {
+		queuePage = 1;
+		loadQueue();
+	}
+	['titlo-q-status', 'titlo-q-run-mode', 'titlo-q-engine', 'titlo-q-top'].forEach(function (id) {
+		var el = document.getElementById(id);
+		if (el) el.onchange = applyQueueFilters;
+	});
+	document.getElementById('titlo-q-apply').onclick = applyQueueFilters;
+	document.getElementById('titlo-q-q').onkeydown = function (e) {
+		if (e.key === 'Enter') { e.preventDefault(); applyQueueFilters(); }
+	};
+	document.getElementById('titlo-q-clear').onclick = function () {
+		document.getElementById('titlo-q-status').value = '';
+		document.getElementById('titlo-q-run-mode').value = '';
+		document.getElementById('titlo-q-engine').value = '';
+		document.getElementById('titlo-q-top').value = '';
+		document.getElementById('titlo-q-q').value = '';
+		applyQueueFilters();
 	};
 
 	syncModeUi();

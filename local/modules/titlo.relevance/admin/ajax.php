@@ -674,7 +674,14 @@ try {
 				(int) ($_POST['limit'] ?? $_POST['page_size'] ?? 50),
 				trim((string) ($_POST['batch_key'] ?? '')),
 				$entityType,
-				(int) ($_POST['page'] ?? 1)
+				(int) ($_POST['page'] ?? 1),
+				[
+					'status' => (string) ($_POST['status'] ?? ''),
+					'run_mode' => (string) ($_POST['run_mode'] ?? ''),
+					'engine' => (string) ($_POST['engine'] ?? ''),
+					'top' => $_POST['top'] ?? '',
+					'q' => (string) ($_POST['q'] ?? ''),
+				]
 			);
 			titlo_json(array_merge(['ok' => true], $list));
 

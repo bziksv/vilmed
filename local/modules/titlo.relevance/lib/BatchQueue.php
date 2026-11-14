@@ -1019,11 +1019,14 @@ class BatchQueue
 	}
 
 	/**
-	 * Журнал очереди с пагинацией (новые сверху).
+	 * Журнал очереди с пагинацией и фильтрами (новые сверху).
 	 *
-	 * @return array{items:array,active:int,counts:array,total:int,page:int,page_size:int,pages:int}
+	 * @param array{
+	 *   status?:string,run_mode?:string,engine?:string,top?:int|string,q?:string
+	 * } $filters
+	 * @return array{items:array,active:int,counts:array,total:int,page:int,page_size:int,pages:int,filters:array}
 	 */
-	public static function listRecent(int $limit = 50, string $batchKey = '', string $entityType = '', int $page = 1): array
+	public static function listRecent(int $limit = 50, string $batchKey = '', string $entityType = '', int $page = 1, array $filters = []): array
 	{
 		self::ensureSchema();
 		global $DB;
@@ -1037,7 +1040,67 @@ class BatchQueue
 		if ($entityType === 'S' || $entityType === 'E') {
 			$where[] = "ENTITY_TYPE = '" . $DB->ForSql($entityType) . "'";
 		}
+
+		$status = strtolower(trim((string) ($filters['status'] ?? '')));
+		$allowedStatus = [
+			self::STATUS_QUEUED,
+			self::STATUS_RUNNING,
+			self::STATUS_DONE,
+			self::STATUS_FAILED,
+			self::STATUS_SKIPPED,
+			self::STATUS_CANCELLED,
+		];
+		if ($status !== '' && in_array($status, $allowedStatus, true)) {
+			$where[] = "STATUS = '" . $DB->ForSql($status) . "'";
+		} else {
+			$status = '';
+		}
+
+		$runMode = strtolower(trim((string) ($filters['run_mode'] ?? '')));
+		if ($runMode !== '' && in_array($runMode, [self::MODE_FULL, self::MODE_ANALYZE_ONLY, self::MODE_REFINE], true)) {
+			$where[] = "RUN_MODE = '" . $DB->ForSql($runMode) . "'";
+		} else {
+			$runMode = '';
+		}
+
+		$engine = strtolower(trim((string) ($filters['engine'] ?? '')));
+		if ($engine === 'yandex' || $engine === 'google') {
+			$where[] = "ANALYSIS_ENGINE = '" . $DB->ForSql($engine) . "'";
+		} elseif ($engine === 'none') {
+			$where[] = "(ANALYSIS_ENGINE = '' OR ANALYSIS_ENGINE IS NULL)";
+			$engine = 'none';
+		} else {
+			$engine = '';
+		}
+
+		$topRaw = $filters['top'] ?? '';
+		$top = is_numeric($topRaw) ? (int) $topRaw : 0;
+		if ($top > 0 && in_array($top, Config::analysisTopOptions(), true)) {
+			$where[] = 'ANALYSIS_TOP = ' . $top;
+		} else {
+			$top = 0;
+		}
+
+		$q = trim((string) ($filters['q'] ?? ''));
+		if ($q !== '') {
+			if (preg_match('/^\d{1,12}$/', $q)) {
+				$id = (int) $q;
+				$where[] = '(ID = ' . $id . ' OR ENTITY_ID = ' . $id
+					. " OR PHRASE LIKE '%" . $DB->ForSql($q) . "%'"
+					. " OR CAST(HISTORY_ID AS CHAR) = '" . $DB->ForSql($q) . "')";
+			} else {
+				$where[] = "PHRASE LIKE '%" . Config::forLike($q) . "%'";
+			}
+		}
+
 		$whereSql = $where === [] ? '1=1' : implode(' AND ', $where);
+		$applied = [
+			'status' => $status,
+			'run_mode' => $runMode,
+			'engine' => $engine,
+			'top' => $top,
+			'q' => $q,
+		];
 
 		$total = (int) ($DB->Query("SELECT COUNT(*) AS C FROM titlo_relevance_queue WHERE {$whereSql}")->Fetch()['C'] ?? 0);
 		$pages = max(1, (int) ceil($total / $pageSize));
@@ -1089,6 +1152,7 @@ class BatchQueue
 			'page' => $page,
 			'page_size' => $pageSize,
 			'pages' => $pages,
+			'filters' => $applied,
 		];
 	}
 
@@ -1136,6 +1200,13 @@ class BatchQueue
 		$step = (string) ($row['STEP'] ?? '');
 		$runMode = (string) ($row['RUN_MODE'] ?? self::MODE_FULL);
 		$policy = (string) ($row['EXISTING_POLICY'] ?? self::POLICY_OVERWRITE);
+		$engine = strtolower(trim((string) ($row['ANALYSIS_ENGINE'] ?? '')));
+		$region = trim((string) ($row['ANALYSIS_REGION'] ?? ''));
+		$top = (int) ($row['ANALYSIS_TOP'] ?? 0);
+		$engineLabel = $engine === 'google' ? 'Google' : ($engine === 'yandex' ? 'Яндекс' : '—');
+		$regionLabel = $region !== ''
+			? Config::analysisRegionLabel($region, $engine !== '' ? $engine : null)
+			: '—';
 		return [
 			'id' => (int) ($row['ID'] ?? 0),
 			'entity_type' => $entityType,
@@ -1149,6 +1220,12 @@ class BatchQueue
 			'result_label' => self::resultLabel($status, $step, $runMode, $policy),
 			'run_mode' => $runMode,
 			'run_mode_label' => self::runModeLabel($runMode),
+			'engine' => $engine,
+			'engine_label' => $engineLabel,
+			'region' => $region,
+			'region_label' => $regionLabel,
+			'top' => $top > 0 ? $top : null,
+			'top_label' => $top > 0 ? ('ТОП-' . $top) : '—',
 			'history_id' => isset($row['HISTORY_ID']) && $row['HISTORY_ID'] !== null ? (int) $row['HISTORY_ID'] : null,
 			'analysis_id' => $row['ANALYSIS_ID'] !== null && $row['ANALYSIS_ID'] !== '' ? (string) $row['ANALYSIS_ID'] : null,
 			'gen_record_id' => isset($row['GEN_RECORD_ID']) && $row['GEN_RECORD_ID'] !== null ? (int) $row['GEN_RECORD_ID'] : null,
