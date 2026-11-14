@@ -842,7 +842,7 @@ class BatchQueue
 	}
 
 	/** Сколько заданий одного типа (товар/категория) крутить параллельно. */
-	public const CONCURRENCY = 2;
+	public const CONCURRENCY = 4;
 
 	/**
 	 * Следующая задача: queued или running (продолжение шага).
