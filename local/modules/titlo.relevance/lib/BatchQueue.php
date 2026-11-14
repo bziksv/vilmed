@@ -802,6 +802,8 @@ class BatchQueue
 			$typeFilter = " AND ENTITY_TYPE = '" . $DB->ForSql($wantType) . "'";
 		}
 
+		// Снять можно «в очереди» (ещё не стартовали) и «ошибка» (не перезапускать).
+		$cancelable = "'" . self::STATUS_QUEUED . "','" . self::STATUS_FAILED . "'";
 		$okIds = [];
 		$skipped = 0;
 		$now = self::now();
@@ -813,8 +815,8 @@ class BatchQueue
 					WORKER_TOKEN = '',
 					LEASE_UNTIL = NULL,
 					UPDATED_AT = '" . $DB->ForSql($now) . "'
-				WHERE ID = " . (int) $id . "
-				  AND STATUS = '" . self::STATUS_QUEUED . "'" . $typeFilter . '
+				WHERE ID = " . (int) $id . '
+				  AND STATUS IN (' . $cancelable . ')' . $typeFilter . '
 			');
 			if (self::affectedRows() > 0) {
 				$okIds[] = $id;

@@ -273,7 +273,7 @@ if ($sort !== 'id_desc') {
 			<p style="margin:8px 0 0;font-size:12px;color:#64748b">
 				Журнал заданий. Отметьте нужные строки:
 				«Запустить выбранные» — снова поставить в работу (режим из панели выше);
-				«Убрать из очереди» — снять задания со статусом «в очереди», если поставили по ошибке.
+				«Убрать из очереди» — снять задания со статусом «в очереди» или «ошибка» (без перезапуска).
 				Кнопки выбора отмечают строки на текущей странице журнала; отмеченные сохраняются при перелистывании.
 			</p>
 			<div class="filters" id="titlo-auto-queue-filters" style="margin:10px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -966,7 +966,8 @@ if ($sort !== 'id_desc') {
 		var cancelN = 0;
 		Array.prototype.forEach.call(document.querySelectorAll('.titlo-auto-queue-row'), function (cb) {
 			if (!cb.checked || cb.disabled) return;
-			if ((cb.getAttribute('data-status') || '') === 'queued') cancelN++;
+			var st = cb.getAttribute('data-status') || '';
+			if (st === 'queued' || st === 'failed') cancelN++;
 		});
 		var cBtn = document.getElementById('titlo-auto-cancel-selected');
 		if (cBtn) {
@@ -1313,7 +1314,8 @@ if ($sort !== 'id_desc') {
 		var ids = [];
 		Array.prototype.forEach.call(document.querySelectorAll('.titlo-auto-queue-row'), function (cb) {
 			if (!cb.checked || cb.disabled) return;
-			if ((cb.getAttribute('data-status') || '') !== 'queued') return;
+			var st = cb.getAttribute('data-status') || '';
+			if (st !== 'queued' && st !== 'failed') return;
 			ids.push(parseInt(cb.value, 10));
 		});
 		if (!ids.length) return;
