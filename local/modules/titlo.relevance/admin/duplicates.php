@@ -48,8 +48,28 @@ $q = (string) ($_GET['q'] ?? '');
 		<div class="titlo-howto__body">
 			<ul>
 				<li>
-					В каждом блоке — <strong>группа похожих карточек</strong>.
-					Первая строка (зелёный фон) — эталон; у остальных — «похож на #ID на N%».
+					Проверяется <strong>весь каталог</strong>. В каждом блоке — группа карточек-дублей.
+					Первая строка (зелёный фон) — эталон: отмеченная «прорабатывать», иначе с наибольшим числом просмотров,
+					иначе с более длинным описанием. У остальных — почему это дубль и чем отличаются слова.
+				</li>
+				<li>
+					<strong>Типы:</strong>
+					«одинаковые названия» — те же слова, бренд, модель и размер (порядок слов, знаки, «для» не важны);
+					«отличие только в стране» — у одной карточки страна указана, у другой нет;
+					«похожие названия» — слова совпадают на порог % и выше, разница показана («+пультом», «−Ворсма»).
+					Разные бренды, модели, размеры, мощность, цвет, «детский/взрослый», «прямой/изогнутый», «с/без X» дублями не считаются.
+				</li>
+				<li>
+					<strong>Линейки</strong> (фильтр «Тип») — одна модель в разных размерах/вариантах: это разные товары,
+					массовых кнопок нет. Обычно их оставляют в индексе.
+				</li>
+				<li>
+					«артикул другой» — названия совпадают, но артикулы разные: проверьте, не разные ли это товары
+					(тогда лучше переименовать, чем закрывать).
+				</li>
+				<li>
+					Карточки, которые не являются отдельной страницей (редирект в <code>.htaccess</code>, фактический 3xx или canonical на другой URL),
+					в дубли не попадают. HTTP-проверка кешируется на 7 дней; «Перепроверить URL» — сбросить кеш.
 				</li>
 				<li>
 					<strong>Прорабатывать</strong> — канон.
@@ -81,11 +101,30 @@ $q = (string) ($_GET['q'] ?? '');
 				<option value="decided" <?= $status === 'decided' ? 'selected' : '' ?>>Все с решением</option>
 			</select>
 		</label>
-		<input type="text" id="titlo-dup-q" class="adm-input" placeholder="ID / название / код" value="<?= htmlspecialcharsbx($q) ?>" style="width:260px">
+		<label>Тип:
+			<select id="titlo-dup-kind">
+				<option value="dups">дубли (все типы)</option>
+				<option value="exact">одинаковые названия</option>
+				<option value="similar">похожие названия</option>
+				<option value="homonym">одно название — разные производители</option>
+				<option value="lines">линейки (размеры/модели)</option>
+				<option value="all">всё, включая линейки</option>
+			</select>
+		</label>
+		<label title="Откуда брать H1 товара. По умолчанию — SEO-поле «Заголовок товара» инфоблока.">H1 из:
+			<select id="titlo-dup-h1">
+				<?php $h1Src = ProductDuplicates::h1Source(); ?>
+				<?php foreach (ProductDuplicates::h1SourceOptions() as $k => $label): ?>
+					<option value="<?= htmlspecialcharsbx($k) ?>" <?= $k === $h1Src ? 'selected' : '' ?>><?= htmlspecialcharsbx($label) ?></option>
+				<?php endforeach; ?>
+			</select>
+		</label>
+		<input type="text" id="titlo-dup-q" class="adm-input" placeholder="ID / название / код / артикул" value="<?= htmlspecialcharsbx($q) ?>" style="width:260px">
 		<label>Порог %:
 			<input type="number" id="titlo-dup-score" class="adm-input" value="<?= (int) ProductDuplicates::SIMILARITY_MIN ?>" min="50" max="99" style="width:70px">
 		</label>
 		<input type="button" id="titlo-dup-reload" class="adm-btn" value="Показать">
+		<input type="button" id="titlo-dup-probe-reset" class="adm-btn" value="Перепроверить URL" title="Сбросить кеш HTTP-проверки (редиректы, canonical) и проверить заново">
 		<span id="titlo-dup-list-status"></span>
 	</div>
 
@@ -138,7 +177,45 @@ $q = (string) ($_GET['q'] ?? '');
 			'<span class="titlo-act__tip">' + escapeHtml(tip) + '</span></span> ';
 	}
 
-	function renderRow(item, isTop) {
+	var probeRetries = 0;
+	function probeText(p) {
+		if (!p) return '';
+		var s = '';
+		if (p.pending) s += '; проверяю URL по HTTP, осталось ' + p.pending + '…';
+		if (p.blocked) s += '; антибот отдал заглушку на ' + p.blocked + ' URL — задайте cookie в настройках модуля';
+		return s;
+	}
+	function scheduleProbeReload(p) {
+		if (p && p.pending && probeRetries < 200) {
+			probeRetries++;
+			setTimeout(function () { load({ keepHint: true }); }, 500);
+		} else {
+			probeRetries = 0;
+		}
+	}
+
+	function h1Line(item, isTop, refH1) {
+		if (typeof item.h1 === 'undefined') return '';
+		var h1 = String(item.h1 || '');
+		if (h1 !== '' && h1 === item.name) {
+			return '<div class="sdup-h1"><b>H1:</b> = названию' +
+				(!isTop && refH1 && h1.toLowerCase() === String(refH1).toLowerCase() ? ' <span class="badge badge-distinct">H1 как у эталона</span>' : '') + '</div>';
+		}
+		var same = !isTop && h1 !== '' && refH1 && h1.toLowerCase() === String(refH1).toLowerCase();
+		return '<div class="sdup-h1"><b>H1:</b> ' + (h1 !== '' ? escapeHtml(h1) : '<i>пусто</i>') +
+			(same ? ' <span class="badge badge-distinct">H1 как у эталона</span>' : '') + '</div>';
+	}
+
+	function metaLine(item) {
+		var bits = [];
+		if (item.article) bits.push('артикул: ' + escapeHtml(item.article));
+		if (item.manufacturer) bits.push('производитель: ' + escapeHtml(item.manufacturer));
+		if (typeof item.views === 'number') bits.push('просмотров: ' + item.views);
+		if (typeof item.text_len === 'number') bits.push(item.text_len > 0 ? ('описание: ' + item.text_len + ' симв.') : 'без описания');
+		return bits.length ? '<div class="sdup-path">' + bits.join(' · ') + '</div>' : '';
+	}
+
+	function renderRow(item, isTop, refH1) {
 		var closed = item.decision === 'noindex' || item.noindex;
 		var indexBtn = closed
 			? actBtn(
@@ -152,7 +229,11 @@ $q = (string) ($_GET['q'] ?? '');
 		return '<tr data-id="' + item.id + '"' + (isTop ? ' class="is-top"' : '') + '>' +
 			'<td><a href="/bitrix/admin/iblock_element_edit.php?IBLOCK_ID=' + iblockId + '&type=catalog&ID=' + item.id + '&lang=<?= LANGUAGE_ID ?>" target="_blank">' + item.id + '</a></td>' +
 			'<td><div>' + escapeHtml(item.name) + decisionBadge(item) + '</div>' +
+			(item.path ? '<div class="sdup-path">' + escapeHtml(item.path) + '</div>' : '') +
+			metaLine(item) +
+			h1Line(item, isTop, refH1) +
 			(item.sim_label ? '<div class="sim">' + escapeHtml(item.sim_label) + '</div>' : '') +
+			(item.url_note ? '<div class="sim" style="color:#b45309">' + escapeHtml(item.url_note) + '</div>' : '') +
 			(item.phrase ? '<div class="name-len">фраза: ' + escapeHtml(item.phrase) + '</div>' : '') +
 			'<div class="name-len"><a href="' + safeHref(item.url) + '" target="_blank" rel="noopener">на сайте</a></div></td>' +
 			'<td class="row-actions">' +
@@ -196,8 +277,9 @@ $q = (string) ($_GET['q'] ?? '');
 		var status = document.getElementById('titlo-dup-status').value;
 		var q = document.getElementById('titlo-dup-q').value;
 		var minScore = document.getElementById('titlo-dup-score').value;
-		document.getElementById('titlo-dup-list-status').textContent = 'Загрузка…';
-		post('list_duplicates', {status: status, q: q, page: page, page_size: 15, min_score: minScore}).then(function (res) {
+		var kind = document.getElementById('titlo-dup-kind').value;
+		if (!opts.keepHint || !probeRetries) document.getElementById('titlo-dup-list-status').textContent = 'Загрузка… (проверяется весь каталог, до 15–20 с)';
+		post('list_duplicates', {status: status, kind: kind, q: q, page: page, page_size: 15, min_score: minScore}).then(function (res) {
 			var body = document.getElementById('titlo-dup-body');
 			var hint = document.getElementById('titlo-dup-hint');
 			if (!res.ok) {
@@ -221,7 +303,14 @@ $q = (string) ($_GET['q'] ?? '');
 				return;
 			}
 
-			document.getElementById('titlo-dup-list-status').textContent = 'Групп: ' + res.total;
+			var bk = res.open_by_kind || {};
+			document.getElementById('titlo-dup-list-status').textContent = 'Групп: ' + res.total +
+				' (открытых: одинаковых ' + (bk.exact || 0) + ', похожих ' + (bk.similar || 0) +
+				', разных производителей ' + (bk.homonym || 0) + ', линеек ' + (bk.lines || 0) + ')' +
+				(res.checked_products ? '; проверено товаров: ' + res.checked_products : '') +
+				(res.redirect_hidden ? '; скрыто — редирект/canonical на другую страницу: ' + res.redirect_hidden : '') +
+				probeText(res.probe);
+			scheduleProbeReload(res.probe);
 			if (!res.clusters || !res.clusters.length) {
 				body.innerHTML = '<p>Ничего не найдено. Проверьте ID, поиск по названию, фильтр «Отмеченные: прорабатывать» или понизьте порог %.</p>';
 				document.getElementById('titlo-dup-pager').innerHTML = '';
@@ -249,7 +338,7 @@ $q = (string) ($_GET['q'] ?? '');
 					ignoreBtn = '<span class="titlo-act"><input type="button" class="adm-btn titlo-dup-ignore" value="Оставить как есть">' +
 						'<span class="titlo-act__tip">Ничего не менять и скрыть группу из открытых. Найти и вернуть — фильтр «Кластеры: оставлены как есть». Если в группу добавится новая карточка, она снова станет открытой.</span></span>';
 				}
-				var bulkBtn = (cl.size >= 2)
+				var bulkBtn = (cl.size >= 2 && cl.kind !== 'lines' && cl.kind !== 'homonym')
 					? ('<span class="titlo-act">' +
 						'<input type="button" class="adm-btn titlo-dup-cluster-noindex" value="Эталон + закрыть остальных">' +
 						'<span class="titlo-act__tip">Первую карточку (зелёная) — «прорабатывать», все остальные в группе — закрыть от индексации.</span>' +
@@ -259,16 +348,18 @@ $q = (string) ($_GET['q'] ?? '');
 						'<span class="titlo-act__tip">Закрыть от индексации ВСЕ карточки группы, включая эталон (зелёную строку).</span>' +
 						'</span>')
 					: '';
+				var isLine = cl.kind === 'lines';
+				var refH1 = cl.items.length ? cl.items[0].h1 : '';
 				var rows = cl.items.map(function (item, i) {
-					return renderRow(item, i === 0);
+					return renderRow(item, i === 0 && !isLine, refH1);
 				}).join('');
 				return '<div class="cluster" data-key="' + escapeHtml(cl.key) + '" data-keep-id="' + keepId + '" data-ids="' + escapeHtml(ids.join(',')) + '">' +
 					'<div class="cluster-h">' +
 					'<span>Группа ' + (idx + 1 + (res.page - 1) * res.page_size) + '</span>' +
-					(cl.size >= 2 ? '<span class="score">между собой ≥ ' + cl.score + '%</span>' : '') +
-					'<span>' + cl.size + ' карточки</span>' +
-					'<span class="' + stClass + '">' + stLabel + '</span>' +
-					'<span class="name-len">стык по: ' + escapeHtml(cl.key) + '</span>' +
+					(cl.kind_label ? '<span class="badge badge-kind">' + escapeHtml(cl.kind_label) + '</span>' : '') +
+					(cl.size >= 2 && cl.score < 100 ? '<span class="score">совпадение ≥ ' + cl.score + '%</span>' : '') +
+					'<span>' + cl.size + ' карточ' + (cl.size >= 5 ? 'ек' : 'ки') + '</span>' +
+					'<span class="' + stClass + '">' + (isLine && cl.status === 'open' ? 'разные товары' : stLabel) + '</span>' +
 					bulkBtn + ignoreBtn +
 					'</div>' +
 					'<table><thead><tr><th style="width:80px">ID</th><th>Название / насколько похож на эталон</th><th style="width:400px">Решение</th></tr></thead><tbody>' +
@@ -368,7 +459,20 @@ $q = (string) ($_GET['q'] ?? '');
 	});
 
 	document.getElementById('titlo-dup-reload').onclick = function () { page = 1; load(); };
+	document.getElementById('titlo-dup-probe-reset').onclick = function () {
+		var b = this;
+		b.disabled = true;
+		post('section_dup_probe_reset', {}).then(function () {
+			b.disabled = false;
+			page = 1;
+			load();
+		});
+	};
 	document.getElementById('titlo-dup-status').addEventListener('change', function () { page = 1; load(); });
+	document.getElementById('titlo-dup-kind').addEventListener('change', function () { page = 1; load(); });
+	document.getElementById('titlo-dup-h1').addEventListener('change', function () {
+		post('dup_h1_source', {source: this.value}).then(function () { load({ keepHint: true }); });
+	});
 	document.getElementById('titlo-dup-q').addEventListener('keydown', function (e) {
 		if (e.key === 'Enter') { page = 1; load(); }
 	});

@@ -590,6 +590,7 @@
 	color: #64748b;
 }
 .titlo-sdups .badge-empty,
+.titlo-dups .badge-distinct,
 .titlo-sdups .badge-distinct {
 	background: #fef3c7;
 	color: #92400e;
@@ -598,6 +599,7 @@
 	background: #e0f2fe;
 	color: #075985;
 }
+.titlo-dups .badge-kind,
 .titlo-sdups .badge-kind {
 	background: #ede9fe;
 	color: #5b21b6;
@@ -633,10 +635,12 @@
 .titlo-modal__row { display: block; padding: 3px 0; }
 .titlo-modal__btns { margin-top: 12px; }
 .titlo-modal .sdup-path { color: #64748b; font-size: 11px; }
+.titlo-dups .sdup-h1,
 .titlo-sdups .sdup-h1 {
 	font-size: 12px;
 	margin-top: 2px;
 }
+.titlo-dups .sdup-path,
 .titlo-sdups .sdup-path {
 	color: #64748b;
 	font-size: 11px;

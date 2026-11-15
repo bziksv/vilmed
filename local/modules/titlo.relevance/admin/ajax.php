@@ -867,9 +867,14 @@ try {
 				'page_size' => (int) ($_POST['page_size'] ?? 15),
 				'q' => (string) ($_POST['q'] ?? ''),
 				'status' => (string) ($_POST['status'] ?? 'open'),
+				'kind' => (string) ($_POST['kind'] ?? 'dups'),
 				'min_score' => (int) ($_POST['min_score'] ?? ProductDuplicates::SIMILARITY_MIN),
 			]);
 			titlo_json(array_merge(['ok' => true], $list));
+
+		case 'dup_h1_source':
+			$ok = ProductDuplicates::setH1Source((string) ($_POST['source'] ?? ''));
+			titlo_json(['ok' => $ok, 'source' => ProductDuplicates::h1Source()], $ok ? 200 : 422);
 
 		case 'dup_decision':
 			$id = (int) ($_POST['entity_id'] ?? 0);
