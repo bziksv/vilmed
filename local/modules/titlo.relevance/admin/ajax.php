@@ -901,6 +901,10 @@ try {
 			]);
 			titlo_json(array_merge(['ok' => true], $list));
 
+		case 'section_dup_h1_source':
+			$ok = SectionDuplicates::setH1Source((string) ($_POST['source'] ?? ''));
+			titlo_json(['ok' => $ok, 'source' => SectionDuplicates::h1Source()], $ok ? 200 : 422);
+
 		case 'section_dup_probe_reset':
 			\Titlo\Relevance\UrlProbe::clearCache();
 			titlo_json(['ok' => true]);

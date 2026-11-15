@@ -603,6 +603,10 @@
 	color: #5b21b6;
 	font-weight: 600;
 }
+.titlo-sdups .sdup-h1 {
+	font-size: 12px;
+	margin-top: 2px;
+}
 .titlo-sdups .sdup-path {
 	color: #64748b;
 	font-size: 11px;

@@ -112,6 +112,14 @@ $q = (string) ($_GET['q'] ?? '');
 				<option value="variants">линейки (размеры/серии/страны)</option>
 			</select>
 		</label>
+		<label title="Откуда брать H1 раздела. По умолчанию — SEO-поле «Заголовок раздела» инфоблока.">H1 из:
+			<select id="titlo-sdup-h1">
+				<?php $h1Src = SectionDuplicates::h1Source(); ?>
+				<?php foreach (SectionDuplicates::h1SourceOptions() as $k => $label): ?>
+					<option value="<?= htmlspecialcharsbx($k) ?>" <?= $k === $h1Src ? 'selected' : '' ?>><?= htmlspecialcharsbx($label) ?></option>
+				<?php endforeach; ?>
+			</select>
+		</label>
 		<input type="text" id="titlo-sdup-q" class="adm-input" placeholder="ID / название / код" value="<?= htmlspecialcharsbx($q) ?>" style="width:260px">
 		<label>Порог %:
 			<input type="number" id="titlo-sdup-score" class="adm-input" value="<?= (int) SectionDuplicates::SIMILARITY_MIN ?>" min="50" max="99" style="width:70px">
@@ -194,7 +202,15 @@ $q = (string) ($_GET['q'] ?? '');
 			'<span class="titlo-act__tip">' + escapeHtml(tip) + '</span></span> ';
 	}
 
-	function renderRow(item, isTop) {
+	function h1Line(item, isTop, refH1) {
+		if (typeof item.h1 === 'undefined') return '';
+		var h1 = String(item.h1 || '');
+		var same = !isTop && h1 !== '' && refH1 && h1.toLowerCase() === String(refH1).toLowerCase();
+		return '<div class="sdup-h1"><b>H1:</b> ' + (h1 !== '' ? escapeHtml(h1) : '<i>пусто</i>') +
+			(same ? ' <span class="badge badge-distinct">H1 как у эталона</span>' : '') + '</div>';
+	}
+
+	function renderRow(item, isTop, refH1) {
 		var closed = item.decision === 'noindex' || item.noindex;
 		var indexBtn = closed
 			? actBtn(
@@ -210,6 +226,7 @@ $q = (string) ($_GET['q'] ?? '');
 			'<td><div>' + escapeHtml(item.name) + decisionBadge(item) + productsBadge(item) +
 			(item.distinct ? '<span class="badge badge-distinct">другие товары</span>' : '') + '</div>' +
 			(item.path ? '<div class="sdup-path">' + escapeHtml(item.path) + '</div>' : '') +
+			h1Line(item, isTop, refH1) +
 			(item.sim_label ? '<div class="sim">' + escapeHtml(item.sim_label) + '</div>' : '') +
 			(item.url_note ? '<div class="sim" style="color:#b45309">' + escapeHtml(item.url_note) + '</div>' : '') +
 			'<div class="name-len"><a href="' + safeHref(item.url) + '" target="_blank" rel="noopener">на сайте</a></div></td>' +
@@ -314,8 +331,9 @@ $q = (string) ($_GET['q'] ?? '');
 						'<span class="titlo-act__tip">Закрыть от индексации ВСЕ категории группы, включая эталон (зелёную строку).</span>' +
 						'</span>')
 					: '';
+				var refH1 = cl.items.length ? cl.items[0].h1 : '';
 				var rows = cl.items.map(function (item, i) {
-					return renderRow(item, i === 0);
+					return renderRow(item, i === 0, refH1);
 				}).join('');
 				return '<div class="cluster" data-key="' + escapeHtml(cl.key) + '" data-keep-id="' + keepId + '" data-ids="' + escapeHtml(ids.join(',')) + '" data-close-ids="' + escapeHtml(closeIds.join(',')) + '">' +
 					'<div class="cluster-h">' +
@@ -423,6 +441,9 @@ $q = (string) ($_GET['q'] ?? '');
 	};
 	document.getElementById('titlo-sdup-status').addEventListener('change', function () { page = 1; load(); });
 	document.getElementById('titlo-sdup-kind').addEventListener('change', function () { page = 1; load(); });
+	document.getElementById('titlo-sdup-h1').addEventListener('change', function () {
+		post('section_dup_h1_source', {source: this.value}).then(function () { load({ keepHint: true }); });
+	});
 	document.getElementById('titlo-sdup-q').addEventListener('keydown', function (e) {
 		if (e.key === 'Enter') { page = 1; load(); }
 	});

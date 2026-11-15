@@ -446,8 +446,8 @@ class SectionDuplicates
 	protected static function stem(string $t): string
 	{
 		static $endings = [
-			'иями', 'ями', 'ами', 'ого', 'его', 'ому', 'ему', 'ыми', 'ими', 'ией', 'ых', 'их',
-			'ия', 'ие', 'ии', 'ий', 'ый', 'ой', 'ая', 'яя', 'ое', 'ее', 'ые', 'ов', 'ев', 'ей',
+			'ями', 'ами', 'ого', 'его', 'ому', 'ему', 'ыми', 'ими', 'ых', 'их',
+			'ие', 'ий', 'ый', 'ой', 'ая', 'яя', 'ое', 'ее', 'ые', 'ов', 'ев', 'ей',
 			'ом', 'ем', 'ам', 'ям', 'ах', 'ях', 'ую', 'юю',
 			'ы', 'и', 'а', 'я', 'е', 'о', 'у', 'ю', 'ь', 'й',
 		];
@@ -457,6 +457,10 @@ class SectionDuplicates
 		$len = mb_strlen($t);
 		if ($len <= 4) {
 			return $t;
+		}
+		// «-ия» (эндоскопия, Россия) — другое слово, чем «-ы» (эндоскопы): сводим падежи к «-ия»
+		if (preg_match('/^(.{4,}?)(иями|иях|иям|ией|ия|ии|ию)$/u', $t, $m)) {
+			return $m[1] . 'ия';
 		}
 		foreach ($endings as $e) {
 			$el = mb_strlen($e);
@@ -1086,6 +1090,116 @@ class SectionDuplicates
 		return $out;
 	}
 
+	public const H1_DEFAULT = 'SEO:SECTION_PAGE_TITLE';
+
+	/**
+	 * Откуда брать H1 раздела: SEO-шаблоны инфоблока, NAME или строковое UF.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function h1SourceOptions(): array
+	{
+		static $cache = null;
+		if ($cache !== null) {
+			return $cache;
+		}
+		$opts = [
+			'SEO:SECTION_PAGE_TITLE' => 'SEO: заголовок раздела (H1)',
+			'SEO:SECTION_META_TITLE' => 'SEO: META TITLE',
+			'NAME' => 'Название раздела (NAME)',
+		];
+		$iblockId = Config::iblockId();
+		if ($iblockId > 0) {
+			$res = \CUserTypeEntity::GetList(['SORT' => 'ASC'], [
+				'ENTITY_ID' => 'IBLOCK_' . $iblockId . '_SECTION',
+				'USER_TYPE_ID' => 'string',
+				'LANG' => LANGUAGE_ID,
+			]);
+			while ($u = $res->Fetch()) {
+				$code = (string) $u['FIELD_NAME'];
+				if (strpos($code, 'UF_TITLO_') === 0) {
+					continue;
+				}
+				$label = trim((string) ($u['EDIT_FORM_LABEL'] ?? ''));
+				$opts['UF:' . $code] = $code . ($label !== '' ? ' — ' . $label : '');
+			}
+		}
+		return $cache = $opts;
+	}
+
+	public static function h1Source(): string
+	{
+		$src = Config::get('section_h1_source', self::H1_DEFAULT);
+		return isset(self::h1SourceOptions()[$src]) ? $src : self::H1_DEFAULT;
+	}
+
+	public static function setH1Source(string $src): bool
+	{
+		if (!isset(self::h1SourceOptions()[$src])) {
+			return false;
+		}
+		\Bitrix\Main\Config\Option::set(Config::MODULE_ID, 'section_h1_source', $src);
+		return true;
+	}
+
+	/**
+	 * @param int[] $ids
+	 * @return array<int, string>
+	 */
+	protected static function mapH1(array $ids, array $sections): array
+	{
+		global $DB;
+		$ids = array_values(array_filter(array_map('intval', $ids)));
+		if ($ids === []) {
+			return [];
+		}
+		$src = self::h1Source();
+		$iblockId = (int) Config::iblockId();
+		$out = [];
+		if ($src === 'NAME') {
+			foreach ($ids as $id) {
+				$out[$id] = (string) ($sections[$id]['name'] ?? '');
+			}
+			return $out;
+		}
+		if (strpos($src, 'UF:') === 0) {
+			$col = substr($src, 3);
+			if (!preg_match('/^UF_[A-Z0-9_]+$/', $col)) {
+				return [];
+			}
+			$uts = 'b_uts_iblock_' . $iblockId . '_section';
+			if (!$DB->Query("SHOW COLUMNS FROM {$uts} LIKE '" . $DB->ForSql($col) . "'")->Fetch()) {
+				return [];
+			}
+			foreach (array_chunk($ids, 500) as $chunk) {
+				$res = $DB->Query("SELECT VALUE_ID, {$col} AS V FROM {$uts} WHERE VALUE_ID IN (" . implode(',', $chunk) . ')');
+				while ($row = $res->Fetch()) {
+					$out[(int) $row['VALUE_ID']] = trim((string) $row['V']);
+				}
+			}
+			return $out;
+		}
+		$code = substr($src, 4);
+		foreach (array_chunk($ids, 500) as $chunk) {
+			$res = $DB->Query("
+				SELECT SI.SECTION_ID, SI.VALUE
+				FROM b_iblock_section_iprop SI
+				INNER JOIN b_iblock_iproperty IP ON IP.ID = SI.IPROP_ID
+				WHERE SI.IBLOCK_ID = {$iblockId} AND IP.CODE = '" . $DB->ForSql($code) . "'
+					AND SI.SECTION_ID IN (" . implode(',', $chunk) . ')
+			');
+			while ($row = $res->Fetch()) {
+				$out[(int) $row['SECTION_ID']] = trim((string) $row['VALUE']);
+			}
+		}
+		$missing = array_slice(array_diff($ids, array_keys($out)), 0, 300);
+		foreach ($missing as $id) {
+			$vals = (new \Bitrix\Iblock\InheritedProperty\SectionValues($iblockId, $id))->getValues();
+			$out[$id] = trim((string) ($vals[$code] ?? ''));
+		}
+		return $out;
+	}
+
 	/**
 	 * URL, noindex, путь, число товаров.
 	 *
@@ -1102,7 +1216,9 @@ class SectionDuplicates
 		$ids = array_keys($items);
 		$urlMap = UrlBuilder::mapSectionUrls($ids);
 		$noindexMap = IndexingControl::mapSectionNoindex($ids);
+		$h1Map = self::mapH1($ids, $sections);
 		foreach ($items as $id => &$item) {
+			$item['h1'] = $h1Map[$id] ?? '';
 			$item['url'] = $urlMap[$id] ?? UrlBuilder::category($item['code'], $id);
 			$item['noindex'] = !empty($noindexMap[$id]);
 			$item['path'] = self::sectionPath($id, $sections);
