@@ -106,9 +106,22 @@ window.TitloDupBuild = function (o) {
 			el.innerHTML = '';
 			return;
 		}
-		el.innerHTML = 'Данные от <b>' + fmt(cache.built_at) + '</b> (' + ago(cache.built_at) + '). ' +
-			'Решения и noindex — актуальные; новые товары/разделы и переименования — после пересчёта. ' +
-			'<input type="button" class="adm-btn titlo-build-run" value="Пересчитать">';
+		var age = Date.now() / 1000 - cache.built_at;
+		var lvl = age < 86400 ? 'fresh' : (age < 7 * 86400 ? 'old' : 'stale');
+		var title = {
+			fresh: 'Список посчитан ' + ago(cache.built_at),
+			old: 'Список посчитан ' + ago(cache.built_at) + ' — лучше пересчитать',
+			stale: 'Список устарел: посчитан ' + ago(cache.built_at)
+		}[lvl];
+		el.innerHTML = '<div class="titlo-cache titlo-cache--' + lvl + '">' +
+			'<div class="titlo-cache__icon">' + (lvl === 'fresh' ? '✓' : '!') + '</div>' +
+			'<div class="titlo-cache__body">' +
+			'<div class="titlo-cache__title">' + esc(title) + ' <span class="titlo-cache__date">(' + fmt(cache.built_at) + ')</span></div>' +
+			'<div class="titlo-cache__row"><span class="titlo-cache__ok">✓ сразу видно</span> решения «прорабатывать», noindex, «оставить как есть»</div>' +
+			'<div class="titlo-cache__row"><span class="titlo-cache__wait">↻ после пересчёта</span> новые товары и разделы, переименования, изменения в каталоге</div>' +
+			'</div>' +
+			'<input type="button" class="adm-btn-save titlo-build-run titlo-cache__btn" value="↻ Пересчитать">' +
+			'</div>';
 		el.querySelector('.titlo-build-run').onclick = function () { start(false); };
 		if (cache.running) watch(null);
 	}

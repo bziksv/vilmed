@@ -1803,8 +1803,23 @@
 }
 
 /* Пересчёт групп дублей (DupCache) */
-.titlo-cache-meta { margin: 6px 0 10px; color: #555; font-size: 12px; }
-.titlo-cache-meta .adm-btn { margin-left: 6px; }
+.titlo-cache-meta { margin: 10px 0 12px; }
+.titlo-cache { display: flex; align-items: center; gap: 14px; max-width: 900px; padding: 12px 16px; border: 1px solid; border-left-width: 5px; border-radius: 6px; font-size: 13px; }
+.titlo-cache--fresh { background: #f0fdf4; border-color: #bbf7d0; border-left-color: #16a34a; }
+.titlo-cache--old { background: #fffbeb; border-color: #fde68a; border-left-color: #f59e0b; }
+.titlo-cache--stale { background: #fef2f2; border-color: #fecaca; border-left-color: #dc2626; }
+.titlo-cache__icon { flex: 0 0 34px; height: 34px; border-radius: 50%; color: #fff; font: bold 18px/34px Arial, sans-serif; text-align: center; }
+.titlo-cache--fresh .titlo-cache__icon { background: #16a34a; }
+.titlo-cache--old .titlo-cache__icon { background: #f59e0b; }
+.titlo-cache--stale .titlo-cache__icon { background: #dc2626; }
+.titlo-cache__body { flex: 1 1 auto; }
+.titlo-cache__title { font-size: 15px; font-weight: bold; color: #1f2937; margin-bottom: 4px; }
+.titlo-cache__date { font-weight: normal; color: #64748b; font-size: 13px; }
+.titlo-cache__row { color: #475569; margin-top: 2px; }
+.titlo-cache__ok, .titlo-cache__wait { display: inline-block; min-width: 128px; margin-right: 6px; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+.titlo-cache__ok { background: #dcfce7; color: #166534; }
+.titlo-cache__wait { background: #e0e7ff; color: #3730a3; }
+.titlo-cache .titlo-cache__btn { flex: 0 0 auto; height: 34px !important; padding: 0 18px !important; font-size: 14px !important; }
 .titlo-build { margin: 10px 0 14px; padding: 14px 16px; background: #f7fafc; border: 1px solid #d7e1ea; border-radius: 6px; max-width: 720px; }
 .titlo-build__head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; font-size: 14px; }
 .titlo-build__time { font-family: monospace; color: #64748b; }
