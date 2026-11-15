@@ -57,7 +57,7 @@ $q = (string) ($_GET['q'] ?? '');
 					«одинаковые названия» — то же название в другой ветке (часто пустые копии, 0 товаров);
 					«одни и те же товары» — разные названия, но товары совпадают ≥ 80%;
 					«похожие названия» — слова совпадают на порог % и выше;
-					«одно название — разные товары» — тёзки с разным наполнением: лучше переименовать, чем закрывать.
+					«одно название — разные товары» — тёзки с разным наполнением: лучше переименовать, чем закрывать. Если раздел всё же лишний — кнопка «Эталон + перенести товары»: остальные закрываются, а товары без открытой категории можно добавить в эталон.
 				</li>
 				<li>
 					Разделы, которые не являются отдельной страницей, в дубли не попадают:
@@ -413,7 +413,8 @@ $q = (string) ($_GET['q'] ?? '');
 				}
 				var ids = (cl.items || []).map(function (it) { return it.id; });
 				var keepId = ids.length ? ids[0] : 0;
-				var closeIds = (cl.items || []).filter(function (it, i) { return i === 0 || !it.distinct; })
+				var isHomonym = cl.kind === 'homonym';
+				var closeIds = (cl.items || []).filter(function (it, i) { return isHomonym || i === 0 || !it.distinct; })
 					.map(function (it) { return it.id; });
 				var ignoreBtn = '';
 				if (cl.size >= 2 && cl.status === 'ignored') {
@@ -423,7 +424,12 @@ $q = (string) ($_GET['q'] ?? '');
 					ignoreBtn = '<span class="titlo-act"><input type="button" class="adm-btn titlo-dup-ignore" value="Оставить как есть">' +
 						'<span class="titlo-act__tip">Ничего не менять и скрыть группу из открытых. Найти и вернуть — фильтр «Кластеры: оставлены как есть». Если в группу добавится новый раздел, она снова станет открытой.</span></span>';
 				}
-				var bulkBtn = (cl.size >= 2 && cl.kind !== 'homonym')
+				var bulkBtn = (cl.size >= 2 && isHomonym)
+					? ('<span class="titlo-act">' +
+						'<input type="button" class="adm-btn titlo-sdup-cluster-noindex" data-homonym="1" value="Эталон + перенести товары">' +
+						'<span class="titlo-act__tip">Первую категорию (зелёная) — «прорабатывать», остальные — закрыть от индексации. Товары, которые останутся без открытой категории, можно добавить в эталон или другую открытую категорию.</span>' +
+						'</span>')
+					: (cl.size >= 2)
 					? ('<span class="titlo-act">' +
 						'<input type="button" class="adm-btn titlo-sdup-cluster-noindex" value="Эталон + закрыть остальных">' +
 						'<span class="titlo-act__tip">Первую категорию (зелёная) — «прорабатывать», все остальные в группе — закрыть от индексации.</span>' +
@@ -486,9 +492,12 @@ $q = (string) ($_GET['q'] ?? '');
 				? ('Закрыть от индексации ВЕСЬ блок (' + idList.length + ' категорий), включая эталон #' + keepId + '?')
 				: ('Эталон #' + keepId + ' — прорабатывать.\nОстальные (' + others + ') — закрыть от индексации?' +
 					(skipped > 0 ? '\nС другими товарами (' + skipped + ') — не трогаем.' : ''));
+			if (btn.getAttribute('data-homonym')) {
+				confirmMsg += '\nВ категориях разные товары — проверьте, куда перенести товары без открытой категории.';
+			}
 			var closing = closeAll ? idList : idList.filter(function (x) { return x !== String(keepId); });
 			var runClusterClose = function () {
-			var labelKeep = 'Эталон + закрыть остальных';
+			var labelKeep = btn.getAttribute('data-homonym') ? 'Эталон + перенести товары' : 'Эталон + закрыть остальных';
 			var labelAll = 'Закрыть весь блок';
 			btn.disabled = true;
 			btn.value = 'Сохраняю…';
