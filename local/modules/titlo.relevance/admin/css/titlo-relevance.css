@@ -734,6 +734,11 @@
 	padding-left: 18px;
 }
 .titlo-howto__body li { margin: 0 0 6px; }
+.titlo-howto__body > p { margin: 12px 0 0; }
+.titlo-howto__body > p > strong { color: #1e3a5f; font-size: 14px; }
+.titlo-howto__tech { margin-top: 14px; border-top: 1px dashed #c7ddf5; padding-top: 8px; }
+.titlo-howto__tech > summary { cursor: pointer; color: #64748b; font-size: 12px; }
+.titlo-howto__tech ul { color: #64748b; font-size: 12px; }
 .titlo-howto__body code {
 	font-size: 12px;
 	background: #e2e8f0;
