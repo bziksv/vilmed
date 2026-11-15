@@ -542,7 +542,11 @@ if(!($arParams["AJAX_OPTION_HISTORY"] == "Y" && $arParams["AJAX_MODE"] == "Y")) 
 $CurPage = $APPLICATION->GetCurDir();
 $CurPageAr = explode('/',$CurPage);
 if($CurPageAr[1]=="catalog"){
-	LocalRedirect("/product/".$arParams["ELEMENT_CODE"]."/");
+	// OnEndBufferContent runs inside the PHP output handler on redirect: cssinliner's cache ob_start() there is a fatal (empty 200).
+	if(!defined('LOCK_CSSINLINER'))
+		define('LOCK_CSSINLINER', true);
+	$APPLICATION->RestartBuffer();
+	LocalRedirect("/product/".$arParams["ELEMENT_CODE"]."/", false, "301 Moved permanently");
 }
 
 $parentSectionIterator = SectionTable::getList([
