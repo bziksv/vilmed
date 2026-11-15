@@ -1412,6 +1412,206 @@ class SectionDuplicates
 		];
 	}
 
+	/**
+	 * Товары закрываемых разделов, у которых не останется ни одной открытой категории.
+	 *
+	 * @param int[] $closeIds разделы, которые сейчас закроем
+	 * @return array{ok:bool,products:array,targets:array,target_id:int,warn_url:string}
+	 */
+	public static function orphanProducts(array $closeIds, int $preferTargetId = 0): array
+	{
+		global $DB;
+		$closeIds = Config::filterCatalogSectionIds($closeIds, 200);
+		$iblockId = (int) Config::iblockId();
+		if ($closeIds === [] || $iblockId <= 0) {
+			return ['ok' => false, 'error' => 'bad ids', 'products' => [], 'targets' => [], 'target_id' => 0, 'warn_url' => ''];
+		}
+		$closeSet = array_fill_keys($closeIds, true);
+
+		$productIds = [];
+		$res = $DB->Query('
+			SELECT DISTINCT SE.IBLOCK_ELEMENT_ID AS E
+			FROM b_iblock_section_element SE
+			INNER JOIN b_iblock_element BE ON BE.ID = SE.IBLOCK_ELEMENT_ID
+			WHERE SE.IBLOCK_SECTION_ID IN (' . implode(',', $closeIds) . ") AND BE.ACTIVE = 'Y'
+				AND BE.IBLOCK_ID = {$iblockId} AND SE.ADDITIONAL_PROPERTY_ID IS NULL
+			LIMIT 2000
+		");
+		while ($row = $res->Fetch()) {
+			$productIds[] = (int) $row['E'];
+		}
+
+		$links = [];
+		$allSections = [];
+		foreach (array_chunk($productIds, 500) as $chunk) {
+			$res = $DB->Query('
+				SELECT IBLOCK_ELEMENT_ID AS E, IBLOCK_SECTION_ID AS S FROM b_iblock_section_element
+				WHERE IBLOCK_ELEMENT_ID IN (' . implode(',', $chunk) . ') AND ADDITIONAL_PROPERTY_ID IS NULL
+			');
+			while ($row = $res->Fetch()) {
+				$links[(int) $row['E']][] = (int) $row['S'];
+				$allSections[(int) $row['S']] = true;
+			}
+		}
+
+		$sections = self::fetchAllSections();
+		$openMap = self::openSectionMap(array_keys($allSections), $sections);
+
+		$orphans = [];
+		foreach ($links as $pid => $secs) {
+			$hasOpen = false;
+			foreach ($secs as $s) {
+				if (!isset($closeSet[$s]) && !empty($openMap[$s])) {
+					$hasOpen = true;
+					break;
+				}
+			}
+			if (!$hasOpen) {
+				$orphans[$pid] = $secs;
+			}
+		}
+
+		// Куда добавлять: эталон (если открыт и не закрывается) → открытые соседи по группе → открытые родители
+		$candidates = [];
+		if ($preferTargetId > 0) {
+			$candidates[] = $preferTargetId;
+		}
+		foreach ($closeIds as $cid) {
+			$cur = (int) ($sections[$cid]['parent'] ?? 0);
+			$guard = 0;
+			while ($cur > 0 && isset($sections[$cur]) && $guard++ < 12) {
+				$candidates[] = $cur;
+				$cur = (int) $sections[$cur]['parent'];
+			}
+		}
+		$candidates = array_values(array_unique($candidates));
+		$candOpen = self::openSectionMap($candidates, $sections);
+		$targets = [];
+		foreach ($candidates as $c) {
+			if (isset($closeSet[$c]) || empty($candOpen[$c])) {
+				continue;
+			}
+			$path = self::sectionPath($c, $sections);
+			$targets[] = [
+				'id' => $c,
+				'name' => (string) $sections[$c]['name'],
+				'path' => $path,
+				'is_ref' => $c === $preferTargetId,
+			];
+		}
+
+		$products = [];
+		if ($orphans !== []) {
+			$res = \CIBlockElement::GetList(
+				['NAME' => 'ASC'],
+				['IBLOCK_ID' => $iblockId, 'ID' => array_keys($orphans), 'CHECK_PERMISSIONS' => 'N'],
+				false,
+				['nTopCount' => 500],
+				['ID', 'NAME', 'IBLOCK_SECTION_ID', 'DETAIL_PAGE_URL']
+			);
+			while ($row = $res->GetNext()) {
+				$pid = (int) $row['ID'];
+				$products[] = [
+					'id' => $pid,
+					'name' => (string) $row['~NAME'],
+					'url' => (string) $row['DETAIL_PAGE_URL'],
+					'sections' => array_map(static function ($s) use ($sections) {
+						return '#' . $s . ' ' . ($sections[$s]['name'] ?? '');
+					}, $orphans[$pid]),
+				];
+			}
+		}
+
+		$iblock = \CIBlock::GetArrayByID($iblockId);
+		$detailTpl = (string) ($iblock['DETAIL_PAGE_URL'] ?? '');
+		$warnUrl = preg_match('/#SECTION_(ID|CODE|CODE_PATH)#/', $detailTpl)
+			? 'URL товаров зависит от раздела (' . $detailTpl . '): добавляем только дополнительную категорию, основной раздел не меняется.'
+			: '';
+
+		return [
+			'ok' => true,
+			'products' => $products,
+			'checked' => count($productIds),
+			'targets' => $targets,
+			'target_id' => $targets[0]['id'] ?? 0,
+			'warn_url' => $warnUrl,
+		];
+	}
+
+	/**
+	 * Разделы, которые остаются в индексе: активные, без noindex/решения noindex.
+	 *
+	 * @param int[] $ids
+	 * @return array<int, bool>
+	 */
+	protected static function openSectionMap(array $ids, array $sections): array
+	{
+		$ids = array_values(array_filter(array_map('intval', $ids)));
+		if ($ids === []) {
+			return [];
+		}
+		$noindex = IndexingControl::mapSectionNoindex($ids);
+		$out = [];
+		foreach ($ids as $id) {
+			$s = $sections[$id] ?? null;
+			$out[$id] = $s !== null && $s['active'] && empty($noindex[$id]) && $s['decision'] !== self::DECISION_NOINDEX;
+		}
+		return $out;
+	}
+
+	/**
+	 * Добавить товарам дополнительную категорию (основной раздел не меняем).
+	 *
+	 * @param int[] $productIds
+	 * @return array{ok:bool,added?:int,error?:string}
+	 */
+	public static function attachProducts(array $productIds, int $targetId): array
+	{
+		$iblockId = (int) Config::iblockId();
+		if ($targetId <= 0 || !Config::sectionBelongsToCatalog($targetId)) {
+			return ['ok' => false, 'error' => 'категория не из каталога'];
+		}
+		$productIds = array_slice(array_values(array_unique(array_filter(array_map('intval', $productIds)))), 0, 1000);
+		if ($productIds === []) {
+			return ['ok' => false, 'error' => 'нет товаров'];
+		}
+		$added = 0;
+		$res = \CIBlockElement::GetList(
+			[],
+			['IBLOCK_ID' => $iblockId, 'ID' => $productIds, 'CHECK_PERMISSIONS' => 'N'],
+			false,
+			false,
+			['ID', 'IBLOCK_SECTION_ID']
+		);
+		while ($row = $res->Fetch()) {
+			$pid = (int) $row['ID'];
+			$current = [];
+			$g = \CIBlockElement::GetElementGroups($pid, true, ['ID']);
+			while ($s = $g->Fetch()) {
+				$current[] = (int) $s['ID'];
+			}
+			if (in_array($targetId, $current, true)) {
+				continue;
+			}
+			$current[] = $targetId;
+			$main = (int) $row['IBLOCK_SECTION_ID'];
+			\CIBlockElement::SetElementSection($pid, $current, false, 0, $main > 0 ? $main : null);
+			if (class_exists('\Bitrix\Iblock\PropertyIndex\Manager')) {
+				\Bitrix\Iblock\PropertyIndex\Manager::updateElementIndex($iblockId, $pid);
+			}
+			$added++;
+		}
+		if ($added > 0 && method_exists('\CIBlock', 'clearIblockTagCache')) {
+			\CIBlock::clearIblockTagCache($iblockId);
+		}
+		AuditLog::write('section_dup_attach_products', [
+			'target_id' => $targetId,
+			'product_ids' => $productIds,
+			'added' => $added,
+		]);
+		return ['ok' => true, 'added' => $added];
+	}
+
 	protected static function setDecisionUf(int $sectionId, string $value): void
 	{
 		$iblockId = Config::iblockId();

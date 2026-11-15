@@ -915,6 +915,22 @@ try {
 			}
 			titlo_json(['ok' => true, 'removed' => \Titlo\Relevance\DupIgnore::remove($entity, $rawIds)]);
 
+		case 'section_dup_orphans':
+			$rawIds = $_POST['ids'] ?? [];
+			if (is_string($rawIds)) {
+				$rawIds = preg_split('/\s*,\s*/', $rawIds) ?: [];
+			}
+			$res = SectionDuplicates::orphanProducts(is_array($rawIds) ? $rawIds : [], (int) ($_POST['target_id'] ?? 0));
+			titlo_json($res, !empty($res['ok']) ? 200 : 422);
+
+		case 'section_dup_attach':
+			$rawIds = $_POST['product_ids'] ?? [];
+			if (is_string($rawIds)) {
+				$rawIds = preg_split('/\s*,\s*/', $rawIds) ?: [];
+			}
+			$res = SectionDuplicates::attachProducts(is_array($rawIds) ? $rawIds : [], (int) ($_POST['target_id'] ?? 0));
+			titlo_json($res, !empty($res['ok']) ? 200 : 422);
+
 		case 'section_dup_h1_source':
 			$ok = SectionDuplicates::setH1Source((string) ($_POST['source'] ?? ''));
 			titlo_json(['ok' => $ok, 'source' => SectionDuplicates::h1Source()], $ok ? 200 : 422);

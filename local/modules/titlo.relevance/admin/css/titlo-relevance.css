@@ -603,6 +603,36 @@
 	color: #5b21b6;
 	font-weight: 600;
 }
+.titlo-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 10040;
+	background: rgba(15, 23, 42, .45);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.titlo-modal__box {
+	background: #fff;
+	border-radius: 8px;
+	padding: 18px 20px;
+	width: min(860px, 94vw);
+	max-height: 88vh;
+	overflow: auto;
+	box-shadow: 0 12px 32px rgba(15, 23, 42, .3);
+	font-size: 13px;
+}
+.titlo-modal__box h3 { margin: 0 0 8px; }
+.titlo-modal__list {
+	max-height: 45vh;
+	overflow: auto;
+	border: 1px solid #e2e8f0;
+	border-radius: 6px;
+	padding: 6px 8px;
+}
+.titlo-modal__row { display: block; padding: 3px 0; }
+.titlo-modal__btns { margin-top: 12px; }
+.titlo-modal .sdup-path { color: #64748b; font-size: 11px; }
 .titlo-sdups .sdup-h1 {
 	font-size: 12px;
 	margin-top: 2px;

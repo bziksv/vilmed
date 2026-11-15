@@ -175,6 +175,94 @@ $q = (string) ($_GET['q'] ?? '');
 		return '<span class="badge badge-none">не решено</span>';
 	}
 
+	/**
+	 * Перед закрытием: товары, у которых не останется открытой категории → модалка «добавить в категорию».
+	 * proceed() — само закрытие; «Отмена» — ничего не делаем.
+	 */
+	function guardOrphans(closeIds, targetId, proceed) {
+		var hint = document.getElementById('titlo-sdup-hint');
+		hint.style.display = '';
+		hint.innerHTML = 'Проверяю товары закрываемых категорий…';
+		post('section_dup_orphans', {ids: closeIds.join(','), target_id: targetId || 0}).then(function (res) {
+			if (!res.ok || !res.products || !res.products.length) {
+				hint.style.display = 'none';
+				proceed();
+				return;
+			}
+			hint.style.display = 'none';
+			showOrphanModal(res, proceed);
+		}).catch(function () {
+			hint.innerHTML = '<span style="color:#c00">Не удалось проверить товары — закрытие отменено.</span>';
+		});
+	}
+
+	function showOrphanModal(res, proceed) {
+		var wrap = document.createElement('div');
+		wrap.className = 'titlo-modal';
+		var opts = (res.targets || []).map(function (t) {
+			return '<option value="' + t.id + '"' + (t.id === res.target_id ? ' selected' : '') + '>#' + t.id + ' ' +
+				escapeHtml(t.name) + (t.is_ref ? ' (эталон)' : '') + (t.path ? ' — ' + escapeHtml(t.path) : '') + '</option>';
+		}).join('');
+		var rows = res.products.map(function (p) {
+			return '<label class="titlo-modal__row"><input type="checkbox" class="titlo-orph" value="' + p.id + '" checked> ' +
+				'<a href="' + safeHref(p.url) + '" target="_blank" rel="noopener">#' + p.id + '</a> ' + escapeHtml(p.name) +
+				'<span class="sdup-path"> — сейчас: ' + escapeHtml((p.sections || []).join(', ')) + '</span></label>';
+		}).join('');
+		wrap.innerHTML =
+			'<div class="titlo-modal__box">' +
+			'<h3>' + res.products.length + ' товар(ов) останутся без открытой категории</h3>' +
+			'<p>Все их категории закрываются или уже закрыты от индексации. Добавьте им дополнительную категорию, которая остаётся в индексе — ' +
+			'основной раздел товара и URL не меняются.</p>' +
+			(res.warn_url ? '<p class="sdup-path">' + escapeHtml(res.warn_url) + '</p>' : '') +
+			'<p><label>Добавить в категорию: <select class="titlo-orph-target">' + opts +
+			'<option value="">другая — ввести ID</option></select></label> ' +
+			'<input type="number" class="adm-input titlo-orph-custom" placeholder="ID категории" style="width:120px' + (opts ? ';display:none' : '') + '"></p>' +
+			'<p><label><input type="checkbox" class="titlo-orph-all" checked> выбрать все</label></p>' +
+			'<div class="titlo-modal__list">' + rows + '</div>' +
+			'<p class="titlo-modal__status"></p>' +
+			'<div class="titlo-modal__btns">' +
+			'<input type="button" class="adm-btn-save titlo-orph-add" value="Добавить в категорию и закрыть"> ' +
+			'<input type="button" class="adm-btn titlo-orph-skip" value="Закрыть без добавления"> ' +
+			'<input type="button" class="adm-btn titlo-orph-cancel" value="Отмена">' +
+			'</div></div>';
+		document.body.appendChild(wrap);
+
+		var sel = wrap.querySelector('.titlo-orph-target');
+		var custom = wrap.querySelector('.titlo-orph-custom');
+		var status = wrap.querySelector('.titlo-modal__status');
+		if (!opts) sel.value = '';
+		sel.onchange = function () { custom.style.display = sel.value === '' ? '' : 'none'; };
+		wrap.querySelector('.titlo-orph-all').onchange = function () {
+			var on = this.checked;
+			wrap.querySelectorAll('.titlo-orph').forEach(function (c) { c.checked = on; });
+		};
+		function close() { wrap.parentNode && wrap.parentNode.removeChild(wrap); }
+		wrap.querySelector('.titlo-orph-cancel').onclick = close;
+		wrap.querySelector('.titlo-orph-skip').onclick = function () { close(); proceed(); };
+		wrap.querySelector('.titlo-orph-add').onclick = function () {
+			var target = sel.value !== '' ? sel.value : String(custom.value || '').trim();
+			var ids = [];
+			wrap.querySelectorAll('.titlo-orph:checked').forEach(function (c) { ids.push(c.value); });
+			if (!target) { status.textContent = 'Выберите категорию.'; return; }
+			if (!ids.length) { status.textContent = 'Не выбрано ни одного товара.'; return; }
+			var b = this;
+			b.disabled = true;
+			status.textContent = 'Добавляю ' + ids.length + ' товар(ов) в #' + target + '…';
+			post('section_dup_attach', {product_ids: ids.join(','), target_id: target}).then(function (r) {
+				b.disabled = false;
+				if (!r.ok) {
+					status.innerHTML = '<span style="color:#c00">' + escapeHtml(r.error || 'Ошибка') + '</span>';
+					return;
+				}
+				close();
+				var hint = document.getElementById('titlo-sdup-hint');
+				hint.style.display = '';
+				hint.innerHTML = 'Добавлено товаров в категорию #' + escapeHtml(target) + ': <b>' + (r.added || 0) + '</b>. Закрываю…';
+				proceed();
+			});
+		};
+	}
+
 	var probeRetries = 0;
 	function probeText(p) {
 		if (!p) return '';
@@ -400,6 +488,11 @@ $q = (string) ($_GET['q'] ?? '');
 			if (!confirm(confirmMsg)) {
 				return;
 			}
+			var closing = closeAll ? idList : idList.filter(function (x) { return x !== String(keepId); });
+			guardOrphans(closing, closeAll ? 0 : keepId, function () { runClusterClose(); });
+			return;
+
+			function runClusterClose() {
 			var labelKeep = 'Эталон + закрыть остальных';
 			var labelAll = 'Закрыть весь блок';
 			btn.disabled = true;
@@ -429,7 +522,7 @@ $q = (string) ($_GET['q'] ?? '');
 				hint.style.display = '';
 				hint.innerHTML = '<span style="color:#c00">Сеть/ответ сервера: ' + escapeHtml((err && err.message) ? err.message : 'ошибка') + '</span>';
 			});
-			return;
+			}
 		}
 		if (!btn.classList.contains('titlo-sdup-keep') && !btn.classList.contains('titlo-sdup-noindex') && !btn.classList.contains('titlo-sdup-clear') && !btn.classList.contains('titlo-sdup-open')) return;
 		var tr = btn.closest('tr');
@@ -440,6 +533,15 @@ $q = (string) ($_GET['q'] ?? '');
 		if (btn.classList.contains('titlo-sdup-keep')) decision = 'keep';
 		if (btn.classList.contains('titlo-sdup-noindex')) decision = 'noindex';
 		if (btn.classList.contains('titlo-sdup-open')) decision = 'clear';
+		if (decision === 'noindex') {
+			var rowCluster = tr.closest('.cluster');
+			var refId = rowCluster ? rowCluster.getAttribute('data-keep-id') : '';
+			guardOrphans([id], refId && refId !== String(id) ? refId : 0, saveDecision);
+		} else {
+			saveDecision();
+		}
+
+		function saveDecision() {
 		statusEl.textContent = '…';
 		post('section_dup_decision', {entity_id: id, decision: decision}).then(function (res) {
 			statusEl.textContent = res.ok ? 'OK' : (res.error || 'Ошибка');
@@ -456,6 +558,7 @@ $q = (string) ($_GET['q'] ?? '');
 			}
 			load({ keepHint: true });
 		});
+		}
 	});
 
 	document.getElementById('titlo-sdup-reload').onclick = function () { page = 1; load(); };
