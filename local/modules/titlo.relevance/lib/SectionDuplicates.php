@@ -914,7 +914,7 @@ class SectionDuplicates
 				}
 			}
 			$report(50, 'probe', 'Проверяю страницы на сайте (' . count($paths) . ')…');
-			$probe = UrlProbe::check($paths, 90.0, static function ($done, $total) use ($report) {
+			$probe = UrlProbe::check($paths, 150.0, static function ($done, $total) use ($report) {
 				$report(50 + (int) (35 * $done / max(1, $total)), 'probe', 'Проверяю страницы на сайте: ' . $done . ' / ' . $total);
 			});
 			$extra = [];

@@ -705,7 +705,7 @@ class ProductDuplicates
 				}
 			}
 			$report(55, 'probe', 'Проверяю страницы на сайте (' . count($probePaths) . ')…');
-			$probe = $probePaths !== [] ? UrlProbe::check($probePaths, 150.0, static function ($done, $total) use ($report) {
+			$probe = $probePaths !== [] ? UrlProbe::check($probePaths, 420.0, static function ($done, $total) use ($report) {
 				$report(55 + (int) (33 * $done / max(1, $total)), 'probe', 'Проверяю страницы на сайте: ' . $done . ' / ' . $total);
 			}) : [];
 			foreach ($probe as $id => $r) {
