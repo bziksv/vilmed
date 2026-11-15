@@ -896,6 +896,7 @@ try {
 				'page_size' => (int) ($_POST['page_size'] ?? 15),
 				'q' => (string) ($_POST['q'] ?? ''),
 				'status' => (string) ($_POST['status'] ?? 'open'),
+				'kind' => (string) ($_POST['kind'] ?? 'all'),
 				'min_score' => (int) ($_POST['min_score'] ?? SectionDuplicates::SIMILARITY_MIN),
 			]);
 			titlo_json(array_merge(['ok' => true], $list));

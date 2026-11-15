@@ -589,6 +589,25 @@
 	background: #f1f5f9;
 	color: #64748b;
 }
+.titlo-sdups .badge-empty,
+.titlo-sdups .badge-distinct {
+	background: #fef3c7;
+	color: #92400e;
+}
+.titlo-sdups .badge-products {
+	background: #e0f2fe;
+	color: #075985;
+}
+.titlo-sdups .badge-kind {
+	background: #ede9fe;
+	color: #5b21b6;
+	font-weight: 600;
+}
+.titlo-sdups .sdup-path {
+	color: #64748b;
+	font-size: 11px;
+	margin-top: 2px;
+}
 .titlo-prompts .badge-updated {
 	background: #ecfdf5;
 	color: #047857;

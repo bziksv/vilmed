@@ -3,8 +3,12 @@
 namespace Titlo\Relevance;
 
 /**
- * Дубли категорий (разделов инфоблока) — тот же принцип, что у товаров:
- * кластеры похожих названий → keep / noindex.
+ * Дубли категорий (разделов инфоблока): кластеры → keep / noindex.
+ *
+ * Пара разделов — дубль, если совпадают бренды/модели и размеры/серии,
+ * а смысловые слова совпадают по весу (IDF) не ниже порога, либо у разделов
+ * одни и те же товары. Вложенные разделы считаются дублем только при полностью
+ * одинаковом названии (иначе это фасет «X → X, Япония»).
  */
 class SectionDuplicates
 {
@@ -12,6 +16,42 @@ class SectionDuplicates
 	public const DECISION_KEEP = 'keep';
 	public const DECISION_NOINDEX = 'noindex';
 	public const SIMILARITY_MIN = 80;
+
+	public const KIND_EXACT = 'exact';
+	public const KIND_NESTED = 'nested';
+	public const KIND_COUNTRY = 'country';
+	public const KIND_PRODUCTS = 'products';
+	public const KIND_SIMILAR = 'similar';
+	/** Одно название, но товары разные — скорее переименовать, чем закрывать. */
+	public const KIND_HOMONYM = 'homonym';
+
+	/** Совпадение товаров, при котором разные по словам разделы — дубль. */
+	protected const PRODUCTS_JACCARD_MIN = 80;
+	/** Одинаковое название и общих товаров меньше — «тёзки», а не копии. */
+	protected const HOMONYM_PRODUCTS_MAX = 30;
+	/** Похожие названия и общих товаров меньше — разные разделы (линейки, «с/без»). */
+	protected const SIMILAR_PRODUCTS_MIN = 10;
+	/** Минимальное сходство слов для дубля «по товарам». */
+	protected const PRODUCTS_NAME_MIN = 50;
+	/** Слово встречается чаще — по нему кандидатов не ищем (слишком общее). */
+	protected const BLOCK_DF_MAX = 400;
+
+	protected const STOP_WORDS = [
+		'для', 'или', 'и', 'в', 'во', 'на', 'с', 'со', 'по', 'из', 'к', 'ко', 'от', 'до',
+		'под', 'над', 'при', 'про', 'а', 'же', 'каталог', 'раздел', 'категория', 'товары',
+		'серии', 'серия',
+	];
+
+	protected const COUNTRIES = [
+		'россия', 'рф', 'китай', 'кнр', 'германия', 'япония', 'италия', 'франция', 'сша', 'америка',
+		'корея', 'южная', 'венгрия', 'турция', 'индия', 'польша', 'тайвань', 'израиль', 'швейцария',
+		'великобритания', 'англия', 'чехия', 'австрия', 'испания', 'швеция', 'финляндия', 'дания',
+		'бельгия', 'нидерланды', 'голландия', 'беларусь', 'белоруссия', 'украина', 'казахстан',
+		'пакистан', 'бразилия', 'канада', 'австралия', 'сингапур', 'малайзия', 'таиланд', 'вьетнам',
+		'латвия', 'литва', 'эстония', 'словения', 'словакия', 'хорватия', 'сербия', 'португалия',
+		'норвегия', 'ирландия', 'греция', 'мексика', 'аргентина', 'иран', 'египет', 'оаэ',
+		'usa', 'china', 'germany', 'japan', 'italy', 'france', 'korea', 'russia', 'uk',
+	];
 
 	public static function ensureFields(): void
 	{
@@ -90,34 +130,54 @@ class SectionDuplicates
 			]);
 		}
 
-		$sections = self::loadSections($q);
+		$kind = (string) ($params['kind'] ?? 'all');
+		$sections = self::fetchAllSections();
 		$clusters = self::buildClusters($sections, $minScore);
 		$searchId = (ctype_digit($q) && $q !== '') ? (int) $q : 0;
+		$needle = ($q !== '' && $searchId === 0) ? mb_strtolower($q) : '';
 
+		$byKind = ['names' => 0, 'products' => 0, 'similar' => 0, 'homonym' => 0];
 		$filtered = [];
 		foreach ($clusters as $cluster) {
+			$group = self::kindGroup($cluster['kind']);
+			$st = self::clusterStatus($cluster);
+			$cluster['status'] = $st;
+			if ($st === 'open') {
+				$byKind[$group]++;
+			}
 			if ($searchId > 0 && !self::clusterHasId($cluster, $searchId)) {
 				continue;
 			}
-			$st = self::clusterStatus($cluster);
+			if ($needle !== '' && !self::clusterMatches($cluster, $needle)) {
+				continue;
+			}
+			if ($kind !== 'all' && $kind !== $group) {
+				continue;
+			}
 			if ($status === 'open' && $st !== 'open') {
 				continue;
 			}
 			if ($status === 'resolved' && $st !== 'resolved') {
 				continue;
 			}
-			$cluster['status'] = $st;
-			$cluster['items'] = self::annotateSimilarities($cluster['items']);
 			$filtered[] = $cluster;
 		}
 
-		if ($searchId > 0 && $filtered === [] && isset($sections[$searchId])) {
-			$item = $sections[$searchId];
+		if ($searchId > 0 && $filtered === [] && !empty($sections[$searchId]['active'])) {
+			$single = [$searchId => $sections[$searchId]];
+			self::enrichItems($single, $sections);
+			$item = $single[$searchId];
+			$item['sim_label'] = 'пар-дублей не найдено';
+			$item['reasons'] = [];
 			$filtered[] = [
-				'key' => $item['bucket'] !== '' ? $item['bucket'] : ('id:' . $searchId),
+				'key' => 'id:' . $searchId,
+				'title' => $item['name'],
 				'score' => 100,
-				'items' => self::annotateSimilarities([$item]),
+				'kind' => '',
+				'kind_label' => '',
+				'items' => [$item],
 				'size' => 1,
+				'empty_count' => $item['products'] === 0 ? 1 : 0,
 				'status' => 'open',
 				'single' => true,
 			];
@@ -134,7 +194,32 @@ class SectionDuplicates
 			'page' => $page,
 			'pages' => $pages,
 			'page_size' => $pageSize,
+			'open_by_kind' => $byKind,
 		];
+	}
+
+	protected static function kindGroup(string $kind): string
+	{
+		if ($kind === self::KIND_PRODUCTS) {
+			return 'products';
+		}
+		if ($kind === self::KIND_SIMILAR) {
+			return 'similar';
+		}
+		if ($kind === self::KIND_HOMONYM) {
+			return 'homonym';
+		}
+		return 'names';
+	}
+
+	protected static function clusterMatches(array $cluster, string $needle): bool
+	{
+		foreach ($cluster['items'] ?? [] as $item) {
+			if (mb_stripos((string) $item['name'], $needle) !== false || mb_stripos((string) $item['code'], $needle) !== false) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -246,106 +331,119 @@ class SectionDuplicates
 	}
 
 	/**
-	 * @param array<int, array> $items
-	 * @return array<int, array>
+	 * Разбор названия: смысловые слова (основы), бренды/модели, размеры/серии, страны.
+	 *
+	 * @return array{core:array<string,int>,brands:array<string,int>,variants:array<string,int>,countries:array<string,int>,full:string}
 	 */
-	protected static function annotateSimilarities(array $items): array
+	public static function parseName(string $name): array
 	{
-		if ($items === []) {
-			return $items;
-		}
-		$top = $items[0];
-		$topNorm = (string) ($top['norm'] ?? ProductDuplicates::normalize($top['name']));
-		foreach ($items as $i => &$item) {
-			$norm = (string) ($item['norm'] ?? ProductDuplicates::normalize($item['name']));
-			if ($i === 0) {
-				$item['sim_to_top'] = 100;
-				$item['sim_label'] = 'эталон кластера';
-			} else {
-				$score = ProductDuplicates::similarity($topNorm, $norm);
-				$item['sim_to_top'] = $score;
-				$item['sim_label'] = 'похож на #' . $top['id'] . ' на ' . $score . '%';
+		static $stop = null;
+		static $countries = null;
+		if ($stop === null) {
+			$stop = array_fill_keys(array_merge(self::STOP_WORDS, ['мм', 'см', 'мл', 'шт', 'кг', 'гр', 'мкм']), 1);
+			$countries = [];
+			foreach (self::COUNTRIES as $c) {
+				$countries[self::stem($c)] = 1;
+				$countries[$c] = 1;
 			}
 		}
-		unset($item);
-		return $items;
+
+		$s = mb_strtolower($name, 'UTF-8');
+		$s = str_replace('ё', 'е', $s);
+		$s = preg_replace('/[\x{00AD}\x{200B}-\x{200F}\x{2060}\x{FEFF}]/u', '', $s) ?? $s;
+		$s = preg_replace('/[\x{00A0}\x{2000}-\x{200A}]/u', ' ', $s) ?? $s;
+		$s = preg_replace('/(\d)\s*,\s*(\d)/u', '$1.$2', $s) ?? $s;
+		$s = preg_replace('/(\d)\s*([\/xх×*])\s*(\d)/u', '$1$2$3', $s) ?? $s;
+		$s = preg_replace('/[^\p{L}\p{N}\/.\-×*]+/u', ' ', $s) ?? $s;
+		$tokens = preg_split('/\s+/u', trim($s), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+		$core = $brands = $variants = $found = [];
+		foreach ($tokens as $t) {
+			$t = trim($t, '.-/*');
+			if ($t === '') {
+				continue;
+			}
+			$hasDigit = preg_match('/\d/u', $t) === 1;
+			if (!$hasDigit && mb_strlen($t) === 1) {
+				continue;
+			}
+			if (preg_match('/^\d+(?:[\/.xх×*]\d+)*$/u', $t)) {
+				$variants[$t] = 1;
+				continue;
+			}
+			if (isset($stop[$t])) {
+				continue;
+			}
+			$hasLatin = preg_match('/[a-z]/u', $t) === 1;
+			$hasCyr = preg_match('/[а-я]/u', $t) === 1;
+			$st = self::stem($t);
+			if (isset($countries[$t]) || isset($countries[$st])) {
+				$found[$st] = 1;
+				continue;
+			}
+			if ($hasDigit) {
+				if ($hasLatin) {
+					$brands[$t] = 1;
+				} else {
+					$variants[$t] = 1;
+				}
+				continue;
+			}
+			if ($hasLatin && !$hasCyr) {
+				if (strlen($t) <= 3) {
+					$variants[$t] = 1;
+				} else {
+					$brands[$t] = 1;
+				}
+				continue;
+			}
+			$core[$st] = 1;
+		}
+		ksort($core);
+		ksort($brands);
+		ksort($variants);
+		ksort($found);
+
+		return [
+			'core' => $core,
+			'brands' => $brands,
+			'variants' => $variants,
+			'countries' => $found,
+			'full' => implode(' ', array_keys($core)) . '|' . implode(' ', array_keys($brands))
+				. '|' . implode(' ', array_keys($variants)) . '|' . implode(' ', array_keys($found)),
+		];
 	}
 
-	/**
-	 * @return array<int, array>
-	 */
-	protected static function loadSections(string $q): array
+	protected static function stem(string $t): string
 	{
-		$q = trim($q);
-		if ($q !== '' && ctype_digit($q)) {
-			return self::loadAroundId((int) $q);
+		static $endings = [
+			'иями', 'ями', 'ами', 'ого', 'его', 'ому', 'ему', 'ыми', 'ими', 'ией', 'ых', 'их',
+			'ия', 'ие', 'ии', 'ий', 'ый', 'ой', 'ая', 'яя', 'ое', 'ее', 'ые', 'ов', 'ев', 'ей',
+			'ом', 'ем', 'ам', 'ям', 'ах', 'ях', 'ую', 'юю',
+			'ы', 'и', 'а', 'я', 'е', 'о', 'у', 'ю', 'ь', 'й',
+		];
+		if (preg_match('/[a-z0-9]/', $t)) {
+			return $t;
 		}
-		return self::fetchSections($q, true);
-	}
-
-	/**
-	 * @return array<int, array>
-	 */
-	protected static function loadAroundId(int $id): array
-	{
-		if ($id <= 0) {
-			return [];
+		$len = mb_strlen($t);
+		if ($len <= 4) {
+			return $t;
 		}
-		$seedMap = self::fetchSectionsByIds([$id], false);
-		if ($seedMap === []) {
-			return [];
-		}
-		$seed = $seedMap[$id];
-		$bucket = (string) ($seed['bucket'] ?? '');
-		$extra = self::fetchSections('', true);
-		$out = $seedMap;
-		foreach ($extra as $sid => $row) {
-			if ($bucket !== '' && $row['bucket'] === $bucket) {
-				$out[$sid] = $row;
-			} elseif (ProductDuplicates::similarity($seed['norm'], $row['norm']) >= self::SIMILARITY_MIN - 5) {
-				$out[$sid] = $row;
+		foreach ($endings as $e) {
+			$el = mb_strlen($e);
+			if ($len - $el >= 4 && mb_substr($t, -$el) === $e) {
+				return mb_substr($t, 0, $len - $el);
 			}
 		}
-		return $out;
+		return $t;
 	}
 
 	/**
-	 * @param int[] $ids
+	 * Все разделы каталога (неактивные — только для хлебных крошек).
+	 *
 	 * @return array<int, array>
 	 */
-	protected static function fetchSectionsByIds(array $ids, bool $activeOnly): array
-	{
-		$ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
-		if ($ids === []) {
-			return [];
-		}
-		return self::fetchSectionsSql('BS.ID IN (' . implode(',', $ids) . ')', $activeOnly);
-	}
-
-	/**
-	 * @return array<int, array>
-	 */
-	protected static function fetchSections(string $q, bool $activeOnly): array
-	{
-		global $DB;
-		$parts = [];
-		$q = trim($q);
-		if ($q !== '') {
-			if (ctype_digit($q)) {
-				$parts[] = 'BS.ID = ' . (int) $q;
-			} else {
-				$like = Config::forLike($q);
-				$parts[] = '(BS.NAME LIKE "%' . $like . '%" OR BS.CODE LIKE "%' . $like . '%")';
-			}
-		}
-		$whereExtra = $parts !== [] ? implode(' AND ', $parts) : '1=1';
-		return self::fetchSectionsSql($whereExtra, $activeOnly);
-	}
-
-	/**
-	 * @return array<int, array>
-	 */
-	protected static function fetchSectionsSql(string $whereExtra, bool $activeOnly): array
+	protected static function fetchAllSections(): array
 	{
 		global $DB;
 		$iblockId = Config::iblockId();
@@ -353,97 +451,460 @@ class SectionDuplicates
 			return [];
 		}
 		$uts = 'b_uts_iblock_' . (int) $iblockId . '_section';
-		$decisionCol = self::UF_DECISION;
-		$where = [
-			'BS.IBLOCK_ID = ' . (int) $iblockId,
-			$whereExtra,
-		];
-		if ($activeOnly) {
-			$where[] = "BS.ACTIVE = 'Y'";
-		}
-
 		$hasDecision = self::hasDecisionColumn();
-		$decisionSelect = $hasDecision ? ('UTS.' . $decisionCol . ' AS TITLO_DECISION') : 'NULL AS TITLO_DECISION';
-		$join = $hasDecision
-			? 'LEFT JOIN ' . $uts . ' UTS ON UTS.VALUE_ID = BS.ID'
-			: 'LEFT JOIN ' . $uts . ' UTS ON 1=0';
+		$decisionSelect = $hasDecision ? ('UTS.' . self::UF_DECISION . ' AS TITLO_DECISION') : 'NULL AS TITLO_DECISION';
+		$join = $hasDecision ? ('LEFT JOIN ' . $uts . ' UTS ON UTS.VALUE_ID = BS.ID') : '';
 
-		$sql = '
-			SELECT
-				BS.ID,
-				BS.NAME,
-				BS.CODE,
-				' . $decisionSelect . '
+		$res = $DB->Query('
+			SELECT BS.ID, BS.NAME, BS.CODE, BS.ACTIVE, BS.IBLOCK_SECTION_ID,
+				BS.LEFT_MARGIN, BS.RIGHT_MARGIN, BS.DEPTH_LEVEL, ' . $decisionSelect . '
 			FROM b_iblock_section BS
 			' . $join . '
-			WHERE ' . implode(' AND ', $where) . '
-			ORDER BY BS.ID DESC
-			LIMIT 5000
-		';
-
+			WHERE BS.IBLOCK_ID = ' . (int) $iblockId . '
+		');
 		$items = [];
-		$ids = [];
-		$res = $DB->Query($sql);
 		while ($row = $res->Fetch()) {
 			$id = (int) $row['ID'];
-			$ids[] = $id;
-			$name = (string) $row['NAME'];
-			$code = (string) $row['CODE'];
 			$decision = trim((string) ($row['TITLO_DECISION'] ?? ''));
 			if ($decision !== self::DECISION_KEEP && $decision !== self::DECISION_NOINDEX) {
 				$decision = '';
 			}
-			$norm = ProductDuplicates::normalize($name);
-			$bucket = self::bucketKey($norm);
 			$items[$id] = [
 				'id' => $id,
-				'name' => $name,
-				'code' => $code,
+				'name' => (string) $row['NAME'],
+				'code' => (string) $row['CODE'],
+				'active' => $row['ACTIVE'] === 'Y',
+				'parent' => (int) $row['IBLOCK_SECTION_ID'],
+				'left' => (int) $row['LEFT_MARGIN'],
+				'right' => (int) $row['RIGHT_MARGIN'],
+				'depth' => (int) $row['DEPTH_LEVEL'],
+				'decision' => $decision,
 				'url' => '',
 				'noindex' => false,
-				'decision' => $decision,
-				'norm' => $norm,
-				'bucket' => $bucket,
 			];
 		}
-
-		$urlMap = UrlBuilder::mapSectionUrls($ids);
-		foreach ($items as $id => &$item) {
-			$item['url'] = $urlMap[$id] ?? UrlBuilder::category($item['code'], $id);
-		}
-		unset($item);
-
-		$noindexMap = IndexingControl::mapSectionNoindex($ids);
-		foreach ($noindexMap as $id => $flag) {
-			if (isset($items[$id])) {
-				$items[$id]['noindex'] = (bool) $flag;
-			}
-		}
-
 		return $items;
 	}
 
-	protected static function bucketKey(string $norm): string
+	/**
+	 * Активные товары разделов (с подразделами), лениво.
+	 */
+	protected static function productSet(int $id, array $sections, array &$ctx): array
 	{
-		$tokens = preg_split('/\s+/u', $norm, -1, PREG_SPLIT_NO_EMPTY) ?: [];
-		$sig = [];
-		foreach ($tokens as $t) {
-			$t = trim($t, '-/');
-			if ($t === '' || mb_strlen($t) < 4) {
-				continue;
+		if (isset($ctx['psets'][$id])) {
+			return $ctx['psets'][$id];
+		}
+		if (!isset($ctx['direct'])) {
+			global $DB;
+			$iblockId = (int) Config::iblockId();
+			$direct = [];
+			$res = $DB->Query("
+				SELECT SE.IBLOCK_SECTION_ID AS S, SE.IBLOCK_ELEMENT_ID AS E
+				FROM b_iblock_section_element SE
+				INNER JOIN b_iblock_element BE ON BE.ID = SE.IBLOCK_ELEMENT_ID
+				WHERE BE.IBLOCK_ID = {$iblockId} AND BE.ACTIVE = 'Y'
+			");
+			while ($row = $res->Fetch()) {
+				$direct[(int) $row['S']][(int) $row['E']] = true;
 			}
-			if (in_array($t, ['для', 'или', 'без', 'каталог', 'раздел', 'категория', 'товары'], true)) {
-				continue;
+			$order = [];
+			foreach ($sections as $sid => $s) {
+				if ($s['active']) {
+					$order[] = $sid;
+				}
 			}
-			$sig[] = $t;
-			if (count($sig) >= 3) {
-				break;
+			usort($order, static function ($a, $b) use ($sections) {
+				return $sections[$a]['left'] <=> $sections[$b]['left'];
+			});
+			$ctx['direct'] = $direct;
+			$ctx['order'] = $order;
+			$ctx['pos'] = array_flip($order);
+		}
+		$set = [];
+		if (isset($ctx['pos'][$id])) {
+			$right = $sections[$id]['right'];
+			$n = count($ctx['order']);
+			for ($i = $ctx['pos'][$id]; $i < $n; $i++) {
+				$sid = $ctx['order'][$i];
+				if ($sections[$sid]['left'] > $right) {
+					break;
+				}
+				if (isset($ctx['direct'][$sid])) {
+					$set += $ctx['direct'][$sid];
+				}
 			}
 		}
-		if (count($sig) < 2) {
-			return $norm !== '' ? mb_substr($norm, 0, 40) : '';
+		return $ctx['psets'][$id] = $set;
+	}
+
+	protected static function sectionPath(int $id, array $sections): string
+	{
+		$parts = [];
+		$cur = (int) ($sections[$id]['parent'] ?? 0);
+		$guard = 0;
+		while ($cur > 0 && isset($sections[$cur]) && $guard++ < 12) {
+			array_unshift($parts, $sections[$cur]['name']);
+			$cur = $sections[$cur]['parent'];
 		}
-		return implode(' ', $sig);
+		return implode(' › ', $parts);
+	}
+
+	protected static function isNested(array $a, array $b): bool
+	{
+		return ($a['left'] < $b['left'] && $a['right'] > $b['right'])
+			|| ($b['left'] < $a['left'] && $b['right'] > $a['right']);
+	}
+
+	/**
+	 * @param array<string,int> $a
+	 * @param array<string,int> $b
+	 * @param array<string,float> $idf
+	 */
+	protected static function weightedJaccard(array $a, array $b, array $idf): int
+	{
+		$inter = 0.0;
+		$union = 0.0;
+		foreach ($a + $b as $t => $_) {
+			$w = $idf[$t] ?? 1.0;
+			$union += $w;
+			if (isset($a[$t], $b[$t])) {
+				$inter += $w;
+			}
+		}
+		return $union > 0 ? (int) round(100 * $inter / $union) : 0;
+	}
+
+	/**
+	 * @return array{score:int,kind:string,name_score:int,products:?int}|null
+	 */
+	protected static function evalPair(int $a, int $b, array $sections, int $minScore, array &$ctx): ?array
+	{
+		$pa = $ctx['parsed'][$a];
+		$pb = $ctx['parsed'][$b];
+		if ($pa['brands'] !== $pb['brands'] || $pa['variants'] !== $pb['variants']) {
+			return null;
+		}
+		if (self::isNested($sections[$a], $sections[$b])) {
+			return $pa['full'] === $pb['full']
+				? ['score' => 100, 'kind' => self::KIND_NESTED, 'name_score' => 100, 'products' => null]
+				: null;
+		}
+		if ($pa['core'] === [] && $pb['core'] === []) {
+			if ($pa['brands'] === [] || $pa['countries'] !== $pb['countries']) {
+				return null;
+			}
+			return ['score' => 100, 'kind' => self::KIND_EXACT, 'name_score' => 100, 'products' => null];
+		}
+		if ($pa['core'] === $pb['core']) {
+			if ($pa['countries'] !== $pb['countries'] && $pa['countries'] !== [] && $pb['countries'] !== []) {
+				return null;
+			}
+			$kind = $pa['countries'] === $pb['countries'] ? self::KIND_EXACT : self::KIND_COUNTRY;
+			$j = self::productJaccard($a, $b, $sections, $ctx);
+			if ($j !== null && $j < self::HOMONYM_PRODUCTS_MAX) {
+				$kind = self::KIND_HOMONYM;
+			}
+			return ['score' => 100, 'kind' => $kind, 'name_score' => 100, 'products' => $j];
+		}
+		$nameScore = self::weightedJaccard($pa['core'], $pb['core'], $ctx['idf']);
+		if ($nameScore >= $minScore) {
+			$j = self::productJaccard($a, $b, $sections, $ctx);
+			if ($j !== null && $j < self::SIMILAR_PRODUCTS_MIN) {
+				return null;
+			}
+			return ['score' => $nameScore, 'kind' => self::KIND_SIMILAR, 'name_score' => $nameScore, 'products' => $j];
+		}
+		if ($nameScore < self::PRODUCTS_NAME_MIN) {
+			return null;
+		}
+		$j = self::productJaccard($a, $b, $sections, $ctx);
+		if ($j !== null && $j >= self::PRODUCTS_JACCARD_MIN) {
+			return ['score' => $j, 'kind' => self::KIND_PRODUCTS, 'name_score' => $nameScore, 'products' => $j];
+		}
+		return null;
+	}
+
+	protected static function productJaccard(int $a, int $b, array $sections, array &$ctx): ?int
+	{
+		$sa = self::productSet($a, $sections, $ctx);
+		$sb = self::productSet($b, $sections, $ctx);
+		if ($sa === [] || $sb === []) {
+			return null;
+		}
+		$inter = count(array_intersect_key($sa, $sb));
+		$union = count($sa) + count($sb) - $inter;
+		return $union > 0 ? (int) round(100 * $inter / $union) : null;
+	}
+
+	protected static function kindRank(string $kind): int
+	{
+		return [
+			self::KIND_EXACT => 0,
+			self::KIND_NESTED => 0,
+			self::KIND_COUNTRY => 1,
+			self::KIND_PRODUCTS => 2,
+			self::KIND_SIMILAR => 3,
+			self::KIND_HOMONYM => 4,
+		][$kind] ?? 9;
+	}
+
+	protected static function kindLabel(string $kind): string
+	{
+		return [
+			self::KIND_EXACT => 'одинаковые названия',
+			self::KIND_NESTED => 'одноимённый вложенный раздел',
+			self::KIND_COUNTRY => 'отличие только в стране',
+			self::KIND_PRODUCTS => 'одни и те же товары',
+			self::KIND_SIMILAR => 'похожие названия',
+			self::KIND_HOMONYM => 'одно название — разные товары',
+		][$kind] ?? '';
+	}
+
+	protected static function reasonText(array $edge): string
+	{
+		switch ($edge['kind']) {
+			case self::KIND_EXACT:
+				return 'то же название';
+			case self::KIND_NESTED:
+				return 'то же название, вложен';
+			case self::KIND_COUNTRY:
+				return 'то же название, другая страна';
+			case self::KIND_HOMONYM:
+				return 'то же название, товары другие (общих ' . $edge['products'] . '%)';
+			case self::KIND_PRODUCTS:
+				return 'общих товаров ' . $edge['products'] . '%, слова ' . $edge['name_score'] . '%';
+			default:
+				return 'слова совпадают на ' . $edge['score'] . '%';
+		}
+	}
+
+	/**
+	 * @param array<int, array> $sections
+	 * @return array<int, array>
+	 */
+	protected static function buildClusters(array $sections, int $minScore): array
+	{
+		$ctx = ['parsed' => [], 'idf' => [], 'psets' => []];
+		$df = [];
+		$active = 0;
+		foreach ($sections as $id => $s) {
+			if (!$s['active']) {
+				continue;
+			}
+			$active++;
+			$p = self::parseName($s['name']);
+			$ctx['parsed'][$id] = $p;
+			foreach ($p['core'] as $t => $_) {
+				$df[$t] = ($df[$t] ?? 0) + 1;
+			}
+		}
+		foreach ($df as $t => $n) {
+			$ctx['idf'][$t] = log(1 + $active / $n);
+		}
+
+		// Кандидаты: одинаковый разбор названия + две самые редкие основы / бренд
+		$postings = [];
+		foreach ($ctx['parsed'] as $id => $p) {
+			$postings['f:' . $p['full']][] = $id;
+			$stems = array_keys($p['core']);
+			usort($stems, static function ($x, $y) use ($df) {
+				return ($df[$x] <=> $df[$y]) ?: strcmp($x, $y);
+			});
+			$taken = 0;
+			foreach ($stems as $t) {
+				if ($df[$t] > self::BLOCK_DF_MAX) {
+					break;
+				}
+				$postings['t:' . $t][] = $id;
+				if (++$taken >= 2) {
+					break;
+				}
+			}
+			if ($stems === []) {
+				foreach ($p['brands'] as $b => $_) {
+					$postings['b:' . $b][] = $id;
+				}
+			}
+		}
+
+		$parent = [];
+		$find = static function (int $x) use (&$parent): int {
+			while ($parent[$x] !== $x) {
+				$parent[$x] = $parent[$parent[$x]];
+				$x = $parent[$x];
+			}
+			return $x;
+		};
+		$edges = [];
+		$seen = [];
+		foreach ($postings as $ids) {
+			$n = count($ids);
+			if ($n < 2) {
+				continue;
+			}
+			for ($i = 0; $i < $n; $i++) {
+				for ($j = $i + 1; $j < $n; $j++) {
+					$a = min($ids[$i], $ids[$j]);
+					$b = max($ids[$i], $ids[$j]);
+					$k = $a . ':' . $b;
+					if (isset($seen[$k])) {
+						continue;
+					}
+					$seen[$k] = true;
+					$e = self::evalPair($a, $b, $sections, $minScore, $ctx);
+					if ($e === null) {
+						continue;
+					}
+					$e['a'] = $a;
+					$e['b'] = $b;
+					$edges[$e['kind'] === self::KIND_HOMONYM ? 1 : 0][] = $e;
+				}
+			}
+		}
+		unset($seen);
+
+		// Тёзки (разные товары) не склеиваем с копиями: иначе «закрыть остальных» закроет живой раздел
+		$groups = [];
+		$groupEdges = [];
+		foreach ($edges as $layer => $list) {
+			$parent = [];
+			foreach ($list as $e) {
+				$parent[$e['a']] = $parent[$e['a']] ?? $e['a'];
+				$parent[$e['b']] = $parent[$e['b']] ?? $e['b'];
+				$ra = $find($e['a']);
+				$rb = $find($e['b']);
+				if ($ra !== $rb) {
+					$parent[$ra] = $rb;
+				}
+			}
+			foreach (array_keys($parent) as $id) {
+				$groups[$layer . ':' . $find($id)][] = $id;
+			}
+			foreach ($list as $e) {
+				$groupEdges[$layer . ':' . $find($e['a'])][] = $e;
+			}
+		}
+
+		$clusterIds = [];
+		foreach ($groups as $ids) {
+			foreach ($ids as $id) {
+				$clusterIds[$id] = $sections[$id];
+			}
+		}
+		self::enrichItems($clusterIds, $sections, $ctx);
+
+		$clusters = [];
+		foreach ($groups as $root => $ids) {
+			$items = [];
+			foreach ($ids as $id) {
+				$items[] = $clusterIds[$id];
+			}
+			usort($items, static function ($x, $y) {
+				$kx = $x['decision'] === self::DECISION_KEEP ? 0 : 1;
+				$ky = $y['decision'] === self::DECISION_KEEP ? 0 : 1;
+				if ($kx !== $ky) {
+					return $kx <=> $ky;
+				}
+				$cx = ($x['noindex'] || $x['decision'] === self::DECISION_NOINDEX) ? 1 : 0;
+				$cy = ($y['noindex'] || $y['decision'] === self::DECISION_NOINDEX) ? 1 : 0;
+				return ($cx <=> $cy)
+					?: ($y['products'] <=> $x['products'])
+					?: ($x['depth'] <=> $y['depth'])
+					?: ($x['id'] <=> $y['id']);
+			});
+
+			$ref = $items[0]['id'];
+			$best = [];
+			$minEdge = 100;
+			$worstKind = self::KIND_EXACT;
+			foreach ($groupEdges[$root] ?? [] as $e) {
+				$minEdge = min($minEdge, $e['score']);
+				if (self::kindRank($e['kind']) > self::kindRank($worstKind)) {
+					$worstKind = $e['kind'];
+				}
+				foreach ([$e['a'], $e['b']] as $end) {
+					if (!isset($best[$end]) || $e['score'] > $best[$end]['score']) {
+						$best[$end] = $e;
+					}
+				}
+			}
+
+			$empty = 0;
+			foreach ($items as $i => &$item) {
+				if ($item['products'] === 0) {
+					$empty++;
+				}
+				$item['distinct'] = false;
+				if ($i === 0) {
+					$item['sim_to_top'] = 100;
+					$item['sim_label'] = 'эталон: ' . ($item['products'] > 0 ? 'больше всего товаров' : 'первый по структуре');
+					continue;
+				}
+				$edge = self::evalPair(min($ref, $item['id']), max($ref, $item['id']), $sections, $minScore, $ctx);
+				$item['distinct'] = $edge !== null && $edge['kind'] === self::KIND_HOMONYM && $worstKind !== self::KIND_HOMONYM;
+				if ($edge !== null) {
+					$item['sim_to_top'] = $edge['score'];
+					$item['sim_label'] = 'как #' . $ref . ': ' . self::reasonText($edge);
+				} else {
+					$e = $best[$item['id']];
+					$other = $e['a'] === $item['id'] ? $e['b'] : $e['a'];
+					$item['sim_to_top'] = $e['score'];
+					$item['sim_label'] = 'как #' . $other . ': ' . self::reasonText($e);
+				}
+				$j = self::productJaccard($ref, $item['id'], $sections, $ctx);
+				if ($j !== null && ($edge === null || $edge['kind'] !== self::KIND_PRODUCTS)) {
+					$item['sim_label'] .= '; общих товаров с эталоном ' . $j . '%';
+				}
+			}
+			unset($item);
+
+			$clusters[] = [
+				'key' => 'k' . $ref . '-' . $root,
+				'title' => $items[0]['name'],
+				'score' => $minEdge,
+				'kind' => $worstKind,
+				'kind_label' => self::kindLabel($worstKind),
+				'items' => $items,
+				'size' => count($items),
+				'empty_count' => $empty,
+			];
+		}
+
+		usort($clusters, static function ($x, $y) {
+			return (self::kindRank($x['kind']) <=> self::kindRank($y['kind']))
+				?: ($y['size'] <=> $x['size'])
+				?: ($y['score'] <=> $x['score'])
+				?: strcmp($x['key'], $y['key']);
+		});
+
+		return $clusters;
+	}
+
+	/**
+	 * URL, noindex, путь, число товаров.
+	 *
+	 * @param array<int, array> $items
+	 */
+	protected static function enrichItems(array &$items, array $sections, ?array &$ctx = null): void
+	{
+		if ($items === []) {
+			return;
+		}
+		if ($ctx === null) {
+			$ctx = ['psets' => []];
+		}
+		$ids = array_keys($items);
+		$urlMap = UrlBuilder::mapSectionUrls($ids);
+		$noindexMap = IndexingControl::mapSectionNoindex($ids);
+		foreach ($items as $id => &$item) {
+			$item['url'] = $urlMap[$id] ?? UrlBuilder::category($item['code'], $id);
+			$item['noindex'] = !empty($noindexMap[$id]);
+			$item['path'] = self::sectionPath($id, $sections);
+			$item['products'] = count(self::productSet($id, $sections, $ctx));
+			$item['sim_to_top'] = null;
+			$item['sim_label'] = '';
+		}
+		unset($item);
 	}
 
 	/**
@@ -474,77 +935,6 @@ class SectionDuplicates
 		$res = $DB->Query("SHOW COLUMNS FROM {$uts} LIKE '" . self::UF_DECISION . "'");
 		$cache = (bool) $res->Fetch();
 		return $cache;
-	}
-
-	/**
-	 * @param array<int, array> $sections
-	 * @return array<int, array{key:string,score:int,items:array,size:int}>
-	 */
-	protected static function buildClusters(array $sections, int $minScore): array
-	{
-		$buckets = [];
-		foreach ($sections as $p) {
-			$b = $p['bucket'];
-			if ($b === '') {
-				continue;
-			}
-			$buckets[$b][] = $p;
-		}
-
-		$clusters = [];
-		foreach ($buckets as $key => $group) {
-			if (count($group) < 2 || count($group) > 40) {
-				continue;
-			}
-			$used = [];
-			$n = count($group);
-			for ($i = 0; $i < $n; $i++) {
-				if (isset($used[$i])) {
-					continue;
-				}
-				$members = [$group[$i]];
-				$maxScore = 100;
-				$used[$i] = true;
-				for ($j = $i + 1; $j < $n; $j++) {
-					if (isset($used[$j])) {
-						continue;
-					}
-					$score = ProductDuplicates::similarity($group[$i]['norm'], $group[$j]['norm']);
-					if ($score >= $minScore) {
-						$members[] = $group[$j];
-						$used[$j] = true;
-						$maxScore = min($maxScore, $score);
-					}
-				}
-				if (count($members) < 2) {
-					continue;
-				}
-				// Линейки размеров / артикулов в разделах — не SEO-дубли
-				if (count($members) > 12) {
-					continue;
-				}
-				usort($members, static function ($a, $b) {
-					$as = ($a['noindex'] ? 2 : 0);
-					$bs = ($b['noindex'] ? 2 : 0);
-					if ($as !== $bs) {
-						return $as <=> $bs;
-					}
-					return $a['id'] <=> $b['id'];
-				});
-				$clusters[] = [
-					'key' => $key,
-					'score' => (int) $maxScore,
-					'items' => $members,
-					'size' => count($members),
-				];
-			}
-		}
-
-		usort($clusters, static function ($a, $b) {
-			return ($b['size'] <=> $a['size']) ?: ($b['score'] <=> $a['score']);
-		});
-
-		return $clusters;
 	}
 
 	/**

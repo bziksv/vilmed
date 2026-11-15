@@ -48,8 +48,24 @@ $q = (string) ($_GET['q'] ?? '');
 		<div class="titlo-howto__body">
 			<ul>
 				<li>
-					В каждом блоке — <strong>группа похожих категорий</strong>.
-					Первая строка (зелёный фон) — эталон; у остальных — «похож на #ID на N%».
+					В каждом блоке — <strong>группа дублей</strong>. Первая строка (зелёный фон) — эталон:
+					раздел с решением «прорабатывать», иначе с наибольшим числом товаров, иначе ближе к корню.
+					У остальных — почему они дубль (то же название / те же товары / похожие слова).
+				</li>
+				<li>
+					<strong>Типы:</strong>
+					«одинаковые названия» — то же название в другой ветке (часто пустые копии, 0 товаров);
+					«одни и те же товары» — разные названия, но товары совпадают ≥ 80%;
+					«похожие названия» — слова совпадают на порог % и выше;
+					«одно название — разные товары» — тёзки с разным наполнением: лучше переименовать, чем закрывать.
+				</li>
+				<li>
+					Не считаются дублями: разные бренды/модели, размеры и серии (0, 2/0, М 1,5),
+					разные страны («ИВЛ, Россия» / «ИВЛ, США»), фасет внутри раздела («X» → «X, Япония»).
+				</li>
+				<li>
+					Строка с пометкой <span class="badge badge-distinct">другие товары</span> — в группе по названию,
+					но наполнение другое; «Эталон + закрыть остальных» её не закрывает.
 				</li>
 				<li>
 					<strong>Прорабатывать</strong> — канон.
@@ -78,6 +94,15 @@ $q = (string) ($_GET['q'] ?? '');
 				<option value="keep" <?= $status === 'keep' ? 'selected' : '' ?>>Отмеченные: прорабатывать</option>
 				<option value="noindex" <?= $status === 'noindex' ? 'selected' : '' ?>>Отмеченные: noindex</option>
 				<option value="decided" <?= $status === 'decided' ? 'selected' : '' ?>>Все с решением</option>
+			</select>
+		</label>
+		<label>Тип:
+			<select id="titlo-sdup-kind">
+				<option value="all">все</option>
+				<option value="names">одинаковые названия</option>
+				<option value="products">одни и те же товары</option>
+				<option value="similar">похожие названия</option>
+				<option value="homonym">одно название — разные товары</option>
 			</select>
 		</label>
 		<input type="text" id="titlo-sdup-q" class="adm-input" placeholder="ID / название / код" value="<?= htmlspecialcharsbx($q) ?>" style="width:260px">
@@ -132,6 +157,12 @@ $q = (string) ($_GET['q'] ?? '');
 		return '<span class="badge badge-none">не решено</span>';
 	}
 
+	function productsBadge(item) {
+		if (typeof item.products !== 'number') return '';
+		if (item.products === 0) return '<span class="badge badge-empty">пустой</span>';
+		return '<span class="badge badge-products">товаров: ' + item.products + '</span>';
+	}
+
 	function actBtn(html, tip) {
 		return '<span class="titlo-act">' + html +
 			'<span class="titlo-act__tip">' + escapeHtml(tip) + '</span></span> ';
@@ -150,7 +181,9 @@ $q = (string) ($_GET['q'] ?? '');
 			);
 		return '<tr data-id="' + item.id + '"' + (isTop ? ' class="is-top"' : '') + '>' +
 			'<td><a href="/bitrix/admin/iblock_section_edit.php?IBLOCK_ID=' + iblockId + '&type=catalog&ID=' + item.id + '&lang=<?= LANGUAGE_ID ?>" target="_blank">' + item.id + '</a></td>' +
-			'<td><div>' + escapeHtml(item.name) + decisionBadge(item) + '</div>' +
+			'<td><div>' + escapeHtml(item.name) + decisionBadge(item) + productsBadge(item) +
+			(item.distinct ? '<span class="badge badge-distinct">другие товары</span>' : '') + '</div>' +
+			(item.path ? '<div class="sdup-path">' + escapeHtml(item.path) + '</div>' : '') +
 			(item.sim_label ? '<div class="sim">' + escapeHtml(item.sim_label) + '</div>' : '') +
 			'<div class="name-len"><a href="' + safeHref(item.url) + '" target="_blank" rel="noopener">на сайте</a></div></td>' +
 			'<td class="row-actions">' +
@@ -194,8 +227,9 @@ $q = (string) ($_GET['q'] ?? '');
 		var status = document.getElementById('titlo-sdup-status').value;
 		var q = document.getElementById('titlo-sdup-q').value;
 		var minScore = document.getElementById('titlo-sdup-score').value;
+		var kind = document.getElementById('titlo-sdup-kind').value;
 		document.getElementById('titlo-sdup-list-status').textContent = 'Загрузка…';
-		post('list_section_duplicates', {status: status, q: q, page: page, page_size: 15, min_score: minScore}).then(function (res) {
+		post('list_section_duplicates', {status: status, kind: kind, q: q, page: page, page_size: 15, min_score: minScore}).then(function (res) {
 			var body = document.getElementById('titlo-sdup-body');
 			var hint = document.getElementById('titlo-sdup-hint');
 			if (!res.ok) {
@@ -219,7 +253,10 @@ $q = (string) ($_GET['q'] ?? '');
 				return;
 			}
 
-			document.getElementById('titlo-sdup-list-status').textContent = 'Групп: ' + res.total;
+			var bk = res.open_by_kind || {};
+			document.getElementById('titlo-sdup-list-status').textContent = 'Групп: ' + res.total +
+				' (открытых: по названию ' + (bk.names || 0) + ', по товарам ' + (bk.products || 0) +
+				', похожих ' + (bk.similar || 0) + ', тёзок ' + (bk.homonym || 0) + ')';
 			if (!res.clusters || !res.clusters.length) {
 				body.innerHTML = '<p>Ничего не найдено. Проверьте ID, поиск по названию, фильтр «Отмеченные: прорабатывать» или понизьте порог %.</p>';
 				document.getElementById('titlo-sdup-pager').innerHTML = '';
@@ -235,7 +272,9 @@ $q = (string) ($_GET['q'] ?? '');
 				}
 				var ids = (cl.items || []).map(function (it) { return it.id; });
 				var keepId = ids.length ? ids[0] : 0;
-				var bulkBtn = (cl.size >= 2)
+				var closeIds = (cl.items || []).filter(function (it, i) { return i === 0 || !it.distinct; })
+					.map(function (it) { return it.id; });
+				var bulkBtn = (cl.size >= 2 && cl.kind !== 'homonym')
 					? ('<span class="titlo-act">' +
 						'<input type="button" class="adm-btn titlo-sdup-cluster-noindex" value="Эталон + закрыть остальных">' +
 						'<span class="titlo-act__tip">Первую категорию (зелёная) — «прорабатывать», все остальные в группе — закрыть от индексации.</span>' +
@@ -248,13 +287,14 @@ $q = (string) ($_GET['q'] ?? '');
 				var rows = cl.items.map(function (item, i) {
 					return renderRow(item, i === 0);
 				}).join('');
-				return '<div class="cluster" data-key="' + escapeHtml(cl.key) + '" data-keep-id="' + keepId + '" data-ids="' + escapeHtml(ids.join(',')) + '">' +
+				return '<div class="cluster" data-key="' + escapeHtml(cl.key) + '" data-keep-id="' + keepId + '" data-ids="' + escapeHtml(ids.join(',')) + '" data-close-ids="' + escapeHtml(closeIds.join(',')) + '">' +
 					'<div class="cluster-h">' +
 					'<span>Группа ' + (idx + 1 + (res.page - 1) * res.page_size) + '</span>' +
-					(cl.size >= 2 ? '<span class="score">между собой ≥ ' + cl.score + '%</span>' : '') +
-					'<span>' + cl.size + ' категории</span>' +
+					(cl.kind_label ? '<span class="badge badge-kind">' + escapeHtml(cl.kind_label) + '</span>' : '') +
+					(cl.size >= 2 && cl.score < 100 ? '<span class="score">совпадение ≥ ' + cl.score + '%</span>' : '') +
+					'<span>' + cl.size + ' категори' + (cl.size >= 5 ? 'й' : 'и') + '</span>' +
+					(cl.empty_count ? '<span class="name-len">пустых: ' + cl.empty_count + '</span>' : '') +
 					'<span class="' + stClass + '">' + stLabel + '</span>' +
-					'<span class="name-len">стык по: ' + escapeHtml(cl.key) + '</span>' +
 					bulkBtn +
 					'</div>' +
 					'<table><thead><tr><th style="width:80px">ID</th><th>Название / насколько похож на эталон</th><th style="width:400px">Решение</th></tr></thead><tbody>' +
@@ -270,13 +310,16 @@ $q = (string) ($_GET['q'] ?? '');
 			var cluster = btn.closest('.cluster');
 			if (!cluster) return;
 			var keepId = cluster.getAttribute('data-keep-id');
-			var ids = cluster.getAttribute('data-ids') || '';
-			var idList = ids.split(',').filter(function (x) { return !!x; });
 			var closeAll = btn.classList.contains('titlo-sdup-cluster-noindex-all');
+			var allIds = cluster.getAttribute('data-ids') || '';
+			var ids = closeAll ? allIds : (cluster.getAttribute('data-close-ids') || allIds);
+			var idList = ids.split(',').filter(function (x) { return !!x; });
+			var skipped = allIds.split(',').filter(function (x) { return !!x; }).length - idList.length;
 			var others = idList.filter(function (x) { return x !== String(keepId); }).length;
 			var confirmMsg = closeAll
 				? ('Закрыть от индексации ВЕСЬ блок (' + idList.length + ' категорий), включая эталон #' + keepId + '?')
-				: ('Эталон #' + keepId + ' — прорабатывать.\nОстальные (' + others + ') — закрыть от индексации?');
+				: ('Эталон #' + keepId + ' — прорабатывать.\nОстальные (' + others + ') — закрыть от индексации?' +
+					(skipped > 0 ? '\nС другими товарами (' + skipped + ') — не трогаем.' : ''));
 			if (!confirm(confirmMsg)) {
 				return;
 			}
@@ -340,6 +383,7 @@ $q = (string) ($_GET['q'] ?? '');
 
 	document.getElementById('titlo-sdup-reload').onclick = function () { page = 1; load(); };
 	document.getElementById('titlo-sdup-status').addEventListener('change', function () { page = 1; load(); });
+	document.getElementById('titlo-sdup-kind').addEventListener('change', function () { page = 1; load(); });
 	document.getElementById('titlo-sdup-q').addEventListener('keydown', function (e) {
 		if (e.key === 'Enter') { page = 1; load(); }
 	});
