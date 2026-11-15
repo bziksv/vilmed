@@ -901,6 +901,10 @@ try {
 			]);
 			titlo_json(array_merge(['ok' => true], $list));
 
+		case 'section_dup_probe_reset':
+			\Titlo\Relevance\UrlProbe::clearCache();
+			titlo_json(['ok' => true]);
+
 		case 'section_dup_decision':
 			$id = (int) ($_POST['entity_id'] ?? 0);
 			$decision = trim((string) ($_POST['decision'] ?? ''));

@@ -38,6 +38,8 @@ class SectionDuplicates
 
 	/** @var array<int, string> */
 	protected static $redirects = [];
+	/** @var array{checked:int,pending:int,blocked:int,excluded:int} */
+	protected static $probeStats = ['checked' => 0, 'pending' => 0, 'blocked' => 0, 'excluded' => 0];
 
 	protected const STOP_WORDS = [
 		'для', 'или', 'и', 'в', 'во', 'на', 'с', 'со', 'по', 'из', 'к', 'ко', 'от', 'до',
@@ -171,7 +173,7 @@ class SectionDuplicates
 			self::enrichItems($single, $sections);
 			$item = $single[$searchId];
 			$item['sim_label'] = isset(self::$redirects[$searchId])
-				? ('301-редирект → ' . self::$redirects[$searchId] . ' (в дублях не участвует)')
+				? ('не отдельная страница: ' . self::$redirects[$searchId] . ' (в дублях не участвует)')
 				: 'пар-дублей не найдено';
 			$item['reasons'] = [];
 			$filtered[] = [
@@ -201,6 +203,7 @@ class SectionDuplicates
 			'page_size' => $pageSize,
 			'open_by_kind' => $byKind,
 			'redirect_hidden' => count(self::$redirects),
+			'probe' => self::$probeStats,
 		];
 	}
 
@@ -703,9 +706,66 @@ class SectionDuplicates
 	 */
 	protected static function buildClusters(array $sections, int $minScore): array
 	{
+		$excluded = self::redirectedSections($sections);
+		$clusters = self::clusterize($sections, $minScore, $excluded);
+		self::$probeStats = ['checked' => 0, 'pending' => 0, 'blocked' => 0, 'excluded' => 0];
+
+		if (UrlProbe::enabled() && $clusters !== []) {
+			$paths = [];
+			foreach ($clusters as $cl) {
+				foreach ($cl['items'] as $it) {
+					$path = (string) (parse_url((string) $it['url'], PHP_URL_PATH) ?? '');
+					if ($path !== '') {
+						$paths[(int) $it['id']] = $path;
+					}
+				}
+			}
+			$probe = UrlProbe::check($paths);
+			$extra = [];
+			foreach ($probe as $id => $r) {
+				if ($r['type'] === UrlProbe::TYPE_PENDING) {
+					self::$probeStats['pending']++;
+					continue;
+				}
+				self::$probeStats['checked']++;
+				if ($r['type'] === UrlProbe::TYPE_BLOCKED) {
+					self::$probeStats['blocked']++;
+				}
+				if ($r['type'] === UrlProbe::TYPE_REDIRECT || $r['type'] === UrlProbe::TYPE_CANONICAL) {
+					$extra[(int) $id] = ($r['type'] === UrlProbe::TYPE_CANONICAL ? 'canonical → ' : $r['code'] . ' → ') . $r['target'];
+				}
+			}
+			self::$probeStats['excluded'] = count($extra);
+			if ($extra !== []) {
+				$excluded += $extra;
+				$clusters = self::clusterize($sections, $minScore, $excluded);
+			}
+			foreach ($clusters as &$cl) {
+				foreach ($cl['items'] as &$it) {
+					$r = $probe[(int) $it['id']] ?? null;
+					if ($r !== null && in_array($r['type'], [UrlProbe::TYPE_ERROR, UrlProbe::TYPE_BLOCKED], true)) {
+						$it['url_note'] = $r['type'] === UrlProbe::TYPE_ERROR
+							? ('страница отвечает HTTP ' . ($r['code'] ?: 'timeout'))
+							: 'проверка URL заблокирована антиботом';
+					}
+				}
+				unset($it);
+			}
+			unset($cl);
+		}
+		self::$redirects = $excluded;
+		return $clusters;
+	}
+
+	/**
+	 * @param array<int, array> $sections
+	 * @param array<int, string> $excluded id => куда уходит
+	 * @return array<int, array>
+	 */
+	protected static function clusterize(array $sections, int $minScore, array $excluded): array
+	{
 		$ctx = ['parsed' => [], 'idf' => [], 'psets' => []];
-		$redirects = self::redirectedSections($sections);
-		self::$redirects = $redirects;
+		$redirects = $excluded;
 		$df = [];
 		$active = 0;
 		foreach ($sections as $id => $s) {
@@ -922,7 +982,7 @@ class SectionDuplicates
 			}
 			$to = RedirectMap::target($path);
 			if ($to !== null && RedirectMap::normalizePath($to) !== RedirectMap::normalizePath($path)) {
-				$out[$id] = $to;
+				$out[$id] = '301 → ' . $to;
 			}
 		}
 		return $out;

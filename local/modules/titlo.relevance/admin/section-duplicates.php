@@ -60,8 +60,10 @@ $q = (string) ($_GET['q'] ?? '');
 					«одно название — разные товары» — тёзки с разным наполнением: лучше переименовать, чем закрывать.
 				</li>
 				<li>
-					Разделы с 301-редиректом из <code>.htaccess</code> (<code>Redirect 301</code>, правило <code>…-r/ → …</code>)
-					в дубли не попадают — это не отдельные страницы.
+					Разделы, которые не являются отдельной страницей, в дубли не попадают:
+					редирект в <code>.htaccess</code> (<code>Redirect</code>, <code>RedirectMatch</code>, <code>RewriteRule [R]</code>)
+					и фактический HTTP-ответ страницы — 3xx (nginx, Apache, PHP, SEO-модули) или canonical на другой URL.
+					HTTP-проверка кешируется на 7 дней; «Перепроверить URL» — сбросить кеш.
 					Не считаются дублями: разные бренды/модели, размеры и серии (0, 2/0, М 1,5),
 					разные страны («ИВЛ, Россия» / «ИВЛ, США»), фасет внутри раздела («X» → «X, Япония»).
 				</li>
@@ -112,6 +114,8 @@ $q = (string) ($_GET['q'] ?? '');
 			<input type="number" id="titlo-sdup-score" class="adm-input" value="<?= (int) SectionDuplicates::SIMILARITY_MIN ?>" min="50" max="99" style="width:70px">
 		</label>
 		<input type="button" id="titlo-sdup-reload" class="adm-btn" value="Показать">
+		<input type="button" id="titlo-sdup-probe-reset" class="adm-btn" value="Перепроверить URL" title="Сбросить кеш HTTP-проверки (редиректы, canonical) и проверить заново">
+
 		<span id="titlo-sdup-list-status"></span>
 	</div>
 
@@ -159,6 +163,23 @@ $q = (string) ($_GET['q'] ?? '');
 		return '<span class="badge badge-none">не решено</span>';
 	}
 
+	var probeRetries = 0;
+	function probeText(p) {
+		if (!p) return '';
+		var s = '';
+		if (p.pending) s += '; проверяю URL по HTTP, осталось ' + p.pending + '…';
+		if (p.blocked) s += '; антибот отдал заглушку на ' + p.blocked + ' URL — задайте cookie в настройках модуля';
+		return s;
+	}
+	function scheduleProbeReload(p) {
+		if (p && p.pending && probeRetries < 30) {
+			probeRetries++;
+			setTimeout(function () { load({ keepHint: true }); }, 500);
+		} else {
+			probeRetries = 0;
+		}
+	}
+
 	function productsBadge(item) {
 		if (typeof item.products !== 'number') return '';
 		if (item.products === 0) return '<span class="badge badge-empty">пустой</span>';
@@ -187,6 +208,7 @@ $q = (string) ($_GET['q'] ?? '');
 			(item.distinct ? '<span class="badge badge-distinct">другие товары</span>' : '') + '</div>' +
 			(item.path ? '<div class="sdup-path">' + escapeHtml(item.path) + '</div>' : '') +
 			(item.sim_label ? '<div class="sim">' + escapeHtml(item.sim_label) + '</div>' : '') +
+			(item.url_note ? '<div class="sim" style="color:#b45309">' + escapeHtml(item.url_note) + '</div>' : '') +
 			'<div class="name-len"><a href="' + safeHref(item.url) + '" target="_blank" rel="noopener">на сайте</a></div></td>' +
 			'<td class="row-actions">' +
 			actBtn(
@@ -259,7 +281,9 @@ $q = (string) ($_GET['q'] ?? '');
 			document.getElementById('titlo-sdup-list-status').textContent = 'Групп: ' + res.total +
 				' (открытых: по названию ' + (bk.names || 0) + ', по товарам ' + (bk.products || 0) +
 				', похожих ' + (bk.similar || 0) + ', тёзок ' + (bk.homonym || 0) + ')' +
-				(res.redirect_hidden ? '; скрыто разделов с 301-редиректом: ' + res.redirect_hidden : '');
+				(res.redirect_hidden ? '; скрыто — редирект/canonical на другую страницу: ' + res.redirect_hidden : '') +
+				probeText(res.probe);
+			scheduleProbeReload(res.probe);
 			if (!res.clusters || !res.clusters.length) {
 				body.innerHTML = '<p>Ничего не найдено. Проверьте ID, поиск по названию, фильтр «Отмеченные: прорабатывать» или понизьте порог %.</p>';
 				document.getElementById('titlo-sdup-pager').innerHTML = '';
@@ -385,6 +409,15 @@ $q = (string) ($_GET['q'] ?? '');
 	});
 
 	document.getElementById('titlo-sdup-reload').onclick = function () { page = 1; load(); };
+	document.getElementById('titlo-sdup-probe-reset').onclick = function () {
+		var b = this;
+		b.disabled = true;
+		post('section_dup_probe_reset', {}).then(function () {
+			b.disabled = false;
+			page = 1;
+			load();
+		});
+	};
 	document.getElementById('titlo-sdup-status').addEventListener('change', function () { page = 1; load(); });
 	document.getElementById('titlo-sdup-kind').addEventListener('change', function () { page = 1; load(); });
 	document.getElementById('titlo-sdup-q').addEventListener('keydown', function (e) {

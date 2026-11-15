@@ -69,6 +69,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_bitrix_sessid()) {
 		Option::set($moduleId, 'section_url_tpl', trim((string) ($_POST['section_url_tpl'] ?? '')));
 		Option::set($moduleId, 'noindex_property', trim((string) ($_POST['noindex_property'] ?? '')));
 		Option::set($moduleId, 'noindex_use_seo', !empty($_POST['noindex_use_seo']) ? 'Y' : 'N');
+		Option::set($moduleId, 'url_probe', !empty($_POST['url_probe']) ? 'Y' : 'N');
+		Option::set($moduleId, 'url_probe_cookie', trim((string) ($_POST['url_probe_cookie'] ?? '')));
+		Option::set($moduleId, 'url_probe_ua', trim((string) ($_POST['url_probe_ua'] ?? '')));
 		$pickTextField = static function (string $selectKey, string $customKey, string $fallback): string {
 			$custom = trim((string) ($_POST[$customKey] ?? ''));
 			if ($custom !== '') {
@@ -278,6 +281,33 @@ $tabControl->Begin();
 				<input type="checkbox" name="noindex_use_seo" value="Y"<?= $get('noindex_use_seo', 'Y') !== 'N' ? ' checked' : '' ?>>
 				<?= Loc::getMessage('TITLO_RELEVANCE_OPT_NOINDEX_SEO_LABEL') ?>
 			</label>
+		</td>
+	</tr>
+	<tr>
+		<td>Дубли: проверять URL по HTTP</td>
+		<td>
+			<label>
+				<input type="checkbox" name="url_probe" value="Y"<?= $get('url_probe', 'Y') !== 'N' ? ' checked' : '' ?>>
+				Запрашивать страницы разделов из групп дублей (без перехода по редиректу): 3xx и canonical на другой URL
+				исключают раздел из дублей. Кеш 7 дней.
+			</label>
+		</td>
+	</tr>
+	<tr>
+		<td>Cookie для проверки URL</td>
+		<td>
+			<input type="text" name="url_probe_cookie" value="<?= htmlspecialcharsbx($get('url_probe_cookie', '')) ?>" size="60"
+				placeholder="name=value; name2=value2">
+			<div class="adm-info-message" style="display:block;margin-top:6px;">
+				Если на сайте антибот/заглушка — cookie, с которой он пропускает (иначе проверка увидит заглушку вместо редиректа).
+			</div>
+		</td>
+	</tr>
+	<tr>
+		<td>User-Agent для проверки URL</td>
+		<td>
+			<input type="text" name="url_probe_ua" value="<?= htmlspecialcharsbx($get('url_probe_ua', '')) ?>" size="60"
+				placeholder="пусто = обычный Chrome">
 		</td>
 	</tr>
 	<?php

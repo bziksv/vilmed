@@ -3,12 +3,12 @@
 namespace Titlo\Relevance;
 
 /**
- * 301-редиректы из корневого .htaccess: Redirect / RedirectPermanent
- * и безусловные RewriteRule с флагом R (например «^(.*)\-r\/$ → /$1»).
+ * Быстрый предфильтр без HTTP: редиректы из корневого .htaccess — Redirect / RedirectPermanent /
+ * RedirectMatch и безусловные RewriteRule с флагом R. Остальное (nginx, PHP, условия) ловит UrlProbe.
  */
 class RedirectMap
 {
-	/** @var array{alias:array<string,string>,rules:array<int,array{0:string,1:string}>}|null */
+	/** @var array{alias:array<string,string>,rules:array<int,array>}|null */
 	protected static $parsed = null;
 
 	public static function target(string $path): ?string
@@ -18,8 +18,9 @@ class RedirectMap
 		if (isset($p['alias'][$path])) {
 			return $p['alias'][$path];
 		}
-		$subject = ltrim($path, '/');
-		foreach ($p['rules'] as [$regex, $sub]) {
+		foreach ($p['rules'] as $rule) {
+			[$regex, $sub] = $rule;
+			$subject = !empty($rule[2]) ? $path : ltrim($path, '/');
 			if (@preg_match($regex, $subject, $m) === 1) {
 				return preg_replace_callback('/\$(\d)/', static function ($x) use ($m) {
 					return $m[(int) $x[1]] ?? '';
@@ -56,6 +57,16 @@ class RedirectMap
 			$dir = strtolower($parts[0] ?? '');
 			if ($dir === 'rewritecond') {
 				$hasConds = true;
+				continue;
+			}
+			if ($dir === 'redirectmatch') {
+				$args = array_slice($parts, 1);
+				if (isset($args[0]) && preg_match('/^(30[1-8]|permanent|temp)$/i', $args[0])) {
+					array_shift($args);
+				}
+				if (isset($args[0], $args[1])) {
+					$out['rules'][] = ['~' . str_replace('~', '\~', $args[0]) . '~', $args[1], true];
+				}
 				continue;
 			}
 			if ($dir === 'redirect' || $dir === 'redirectpermanent') {
