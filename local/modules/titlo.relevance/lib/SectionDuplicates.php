@@ -138,8 +138,23 @@ class SectionDuplicates
 		}
 
 		$kind = (string) ($params['kind'] ?? 'all');
-		$sections = self::fetchAllSections();
-		$clusters = self::buildClusters($sections, $minScore);
+		$cache = DupCache::load('S', $minScore);
+		if ($cache === null) {
+			return [
+				'mode' => 'clusters',
+				'need_build' => true,
+				'clusters' => [],
+				'total' => 0,
+				'page' => 1,
+				'pages' => 1,
+				'page_size' => $pageSize,
+				'build' => DupCache::progress('S'),
+			];
+		}
+		$clusters = $cache['clusters'] ?? [];
+		self::$redirects = $cache['redirects'] ?? [];
+		self::$probeStats = $cache['probe'] ?? [];
+		self::refreshLive($clusters);
 		$searchId = (ctype_digit($q) && $q !== '') ? (int) $q : 0;
 		$needle = ($q !== '' && $searchId === 0) ? mb_strtolower($q) : '';
 
@@ -177,6 +192,7 @@ class SectionDuplicates
 			$filtered[] = $cluster;
 		}
 
+		$sections = ($searchId > 0 && $filtered === []) ? self::fetchAllSections() : [];
 		if ($searchId > 0 && $filtered === [] && !empty($sections[$searchId]['active'])) {
 			$single = [$searchId => $sections[$searchId]];
 			self::enrichItems($single, $sections);
@@ -202,6 +218,9 @@ class SectionDuplicates
 		$total = count($filtered);
 		$pages = max(1, (int) ceil($total / $pageSize));
 		$slice = array_slice($filtered, ($page - 1) * $pageSize, $pageSize);
+		if (self::h1Source() !== ($cache['h1_source'] ?? '')) {
+			self::refreshH1($slice);
+		}
 
 		return [
 			'mode' => 'clusters',
@@ -213,7 +232,90 @@ class SectionDuplicates
 			'open_by_kind' => $byKind,
 			'redirect_hidden' => count(self::$redirects),
 			'probe' => self::$probeStats,
+			'cache' => [
+				'built_at' => (int) ($cache['built_at'] ?? 0),
+				'running' => DupCache::isRunning('S'),
+			],
 		];
+	}
+
+	/**
+	 * Полный расчёт групп для кеша (фоновый пересчёт).
+	 *
+	 * @param callable(int,string,string):void $report
+	 */
+	public static function buildCache(int $minScore, callable $report): array
+	{
+		self::ensureFields();
+		$report(3, 'fetch', 'Загружаю разделы каталога…');
+		$sections = self::fetchAllSections();
+		$report(8, 'fetch', 'Загружено разделов: ' . count($sections));
+		$clusters = self::buildClusters($sections, $minScore, $report);
+		return [
+			'clusters' => $clusters,
+			'redirects' => self::$redirects,
+			'probe' => self::$probeStats,
+			'h1_source' => self::h1Source(),
+		];
+	}
+
+	/**
+	 * Решения и noindex меняются кнопками — берём из БД, а не из кеша.
+	 */
+	protected static function refreshLive(array &$clusters): void
+	{
+		global $DB;
+		$ids = [];
+		foreach ($clusters as $cl) {
+			foreach ($cl['items'] as $it) {
+				$ids[(int) $it['id']] = true;
+			}
+		}
+		if ($ids === []) {
+			return;
+		}
+		$ids = array_keys($ids);
+		$noindex = IndexingControl::mapSectionNoindex($ids);
+		$decisions = [];
+		if (self::hasDecisionColumn()) {
+			$uts = 'b_uts_iblock_' . (int) Config::iblockId() . '_section';
+			foreach (array_chunk($ids, 1000) as $chunk) {
+				$res = $DB->Query('SELECT VALUE_ID, ' . self::UF_DECISION . ' AS D FROM ' . $uts . ' WHERE VALUE_ID IN (' . implode(',', $chunk) . ')');
+				while ($row = $res->Fetch()) {
+					$d = trim((string) $row['D']);
+					if ($d === self::DECISION_KEEP || $d === self::DECISION_NOINDEX) {
+						$decisions[(int) $row['VALUE_ID']] = $d;
+					}
+				}
+			}
+		}
+		foreach ($clusters as &$cl) {
+			foreach ($cl['items'] as &$it) {
+				$id = (int) $it['id'];
+				$it['decision'] = $decisions[$id] ?? '';
+				$it['noindex'] = !empty($noindex[$id]);
+			}
+			unset($it);
+		}
+		unset($cl);
+	}
+
+	protected static function refreshH1(array &$clusters): void
+	{
+		$items = [];
+		foreach ($clusters as $cl) {
+			foreach ($cl['items'] as $it) {
+				$items[(int) $it['id']] = $it;
+			}
+		}
+		$h1 = self::mapH1(array_keys($items), $items);
+		foreach ($clusters as &$cl) {
+			foreach ($cl['items'] as &$it) {
+				$it['h1'] = $h1[(int) $it['id']] ?? '';
+			}
+			unset($it);
+		}
+		unset($cl);
 	}
 
 	protected static function kindGroup(string $kind): string
@@ -791,9 +893,13 @@ class SectionDuplicates
 	 * @param array<int, array> $sections
 	 * @return array<int, array>
 	 */
-	protected static function buildClusters(array $sections, int $minScore): array
+	protected static function buildClusters(array $sections, int $minScore, ?callable $report = null): array
 	{
+		$report = $report ?? static function () {
+		};
+		$report(10, 'urls', 'URL разделов и 301-редиректы…');
 		$excluded = self::redirectedSections($sections);
+		$report(18, 'cluster', 'Ищу пары и группы (сравниваю товары разделов)…');
 		$clusters = self::clusterize($sections, $minScore, $excluded);
 		self::$probeStats = ['checked' => 0, 'pending' => 0, 'blocked' => 0, 'excluded' => 0];
 
@@ -807,7 +913,10 @@ class SectionDuplicates
 					}
 				}
 			}
-			$probe = UrlProbe::check($paths);
+			$report(50, 'probe', 'Проверяю страницы на сайте (' . count($paths) . ')…');
+			$probe = UrlProbe::check($paths, 90.0, static function ($done, $total) use ($report) {
+				$report(50 + (int) (35 * $done / max(1, $total)), 'probe', 'Проверяю страницы на сайте: ' . $done . ' / ' . $total);
+			});
 			$extra = [];
 			foreach ($probe as $id => $r) {
 				if ($r['type'] === UrlProbe::TYPE_PENDING) {
@@ -825,6 +934,7 @@ class SectionDuplicates
 			self::$probeStats['excluded'] = count($extra);
 			if ($extra !== []) {
 				$excluded += $extra;
+				$report(88, 'cluster2', 'Пересобираю группы без редиректов (' . count($extra) . ')…');
 				$clusters = self::clusterize($sections, $minScore, $excluded);
 			}
 			foreach ($clusters as &$cl) {

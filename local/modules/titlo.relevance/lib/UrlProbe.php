@@ -54,7 +54,7 @@ class UrlProbe
 	 * @param array<int, string> $paths key => path (/catalog/x/)
 	 * @return array<int|string, array{type:string,code:int,target:string}>
 	 */
-	public static function check(array $paths, float $budgetSec = 15.0): array
+	public static function check(array $paths, float $budgetSec = 15.0, ?callable $onProgress = null): array
 	{
 		self::ensureSchema();
 		global $DB;
@@ -95,7 +95,7 @@ class UrlProbe
 			}
 		}
 
-		$fetched = $todo !== [] ? self::fetch($todo, $budgetSec) : [];
+		$fetched = $todo !== [] ? self::fetch($todo, $budgetSec, $onProgress) : [];
 		foreach ($fetched as $hash => $r) {
 			$DB->Query("
 				REPLACE INTO titlo_relevance_url_probe (PATH_HASH, PATH, TYPE, HTTP_CODE, TARGET, CHECKED_AT)
@@ -124,7 +124,7 @@ class UrlProbe
 	 * @param array<string, string> $todo hash => path
 	 * @return array<string, array{type:string,code:int,target:string}>
 	 */
-	protected static function fetch(array $todo, float $budgetSec): array
+	protected static function fetch(array $todo, float $budgetSec, ?callable $onProgress = null): array
 	{
 		$origin = rtrim(Config::siteUrl(), '/');
 		if ($origin === '') {
@@ -181,6 +181,9 @@ class UrlProbe
 				curl_multi_remove_handle($mh, $ch);
 				curl_close($ch);
 				$out[$hash] = self::classify($path, $code, $location, $bodies[$hash] ?? '');
+				if ($onProgress !== null) {
+					$onProgress(count($out), count($todo));
+				}
 				unset($bodies[$hash]);
 				if ($queue !== [] && microtime(true) < $deadline) {
 					$add();

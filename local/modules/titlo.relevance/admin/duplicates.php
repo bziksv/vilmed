@@ -30,6 +30,7 @@ $q = (string) ($_GET['q'] ?? '');
 ?>
 
 <?php AdminUi::renderCss(); ?>
+<?php AdminUi::renderDupBuildJs(); ?>
 
 <div class="titlo-dups">
 	<?php
@@ -72,7 +73,11 @@ $q = (string) ($_GET['q'] ?? '');
 				</li>
 				<li>
 					Карточки, которые не являются отдельной страницей (редирект в <code>.htaccess</code>, фактический 3xx или canonical на другой URL),
-					в дубли не попадают. HTTP-проверка кешируется на 7 дней; «Перепроверить URL» — сбросить кеш.
+					в дубли не попадают. HTTP-проверка кешируется на 7 дней; «Перепроверить URL» — сбросить её и пересчитать группы.
+				</li>
+				<li>
+					Группы считаются в фоне и сохраняются: страница открывается сразу из сохранённого результата.
+					Решения и noindex всегда актуальные, а новые товары и переименования появятся после кнопки «Пересчитать».
 				</li>
 				<li>
 					<strong>Прорабатывать</strong> — канон.
@@ -130,10 +135,12 @@ $q = (string) ($_GET['q'] ?? '');
 			<input type="number" id="titlo-dup-score" class="adm-input" value="<?= (int) ProductDuplicates::SIMILARITY_MIN ?>" min="50" max="99" style="width:70px">
 		</label>
 		<input type="button" id="titlo-dup-reload" class="adm-btn" value="Показать">
-		<input type="button" id="titlo-dup-probe-reset" class="adm-btn" value="Перепроверить URL" title="Сбросить кеш HTTP-проверки (редиректы, canonical) и проверить заново">
+		<input type="button" id="titlo-dup-probe-reset" class="adm-btn" value="Перепроверить URL" title="Сбросить кеш HTTP-проверки (редиректы, canonical) и пересчитать группы">
 		<span id="titlo-dup-list-status"></span>
 	</div>
 
+	<div id="titlo-dup-cache" class="titlo-cache-meta"></div>
+	<div id="titlo-dup-build"></div>
 	<div id="titlo-dup-hint" class="hint-lost" style="display:none"></div>
 	<div id="titlo-dup-body">Загрузка…</div>
 	<div class="pager" id="titlo-dup-pager"></div>
@@ -192,22 +199,33 @@ $q = (string) ($_GET['q'] ?? '');
 		load();
 	});
 
-	var probeRetries = 0;
 	function probeText(p) {
 		if (!p) return '';
 		var s = '';
-		if (p.pending) s += '; проверяю URL по HTTP, осталось ' + p.pending + '…';
+		if (p.pending) s += '; не успели проверить по HTTP ' + p.pending + ' URL — нажмите «Пересчитать»';
 		if (p.blocked) s += '; антибот отдал заглушку на ' + p.blocked + ' URL — задайте cookie в настройках модуля';
 		return s;
 	}
-	function scheduleProbeReload(p) {
-		if (p && p.pending && probeRetries < 200) {
-			probeRetries++;
-			setTimeout(function () { load({ keepHint: true }); }, 500);
-		} else {
-			probeRetries = 0;
-		}
-	}
+
+	var builder = TitloDupBuild({
+		entity: 'E',
+		post: post,
+		minScore: function () { return document.getElementById('titlo-dup-score').value; },
+		mount: document.getElementById('titlo-dup-build'),
+		stages: [
+			{key: 'start', label: 'Запуск'},
+			{key: 'fetch', label: 'Загрузка товаров'},
+			{key: 'parse', label: 'Разбор названий'},
+			{key: 'cluster', label: 'Поиск пар и групп'},
+			{key: 'urls', label: 'URL и 301-редиректы'},
+			{key: 'probe', label: 'Проверка страниц на сайте'},
+			{key: 'cluster2', label: 'Пересборка без редиректов'},
+			{key: 'enrich', label: 'H1, разделы, noindex'},
+			{key: 'finish', label: 'Сортировка групп'},
+			{key: 'save', label: 'Сохранение'}
+		],
+		onDone: function () { load({ keepHint: true }); }
+	});
 
 	function h1Line(item, isTop, refH1) {
 		if (typeof item.h1 === 'undefined') return '';
@@ -294,7 +312,7 @@ $q = (string) ($_GET['q'] ?? '');
 		var minScore = document.getElementById('titlo-dup-score').value;
 		var kind = document.getElementById('titlo-dup-kind').value;
 		if (extMode() && kind === 'dups') kind = 'all';
-		if (!opts.keepHint || !probeRetries) document.getElementById('titlo-dup-list-status').textContent = 'Загрузка… (проверяется весь каталог, до 15–20 с)';
+		document.getElementById('titlo-dup-list-status').textContent = 'Загрузка…';
 		post('list_duplicates', {status: status, kind: kind, q: q, page: page, page_size: 15, min_score: minScore}).then(function (res) {
 			var body = document.getElementById('titlo-dup-body');
 			var hint = document.getElementById('titlo-dup-hint');
@@ -302,6 +320,16 @@ $q = (string) ($_GET['q'] ?? '');
 				body.textContent = res.error || 'Ошибка';
 				return;
 			}
+			if (res.need_build) {
+				document.getElementById('titlo-dup-list-status').textContent = '';
+				document.getElementById('titlo-dup-cache').innerHTML = '';
+				body.innerHTML = '<p>Группы для порога ' + escapeHtml(minScore) + '% ещё не посчитаны — считаю, список появится сам.</p>';
+				document.getElementById('titlo-dup-pager').innerHTML = '';
+				var bp = res.build || {};
+				if (bp.state === 'running') builder.watch(bp); else builder.start(false);
+				return;
+			}
+			builder.meta(res.cache, document.getElementById('titlo-dup-cache'));
 
 			if (res.mode === 'decisions') {
 				document.getElementById('titlo-dup-list-status').textContent = 'Карточек: ' + res.total;
@@ -326,7 +354,6 @@ $q = (string) ($_GET['q'] ?? '');
 				(res.checked_products ? '; проверено товаров: ' + res.checked_products : '') +
 				(res.redirect_hidden ? '; скрыто — редирект/canonical на другую страницу: ' + res.redirect_hidden : '') +
 				probeText(res.probe);
-			scheduleProbeReload(res.probe);
 			if (!res.clusters || !res.clusters.length) {
 				body.innerHTML = '<p>Ничего не найдено. Проверьте ID, поиск по названию, фильтр «Отмеченные: прорабатывать» или понизьте порог %.</p>';
 				document.getElementById('titlo-dup-pager').innerHTML = '';
@@ -479,13 +506,8 @@ $q = (string) ($_GET['q'] ?? '');
 
 	document.getElementById('titlo-dup-reload').onclick = function () { page = 1; load(); };
 	document.getElementById('titlo-dup-probe-reset').onclick = function () {
-		var b = this;
-		b.disabled = true;
-		post('section_dup_probe_reset', {}).then(function () {
-			b.disabled = false;
-			page = 1;
-			load();
-		});
+		if (!confirm('Сбросить HTTP-проверку всех URL и пересчитать группы? Займёт несколько минут.')) return;
+		builder.start(true);
 	};
 	document.getElementById('titlo-dup-status').addEventListener('change', function () { page = 1; load(); });
 	document.getElementById('titlo-dup-kind').addEventListener('change', function () { page = 1; load(); });

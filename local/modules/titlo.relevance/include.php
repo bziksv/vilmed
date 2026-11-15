@@ -18,6 +18,7 @@ Loader::registerAutoLoadClasses('titlo.relevance', [
 	'Titlo\\Relevance\\RedirectMap' => 'lib/RedirectMap.php',
 	'Titlo\\Relevance\\UrlProbe' => 'lib/UrlProbe.php',
 	'Titlo\\Relevance\\DupIgnore' => 'lib/DupIgnore.php',
+	'Titlo\\Relevance\\DupCache' => 'lib/DupCache.php',
 	'Titlo\\Relevance\\IndexingControl' => 'lib/IndexingControl.php',
 	'Titlo\\Relevance\\Prompts' => 'lib/Prompts.php',
 	'Titlo\\Relevance\\WorkHistory' => 'lib/WorkHistory.php',

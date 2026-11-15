@@ -30,6 +30,7 @@ $q = (string) ($_GET['q'] ?? '');
 ?>
 
 <?php AdminUi::renderCss(); ?>
+<?php AdminUi::renderDupBuildJs(); ?>
 
 <div class="titlo-sdups">
 	<?php
@@ -63,7 +64,7 @@ $q = (string) ($_GET['q'] ?? '');
 					Разделы, которые не являются отдельной страницей, в дубли не попадают:
 					редирект в <code>.htaccess</code> (<code>Redirect</code>, <code>RedirectMatch</code>, <code>RewriteRule [R]</code>)
 					и фактический HTTP-ответ страницы — 3xx (nginx, Apache, PHP, SEO-модули) или canonical на другой URL.
-					HTTP-проверка кешируется на 7 дней; «Перепроверить URL» — сбросить кеш.
+					HTTP-проверка кешируется на 7 дней; «Перепроверить URL» — сбросить её и пересчитать группы. Группы считаются в фоне и сохраняются: страница открывается сразу; решения и noindex всегда актуальные, новые и переименованные разделы — после «Пересчитать».
 					<strong>Линейки</strong> — подразделы одного родителя, которые отличаются только размером/серией
 					(0, 2/0, М 1,5) или страной («ИВЛ, Россия» / «ИВЛ, США», «X» → «X, Япония»):
 					эталон — общий родитель, варианты можно закрыть одной кнопкой.
@@ -131,6 +132,8 @@ $q = (string) ($_GET['q'] ?? '');
 		<span id="titlo-sdup-list-status"></span>
 	</div>
 
+	<div id="titlo-sdup-cache" class="titlo-cache-meta"></div>
+	<div id="titlo-sdup-build"></div>
 	<div id="titlo-sdup-hint" class="hint-lost" style="display:none"></div>
 	<div id="titlo-sdup-body">Загрузка…</div>
 	<div class="pager" id="titlo-sdup-pager"></div>
@@ -264,22 +267,30 @@ $q = (string) ($_GET['q'] ?? '');
 		};
 	}
 
-	var probeRetries = 0;
 	function probeText(p) {
 		if (!p) return '';
 		var s = '';
-		if (p.pending) s += '; проверяю URL по HTTP, осталось ' + p.pending + '…';
+		if (p.pending) s += '; не успели проверить по HTTP ' + p.pending + ' URL — нажмите «Пересчитать»';
 		if (p.blocked) s += '; антибот отдал заглушку на ' + p.blocked + ' URL — задайте cookie в настройках модуля';
 		return s;
 	}
-	function scheduleProbeReload(p) {
-		if (p && p.pending && probeRetries < 200) {
-			probeRetries++;
-			setTimeout(function () { load({ keepHint: true }); }, 500);
-		} else {
-			probeRetries = 0;
-		}
-	}
+
+	var builder = TitloDupBuild({
+		entity: 'S',
+		post: post,
+		minScore: function () { return document.getElementById('titlo-sdup-score').value; },
+		mount: document.getElementById('titlo-sdup-build'),
+		stages: [
+			{key: 'start', label: 'Запуск'},
+			{key: 'fetch', label: 'Загрузка разделов'},
+			{key: 'urls', label: 'URL и 301-редиректы'},
+			{key: 'cluster', label: 'Поиск пар и групп (товары разделов)'},
+			{key: 'probe', label: 'Проверка страниц на сайте'},
+			{key: 'cluster2', label: 'Пересборка без редиректов'},
+			{key: 'save', label: 'Сохранение'}
+		],
+		onDone: function () { load({ keepHint: true }); }
+	});
 
 	function productsBadge(item) {
 		if (typeof item.products !== 'number') return '';
@@ -370,6 +381,16 @@ $q = (string) ($_GET['q'] ?? '');
 				body.textContent = res.error || 'Ошибка';
 				return;
 			}
+			if (res.need_build) {
+				document.getElementById('titlo-sdup-list-status').textContent = '';
+				document.getElementById('titlo-sdup-cache').innerHTML = '';
+				body.innerHTML = '<p>Группы для порога ' + escapeHtml(minScore) + '% ещё не посчитаны — считаю, список появится сам.</p>';
+				document.getElementById('titlo-sdup-pager').innerHTML = '';
+				var bp = res.build || {};
+				if (bp.state === 'running') builder.watch(bp); else builder.start(false);
+				return;
+			}
+			builder.meta(res.cache, document.getElementById('titlo-sdup-cache'));
 
 			if (res.mode === 'decisions') {
 				document.getElementById('titlo-sdup-list-status').textContent = 'Категорий: ' + res.total;
@@ -393,7 +414,6 @@ $q = (string) ($_GET['q'] ?? '');
 				', похожих ' + (bk.similar || 0) + ', тёзок ' + (bk.homonym || 0) + ', линеек ' + (bk.variants || 0) + ')' +
 				(res.redirect_hidden ? '; скрыто — редирект/canonical на другую страницу: ' + res.redirect_hidden : '') +
 				probeText(res.probe);
-			scheduleProbeReload(res.probe);
 			if (!res.clusters || !res.clusters.length) {
 				body.innerHTML = '<p>Ничего не найдено. Проверьте ID, поиск по названию, фильтр «Отмеченные: прорабатывать» или понизьте порог %.</p>';
 				document.getElementById('titlo-sdup-pager').innerHTML = '';
@@ -569,13 +589,8 @@ $q = (string) ($_GET['q'] ?? '');
 
 	document.getElementById('titlo-sdup-reload').onclick = function () { page = 1; load(); };
 	document.getElementById('titlo-sdup-probe-reset').onclick = function () {
-		var b = this;
-		b.disabled = true;
-		post('section_dup_probe_reset', {}).then(function () {
-			b.disabled = false;
-			page = 1;
-			load();
-		});
+		if (!confirm('Сбросить HTTP-проверку всех URL и пересчитать группы? Займёт несколько минут.')) return;
+		builder.start(true);
 	};
 	document.getElementById('titlo-sdup-status').addEventListener('change', function () { page = 1; load(); });
 	document.getElementById('titlo-sdup-kind').addEventListener('change', function () { page = 1; load(); });

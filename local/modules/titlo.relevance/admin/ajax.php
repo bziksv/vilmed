@@ -872,6 +872,19 @@ try {
 			]);
 			titlo_json(array_merge(['ok' => true], $list));
 
+		case 'dup_build_start':
+			$entity = \Titlo\Relevance\DupCache::entity((string) ($_POST['entity'] ?? 'E'));
+			$cls = $entity === 'S' ? SectionDuplicates::class : ProductDuplicates::class;
+			$minScore = max(50, min(99, (int) ($_POST['min_score'] ?? $cls::SIMILARITY_MIN)));
+			if (!empty($_POST['probe_reset'])) {
+				\Titlo\Relevance\UrlProbe::clearCache();
+			}
+			titlo_json(\Titlo\Relevance\DupCache::start($entity, $minScore));
+
+		case 'dup_build_status':
+			$entity = \Titlo\Relevance\DupCache::entity((string) ($_POST['entity'] ?? 'E'));
+			titlo_json(['ok' => true, 'progress' => \Titlo\Relevance\DupCache::progress($entity)]);
+
 		case 'dup_h1_source':
 			$ok = ProductDuplicates::setH1Source((string) ($_POST['source'] ?? ''));
 			titlo_json(['ok' => $ok, 'source' => ProductDuplicates::h1Source()], $ok ? 200 : 422);

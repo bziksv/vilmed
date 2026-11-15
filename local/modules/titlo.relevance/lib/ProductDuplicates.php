@@ -111,8 +111,23 @@ class ProductDuplicates
 			]);
 		}
 
-		$products = self::fetchAllProducts();
-		$clusters = self::buildClusters($products, $minScore);
+		$cache = DupCache::load('E', $minScore);
+		if ($cache === null) {
+			return [
+				'mode' => 'clusters',
+				'need_build' => true,
+				'clusters' => [],
+				'total' => 0,
+				'page' => 1,
+				'pages' => 1,
+				'page_size' => $pageSize,
+				'build' => DupCache::progress('E'),
+			];
+		}
+		$clusters = $cache['clusters'] ?? [];
+		self::$redirects = $cache['redirects'] ?? [];
+		self::$probeStats = $cache['probe'] ?? [];
+		self::refreshLive($clusters);
 		$searchId = (ctype_digit($q) && $q !== '') ? (int) $q : 0;
 		$needle = ($q !== '' && $searchId === 0) ? mb_strtolower($q) : '';
 
@@ -150,8 +165,8 @@ class ProductDuplicates
 			$filtered[] = $cluster;
 		}
 
-		if ($searchId > 0 && $filtered === [] && isset($products[$searchId])) {
-			$single = [$searchId => $products[$searchId]];
+		$single = ($searchId > 0 && $filtered === []) ? self::fetchAllProducts([$searchId]) : [];
+		if ($single !== []) {
 			self::enrichItems($single);
 			$item = $single[$searchId];
 			$item['sim_label'] = isset(self::$redirects[$searchId])
@@ -172,6 +187,9 @@ class ProductDuplicates
 		$total = count($filtered);
 		$pages = max(1, (int) ceil($total / $pageSize));
 		$slice = array_slice($filtered, ($page - 1) * $pageSize, $pageSize);
+		if (self::h1Source() !== ($cache['h1_source'] ?? '')) {
+			self::refreshH1($slice);
+		}
 
 		return [
 			'mode' => 'clusters',
@@ -183,8 +201,92 @@ class ProductDuplicates
 			'open_by_kind' => $byKind,
 			'redirect_hidden' => count(self::$redirects),
 			'probe' => self::$probeStats,
-			'checked_products' => count($products),
+			'checked_products' => (int) ($cache['checked_products'] ?? 0),
+			'cache' => [
+				'built_at' => (int) ($cache['built_at'] ?? 0),
+				'running' => DupCache::isRunning('E'),
+			],
 		];
+	}
+
+	/**
+	 * Полный расчёт групп для кеша (фоновый пересчёт).
+	 *
+	 * @param callable(int,string,string):void $report
+	 */
+	public static function buildCache(int $minScore, callable $report): array
+	{
+		self::ensureFields();
+		$report(2, 'fetch', 'Загружаю товары каталога…');
+		$products = self::fetchAllProducts();
+		$report(10, 'fetch', 'Загружено товаров: ' . count($products));
+		$clusters = self::buildClusters($products, $minScore, $report);
+		return [
+			'clusters' => $clusters,
+			'redirects' => self::$redirects,
+			'probe' => self::$probeStats,
+			'checked_products' => count($products),
+			'h1_source' => self::h1Source(),
+		];
+	}
+
+	/**
+	 * Решения и noindex меняются кнопками — берём из БД, а не из кеша.
+	 */
+	protected static function refreshLive(array &$clusters): void
+	{
+		global $DB;
+		$ids = [];
+		foreach ($clusters as $cl) {
+			foreach ($cl['items'] as $it) {
+				$ids[(int) $it['id']] = true;
+			}
+		}
+		if ($ids === []) {
+			return;
+		}
+		$ids = array_keys($ids);
+		$noindex = IndexingControl::mapNoindex($ids);
+		$decisions = [];
+		if (self::hasDecisionColumn()) {
+			$uts = 'b_uts_iblock_' . (int) Config::iblockId() . '_element';
+			foreach (array_chunk($ids, 1000) as $chunk) {
+				$res = $DB->Query('SELECT VALUE_ID, ' . self::UF_DECISION . ' AS D FROM ' . $uts . ' WHERE VALUE_ID IN (' . implode(',', $chunk) . ')');
+				while ($row = $res->Fetch()) {
+					$d = trim((string) $row['D']);
+					if ($d === self::DECISION_KEEP || $d === self::DECISION_NOINDEX) {
+						$decisions[(int) $row['VALUE_ID']] = $d;
+					}
+				}
+			}
+		}
+		foreach ($clusters as &$cl) {
+			foreach ($cl['items'] as &$it) {
+				$id = (int) $it['id'];
+				$it['decision'] = $decisions[$id] ?? '';
+				$it['noindex'] = !empty($noindex[$id]);
+			}
+			unset($it);
+		}
+		unset($cl);
+	}
+
+	protected static function refreshH1(array &$clusters): void
+	{
+		$items = [];
+		foreach ($clusters as $cl) {
+			foreach ($cl['items'] as $it) {
+				$items[(int) $it['id']] = $it;
+			}
+		}
+		$h1 = self::mapH1(array_keys($items), $items);
+		foreach ($clusters as &$cl) {
+			foreach ($cl['items'] as &$it) {
+				$it['h1'] = $h1[(int) $it['id']] ?? '';
+			}
+			unset($it);
+		}
+		unset($cl);
 	}
 
 	protected static function kindGroup(string $kind): string
@@ -223,7 +325,7 @@ class ProductDuplicates
 	 *
 	 * @return array<int, array>
 	 */
-	protected static function fetchAllProducts(): array
+	protected static function fetchAllProducts(array $onlyIds = []): array
 	{
 		global $DB;
 		$iblockId = Config::iblockId();
@@ -249,7 +351,7 @@ class ProductDuplicates
 				AND BE.ACTIVE = 'Y'
 				AND (BE.WF_STATUS_ID IS NULL OR BE.WF_STATUS_ID = 1)
 				AND (BE.WF_PARENT_ELEMENT_ID IS NULL OR BE.WF_PARENT_ELEMENT_ID = 0)
-		");
+		" . ($onlyIds !== [] ? ' AND BE.ID IN (' . implode(',', array_map('intval', $onlyIds)) . ')' : ''));
 		$items = [];
 		while ($row = $res->Fetch()) {
 			$id = (int) $row['ID'];
@@ -547,12 +649,20 @@ class ProductDuplicates
 	 * @param array<int, array> $products
 	 * @return array<int, array>
 	 */
-	protected static function buildClusters(array $products, int $minScore): array
+	protected static function buildClusters(array $products, int $minScore, ?callable $report = null): array
 	{
+		$report = $report ?? static function () {
+		};
 		$ctx = ['parsed' => [], 'idf' => []];
+		$n = count($products);
+		$i = 0;
 		foreach ($products as $id => $p) {
 			$ctx['parsed'][$id] = self::parseProductName($p['name']);
+			if (++$i % 1000 === 0) {
+				$report(10 + (int) (20 * $i / max(1, $n)), 'parse', 'Разбираю названия: ' . $i . ' / ' . $n);
+			}
 		}
+		$report(30, 'cluster', 'Ищу пары и группы…');
 		self::$probeStats = ['checked' => 0, 'pending' => 0, 'blocked' => 0, 'excluded' => 0];
 		self::$redirects = [];
 
@@ -563,6 +673,7 @@ class ProductDuplicates
 				$memberIds[$id] = true;
 			}
 		}
+		$report(48, 'urls', 'URL и 301-редиректы (' . count($memberIds) . ' товаров)…');
 		$urls = UrlBuilder::mapElementUrls(array_keys($memberIds));
 		$excluded = [];
 		$paths = [];
@@ -593,7 +704,10 @@ class ProductDuplicates
 					}
 				}
 			}
-			$probe = $probePaths !== [] ? UrlProbe::check($probePaths, 8.0) : [];
+			$report(55, 'probe', 'Проверяю страницы на сайте (' . count($probePaths) . ')…');
+			$probe = $probePaths !== [] ? UrlProbe::check($probePaths, 150.0, static function ($done, $total) use ($report) {
+				$report(55 + (int) (33 * $done / max(1, $total)), 'probe', 'Проверяю страницы на сайте: ' . $done . ' / ' . $total);
+			}) : [];
 			foreach ($probe as $id => $r) {
 				if ($r['type'] === UrlProbe::TYPE_PENDING) {
 					self::$probeStats['pending']++;
@@ -611,9 +725,11 @@ class ProductDuplicates
 		}
 		self::$redirects = $excluded;
 		if ($excluded !== []) {
+			$report(89, 'cluster2', 'Пересобираю группы без редиректов (' . count($excluded) . ')…');
 			$clusters = self::clusterize($products, $minScore, $excluded, $ctx);
 		}
 
+		$report(91, 'enrich', 'H1, разделы, noindex…');
 		$all = [];
 		foreach ($clusters as $cl) {
 			foreach ($cl['ids'] as $id) {
@@ -631,6 +747,7 @@ class ProductDuplicates
 		}
 		unset($it);
 
+		$report(96, 'finish', 'Сортирую группы (' . count($clusters) . ')…');
 		$out = [];
 		foreach ($clusters as $cl) {
 			$out[] = self::finishCluster($cl, $all, $products, $minScore, $ctx);

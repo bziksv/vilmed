@@ -26,6 +26,14 @@ class AdminUi
 		echo '<link rel="stylesheet" href="' . htmlspecialcharsbx($rel) . '?v=' . htmlspecialcharsbx($v) . '">' . "\n";
 	}
 
+	public static function renderDupBuildJs(): void
+	{
+		$rel = '/local/modules/titlo.relevance/admin/js/dup-build.js';
+		$abs = rtrim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''), '/') . $rel;
+		$v = is_file($abs) ? (string) filemtime($abs) : '1';
+		echo '<script src="' . htmlspecialcharsbx($rel) . '?v=' . htmlspecialcharsbx($v) . '"></script>' . "\n";
+	}
+
 	/**
 	 * Фильтр «ветка каталога»: поиск + множественный выбор разделов.
 	 *

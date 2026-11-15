@@ -20,3 +20,6 @@ sitemap.xml
 sitemap-iblock-*.xml
 sitemap-files.xml
 .htaccess
+
+# titlo: кеш групп дублей (DupCache)
+/local/var/
