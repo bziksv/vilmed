@@ -356,7 +356,7 @@ class SectionDuplicates
 	 *
 	 * @return array{core:array<string,int>,brands:array<string,int>,variants:array<string,int>,countries:array<string,int>,full:string}
 	 */
-	public static function parseName(string $name): array
+	public static function parseName(string $name, bool $seriesAsVariant = true): array
 	{
 		static $stop = null;
 		static $countries = null;
@@ -389,9 +389,21 @@ class SectionDuplicates
 		$tokens = preg_split('/\s+/u', trim($s), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
 		$core = $brands = $variants = $found = $countryWords = [];
+		$inSeries = false;
 		foreach ($tokens as $t) {
 			$t = trim($t, '.-/*');
 			if ($t === '') {
+				continue;
+			}
+			if ($seriesAsVariant && in_array($t, ['серии', 'серия', 'series', 'модель', 'модели', 'мод', 'тип', 'типа', 'исполнение', 'исп'], true)) {
+				$inSeries = true;
+				continue;
+			}
+			if ($inSeries && preg_match('/[а-я]/u', $t)) {
+				$inSeries = false;
+			}
+			if ($inSeries && preg_match('/[a-z]/u', $t)) {
+				$variants[$t] = 1;
 				continue;
 			}
 			$hasDigit = preg_match('/\d/u', $t) === 1;
@@ -425,7 +437,8 @@ class SectionDuplicates
 				continue;
 			}
 			if ($hasLatin && !$hasCyr) {
-				if (strlen($t) <= 3) {
+				// NSK, KLS, BTL — бренды; вариант только размерная сетка
+				if (in_array($t, ['xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl', 'xxs'], true)) {
 					$variants[$t] = 1;
 				} else {
 					$brands[$t] = 1;

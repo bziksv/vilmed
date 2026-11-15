@@ -401,7 +401,7 @@ class ProductDuplicates
 			return ' zvmark' . ($map[$w] ?? $w) . ' ';
 		}, $s) ?? $s;
 		$s = preg_replace('/(?<![\p{L}\p{N}])без\s+(\p{L}+)/iu', ' без-$1 ', $s) ?? $s;
-		$p = SectionDuplicates::parseName($s);
+		$p = SectionDuplicates::parseName($s, false);
 		foreach (['вт', 'квт', 'мгц', 'кгц', 'гц', 'мкл', 'уп', 'дптр', 'шт/уп', 'л', 'м', 'г'] as $u) {
 			unset($p['core'][$u]);
 		}
