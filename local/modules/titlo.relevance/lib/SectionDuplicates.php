@@ -145,9 +145,13 @@ class SectionDuplicates
 
 		$byKind = ['names' => 0, 'products' => 0, 'similar' => 0, 'homonym' => 0, 'variants' => 0];
 		$filtered = [];
+		$ignoreSets = DupIgnore::sets('S');
 		foreach ($clusters as $cluster) {
 			$group = self::kindGroup($cluster['kind']);
 			$st = self::clusterStatus($cluster);
+			if ($st === 'open' && DupIgnore::covers($ignoreSets, array_column($cluster['items'], 'id'))) {
+				$st = DupIgnore::STATUS;
+			}
 			$cluster['status'] = $st;
 			if ($st === 'open') {
 				$byKind[$group]++;
@@ -165,6 +169,9 @@ class SectionDuplicates
 				continue;
 			}
 			if ($status === 'resolved' && $st !== 'resolved') {
+				continue;
+			}
+			if ($status === DupIgnore::STATUS && $st !== DupIgnore::STATUS) {
 				continue;
 			}
 			$filtered[] = $cluster;

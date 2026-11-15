@@ -98,16 +98,23 @@ class ProductDuplicates
 
 		$searchId = (ctype_digit($q) && $q !== '') ? (int) $q : 0;
 
+		$ignoreSets = DupIgnore::sets('E');
 		$filtered = [];
 		foreach ($clusters as $cluster) {
 			if ($searchId > 0 && !self::clusterHasId($cluster, $searchId)) {
 				continue;
 			}
 			$st = self::clusterStatus($cluster);
+			if ($st === 'open' && DupIgnore::covers($ignoreSets, array_column($cluster['items'], 'id'))) {
+				$st = DupIgnore::STATUS;
+			}
 			if ($status === 'open' && $st !== 'open') {
 				continue;
 			}
 			if ($status === 'resolved' && $st !== 'resolved') {
+				continue;
+			}
+			if ($status === DupIgnore::STATUS && $st !== DupIgnore::STATUS) {
 				continue;
 			}
 			$cluster['status'] = $st;

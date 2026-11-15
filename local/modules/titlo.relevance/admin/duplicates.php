@@ -74,6 +74,7 @@ $q = (string) ($_GET['q'] ?? '');
 			<select id="titlo-dup-status">
 				<option value="open" <?= $status === 'open' ? 'selected' : '' ?>>Кластеры: открытые</option>
 				<option value="resolved" <?= $status === 'resolved' ? 'selected' : '' ?>>Кластеры: решённые</option>
+				<option value="ignored" <?= $status === 'ignored' ? 'selected' : '' ?>>Кластеры: оставлены как есть</option>
 				<option value="all" <?= $status === 'all' ? 'selected' : '' ?>>Кластеры: все</option>
 				<option value="keep" <?= $status === 'keep' ? 'selected' : '' ?>>Отмеченные: прорабатывать</option>
 				<option value="noindex" <?= $status === 'noindex' ? 'selected' : '' ?>>Отмеченные: noindex</option>
@@ -230,12 +231,24 @@ $q = (string) ($_GET['q'] ?? '');
 			body.innerHTML = res.clusters.map(function (cl, idx) {
 				var stClass = cl.status === 'resolved' ? 'st-resolved' : 'st-open';
 				var stLabel = cl.status === 'resolved' ? 'решён' : 'нужно решить';
+				if (cl.status === 'ignored') {
+					stLabel = 'оставлен как есть';
+					stClass = 'name-len';
+				}
 				if (cl.single || cl.size < 2) {
 					stLabel = 'без пары дублей';
 					stClass = 'name-len';
 				}
 				var ids = (cl.items || []).map(function (it) { return it.id; });
 				var keepId = ids.length ? ids[0] : 0;
+				var ignoreBtn = '';
+				if (cl.size >= 2 && cl.status === 'ignored') {
+					ignoreBtn = '<span class="titlo-act"><input type="button" class="adm-btn titlo-dup-unignore" value="Вернуть в работу">' +
+						'<span class="titlo-act__tip">Снова показывать группу в открытых.</span></span>';
+				} else if (cl.size >= 2 && cl.status === 'open') {
+					ignoreBtn = '<span class="titlo-act"><input type="button" class="adm-btn titlo-dup-ignore" value="Оставить как есть">' +
+						'<span class="titlo-act__tip">Ничего не менять и скрыть группу из открытых. Найти и вернуть — фильтр «Кластеры: оставлены как есть». Если в группу добавится новая карточка, она снова станет открытой.</span></span>';
+				}
 				var bulkBtn = (cl.size >= 2)
 					? ('<span class="titlo-act">' +
 						'<input type="button" class="adm-btn titlo-dup-cluster-noindex" value="Эталон + закрыть остальных">' +
@@ -256,7 +269,7 @@ $q = (string) ($_GET['q'] ?? '');
 					'<span>' + cl.size + ' карточки</span>' +
 					'<span class="' + stClass + '">' + stLabel + '</span>' +
 					'<span class="name-len">стык по: ' + escapeHtml(cl.key) + '</span>' +
-					bulkBtn +
+					bulkBtn + ignoreBtn +
 					'</div>' +
 					'<table><thead><tr><th style="width:80px">ID</th><th>Название / насколько похож на эталон</th><th style="width:400px">Решение</th></tr></thead><tbody>' +
 					rows + '</tbody></table></div>';
@@ -267,6 +280,22 @@ $q = (string) ($_GET['q'] ?? '');
 
 	document.getElementById('titlo-dup-body').addEventListener('click', function (e) {
 		var btn = e.target;
+		if (btn.classList.contains('titlo-dup-ignore') || btn.classList.contains('titlo-dup-unignore')) {
+			var cl = btn.closest('.cluster');
+			if (!cl) return;
+			var unignore = btn.classList.contains('titlo-dup-unignore');
+			btn.disabled = true;
+			post(unignore ? 'dup_unignore' : 'dup_ignore', {entity: 'E', ids: cl.getAttribute('data-ids') || ''}).then(function (res) {
+				btn.disabled = false;
+				var hint = document.getElementById('titlo-dup-hint');
+				hint.style.display = '';
+				hint.innerHTML = res.ok
+					? (unignore ? 'Группа возвращена в открытые.' : 'Группа оставлена как есть и скрыта. Вернуть — фильтр «Кластеры: оставлены как есть».')
+					: '<span style="color:#c00">' + escapeHtml(res.error || 'Ошибка') + '</span>';
+				if (res.ok) load({ keepHint: true });
+			});
+			return;
+		}
 		if (btn.classList.contains('titlo-dup-cluster-noindex') || btn.classList.contains('titlo-dup-cluster-noindex-all')) {
 			var cluster = btn.closest('.cluster');
 			if (!cluster) return;

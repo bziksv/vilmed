@@ -901,6 +901,20 @@ try {
 			]);
 			titlo_json(array_merge(['ok' => true], $list));
 
+		case 'dup_ignore':
+		case 'dup_unignore':
+			$entity = (string) ($_POST['entity'] ?? 'E') === 'S' ? 'S' : 'E';
+			$rawIds = $_POST['ids'] ?? [];
+			if (is_string($rawIds)) {
+				$rawIds = preg_split('/\s*,\s*/', $rawIds) ?: [];
+			}
+			$rawIds = is_array($rawIds) ? $rawIds : [];
+			if ($action === 'dup_ignore') {
+				$ok = \Titlo\Relevance\DupIgnore::add($entity, $rawIds);
+				titlo_json(['ok' => $ok, 'error' => $ok ? null : 'bad ids'], $ok ? 200 : 422);
+			}
+			titlo_json(['ok' => true, 'removed' => \Titlo\Relevance\DupIgnore::remove($entity, $rawIds)]);
+
 		case 'section_dup_h1_source':
 			$ok = SectionDuplicates::setH1Source((string) ($_POST['source'] ?? ''));
 			titlo_json(['ok' => $ok, 'source' => SectionDuplicates::h1Source()], $ok ? 200 : 422);
