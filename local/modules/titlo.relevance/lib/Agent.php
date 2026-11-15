@@ -6,6 +6,9 @@ use Bitrix\Main\Loader;
 
 class Agent
 {
+	/** Сколько ждать анализ/генерацию в кабинете с начала шага (кабинет бывает перегружен). */
+	public const WAIT_MAX_SEC = 3600;
+
 	/**
 	 * Bitrix agent: массовые фразы, затем очередь автопроработки.
 	 */
@@ -36,6 +39,16 @@ class Agent
 		// Пока крутится массовая генерация фраз — не блокируем агент sleep'ами релевантности
 		if ($phraseBusy) {
 			return '\\Titlo\\Relevance\\Agent::run();';
+		}
+
+		// Раз в 10 мин: упавшие по таймауту/5xx, которые кабинет потом доделал, — продолжить
+		$lastResume = (int) Config::get('queue_resume_at', '0');
+		if (time() - $lastResume > 600) {
+			\Bitrix\Main\Config\Option::set(Config::MODULE_ID, 'queue_resume_at', (string) time());
+			try {
+				BatchQueue::resumeFinishedInCabinet(new ApiClient());
+			} catch (\Throwable $e) {
+			}
 		}
 
 		$rows = array_merge(
@@ -262,7 +275,12 @@ class Agent
 		if ($analysisId === '') {
 			throw new \RuntimeException('Missing analysis_id');
 		}
-		$status = $client->getAnalysis($analysisId);
+		$status = self::pollRemote($row, static function () use ($client, $analysisId) {
+			return $client->getAnalysis($analysisId);
+		});
+		if ($status === null) {
+			return;
+		}
 		$st = (string) ($status['status'] ?? '');
 		if ($st === 'failed') {
 			$err = trim((string) ($status['error'] ?? ''));
@@ -275,8 +293,7 @@ class Agent
 		if ($st !== 'done') {
 			// UPDATED_AT не трогаем на каждом poll — иначе таймаут никогда не сработает
 			$waitSec = BatchQueue::ageSeconds($row['UPDATED_AT'] ?? null);
-			$maxWait = 900; // любой non-terminal (queued/running/…)
-			if ($waitSec > $maxWait) {
+			if ($waitSec > self::WAIT_MAX_SEC) {
 				$which = $isRecheck ? 'повторный анализ' : 'анализ';
 				throw new \RuntimeException(
 					$which . ' завис в кабинете (status=' . $st . ', ' . $waitSec . ' с). Локально: ./scripts/dev-relevance-queue.sh'
@@ -491,7 +508,12 @@ class Agent
 		if ($recordId <= 0) {
 			throw new \RuntimeException('Missing gen record_id');
 		}
-		$res = $client->getGenerate($recordId);
+		$res = self::pollRemote($row, static function () use ($client, $recordId) {
+			return $client->getGenerate($recordId);
+		});
+		if ($res === null) {
+			return;
+		}
 		$st = (string) ($res['status'] ?? '');
 		if ($st === 'failed') {
 			$err = (string) ($res['error'] ?? 'generate_failed');
@@ -509,7 +531,7 @@ class Agent
 		if ($st !== 'completed' && $st !== 'done') {
 			// Не bump UPDATED_AT на poll — иначе ceiling не сработает
 			$waitSec = BatchQueue::ageSeconds($row['UPDATED_AT'] ?? null);
-			if ($waitSec > 900) {
+			if ($waitSec > self::WAIT_MAX_SEC) {
 				throw new \RuntimeException(
 					'Генерация зависла (status=' . $st . ', ' . $waitSec . ' с)'
 				);
@@ -538,10 +560,34 @@ class Agent
 		BatchQueue::mark($id, BatchQueue::STATUS_RUNNING, $next);
 	}
 
+	/**
+	 * Опрос статуса в кабинете: временный сбой (5xx, 429, таймаут) не валит задание —
+	 * пишем пометку и ждём следующего тика, пока не выйдет WAIT_MAX_SEC с начала шага.
+	 */
+	protected static function pollRemote(array $row, callable $fn): ?array
+	{
+		$id = (int) $row['ID'];
+		try {
+			$res = $fn();
+		} catch (\Throwable $e) {
+			$code = (int) $e->getCode();
+			$transient = in_array($code, [0, 429, 500, 502, 503, 504], true) || self::isTransientRemoteError($e->getMessage());
+			if (!$transient || BatchQueue::ageSeconds($row['UPDATED_AT'] ?? null) > self::WAIT_MAX_SEC) {
+				throw $e;
+			}
+			BatchQueue::note($id, 'кабинет временно не ответил (' . $e->getMessage() . '), повторю');
+			return null;
+		}
+		if (trim((string) ($row['ERROR'] ?? '')) !== '') {
+			BatchQueue::note($id, null);
+		}
+		return $res;
+	}
+
 	protected static function isTransientRemoteError(string $err): bool
 	{
 		$err = mb_strtolower($err);
-		foreach (['timed out', 'timeout', 'таймаут', 'curl error 28', 'curl error 52', 'curl error 56', '502', '503', '504', '429'] as $needle) {
+		foreach (['timed out', 'timeout', 'таймаут', 'не ответил', 'curl error 28', 'curl error 52', 'curl error 56', 'http 500', '502', '503', '504', '429'] as $needle) {
 			if (mb_strpos($err, $needle) !== false) {
 				return true;
 			}

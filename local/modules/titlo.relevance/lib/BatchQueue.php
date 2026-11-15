@@ -776,7 +776,18 @@ class BatchQueue
 		if ($ids === []) {
 			return ['ok' => true, 'requeued' => 0, 'ids' => []];
 		}
-		return self::requeueByIds($ids, $opts);
+		$resumed = [];
+		try {
+			$resumed = self::resumeFinishedInCabinet(new ApiClient(), $ids, count($ids));
+		} catch (\Throwable $e) {
+		}
+		$ids = array_values(array_diff($ids, $resumed));
+		if ($ids === []) {
+			return ['ok' => true, 'requeued' => 0, 'ids' => [], 'resumed' => count($resumed)];
+		}
+		$res = self::requeueByIds($ids, $opts);
+		$res['resumed'] = count($resumed);
+		return $res;
 	}
 
 	/**
@@ -1018,6 +1029,72 @@ class BatchQueue
 		}
 
 		return true;
+	}
+
+	/**
+	 * Пометка к running-заданию без сдвига UPDATED_AT (от него считается таймаут шага).
+	 */
+	public static function note(int $id, ?string $text): void
+	{
+		global $DB;
+		$DB->Query('UPDATE titlo_relevance_queue SET ERROR = '
+			. ($text === null ? 'NULL' : "'" . $DB->ForSql(mb_substr($text, 0, 500)) . "'")
+			. ' WHERE ID = ' . (int) $id . " AND STATUS = '" . self::STATUS_RUNNING . "'");
+	}
+
+	/** Шаги ожидания, на которых задание можно продолжить по ID в кабинете. */
+	protected const RESUMABLE_STEPS = [
+		self::STEP_WAIT_ANALYSIS => 'ANALYSIS_ID',
+		self::STEP_WAIT_RECHECK => 'ANALYSIS_ID',
+		self::STEP_WAIT_GENERATE => 'GEN_RECORD_ID',
+		self::STEP_WAIT_GENERATE_PREVIEW => 'GEN_PREVIEW_RECORD_ID',
+	];
+
+	/**
+	 * Упавшие на ожидании задания, которые кабинет потом всё же доделал, — продолжить с того же шага
+	 * (без нового анализа). Ещё не готовые и упавшие в кабинете не трогаем.
+	 *
+	 * @param int[] $onlyIds пусто = за последние 3 дня
+	 * @return int[] продолженные ID
+	 */
+	public static function resumeFinishedInCabinet(ApiClient $client, array $onlyIds = [], int $limit = 30): array
+	{
+		self::ensureSchema();
+		global $DB;
+		$steps = "'" . implode("','", array_keys(self::RESUMABLE_STEPS)) . "'";
+		$where = "STATUS = '" . self::STATUS_FAILED . "' AND STEP IN ({$steps})";
+		$onlyIds = array_values(array_filter(array_map('intval', $onlyIds)));
+		$where .= $onlyIds !== []
+			? ' AND ID IN (' . implode(',', $onlyIds) . ')'
+			: ' AND UPDATED_AT > NOW() - INTERVAL 3 DAY';
+		$res = $DB->Query('SELECT * FROM titlo_relevance_queue WHERE ' . $where . ' ORDER BY UPDATED_AT DESC LIMIT ' . max(1, $limit));
+		$resumed = [];
+		while ($row = $res->Fetch()) {
+			$step = (string) $row['STEP'];
+			$col = self::RESUMABLE_STEPS[$step];
+			$remoteId = trim((string) ($row[$col] ?? ''));
+			if ($remoteId === '' || $remoteId === '0') {
+				continue;
+			}
+			try {
+				$st = $col === 'ANALYSIS_ID'
+					? (string) ($client->getAnalysis($remoteId)['status'] ?? '')
+					: (string) ($client->getGenerate((int) $remoteId)['status'] ?? '');
+			} catch (\Throwable $e) {
+				continue;
+			}
+			if ($st !== 'done' && $st !== 'completed') {
+				continue;
+			}
+			if (self::mark((int) $row['ID'], self::STATUS_RUNNING, [
+				'STEP' => $step,
+				'ERROR' => null,
+				'expect_status' => self::STATUS_FAILED,
+			])) {
+				$resumed[] = (int) $row['ID'];
+			}
+		}
+		return $resumed;
 	}
 
 	/**
