@@ -62,6 +62,9 @@ $q = (string) ($_GET['q'] ?? '');
 				<li>
 					<strong>Линейки</strong> (фильтр «Тип») — одна модель в разных размерах/вариантах: это разные товары,
 					массовых кнопок нет. Обычно их оставляют в индексе.
+					<strong>Расширенный режим</strong> — линейки показываются вместе с дублями, и их можно закрыть массово:
+					эталон — вариант с наибольшим числом просмотров, у остальных видно, сколько у них просмотров в % от эталона.
+					Подходит для малопопулярных размеров/кодов, которые отдельно никто не ищет.
 				</li>
 				<li>
 					«артикул другой» — названия совпадают, но артикулы разные: проверьте, не разные ли это товары
@@ -110,6 +113,9 @@ $q = (string) ($_GET['q'] ?? '');
 				<option value="lines">линейки (размеры/модели)</option>
 				<option value="all">всё, включая линейки</option>
 			</select>
+		</label>
+		<label title="Линейки (одна модель в разных размерах/мощностях/сериях) показываются вместе с дублями, и у них появляются кнопки «Эталон + закрыть остальных» / «Закрыть весь блок». Эталон линейки — вариант с наибольшим числом просмотров.">
+			<input type="checkbox" id="titlo-dup-ext"> Расширенный режим (линейки)
 		</label>
 		<label title="Откуда брать H1 товара. По умолчанию — SEO-поле «Заголовок товара» инфоблока.">H1 из:
 			<select id="titlo-dup-h1">
@@ -176,6 +182,15 @@ $q = (string) ($_GET['q'] ?? '');
 		return '<span class="titlo-act">' + html +
 			'<span class="titlo-act__tip">' + escapeHtml(tip) + '</span></span> ';
 	}
+
+	var extBox = document.getElementById('titlo-dup-ext');
+	try { extBox.checked = localStorage.getItem('titlo_dup_ext') === '1'; } catch (e) {}
+	function extMode() { return extBox.checked; }
+	extBox.addEventListener('change', function () {
+		try { localStorage.setItem('titlo_dup_ext', extBox.checked ? '1' : '0'); } catch (e) {}
+		page = 1;
+		load();
+	});
 
 	var probeRetries = 0;
 	function probeText(p) {
@@ -278,6 +293,7 @@ $q = (string) ($_GET['q'] ?? '');
 		var q = document.getElementById('titlo-dup-q').value;
 		var minScore = document.getElementById('titlo-dup-score').value;
 		var kind = document.getElementById('titlo-dup-kind').value;
+		if (extMode() && kind === 'dups') kind = 'all';
 		if (!opts.keepHint || !probeRetries) document.getElementById('titlo-dup-list-status').textContent = 'Загрузка… (проверяется весь каталог, до 15–20 с)';
 		post('list_duplicates', {status: status, kind: kind, q: q, page: page, page_size: 15, min_score: minScore}).then(function (res) {
 			var body = document.getElementById('titlo-dup-body');
@@ -338,7 +354,7 @@ $q = (string) ($_GET['q'] ?? '');
 					ignoreBtn = '<span class="titlo-act"><input type="button" class="adm-btn titlo-dup-ignore" value="Оставить как есть">' +
 						'<span class="titlo-act__tip">Ничего не менять и скрыть группу из открытых. Найти и вернуть — фильтр «Кластеры: оставлены как есть». Если в группу добавится новая карточка, она снова станет открытой.</span></span>';
 				}
-				var bulkBtn = (cl.size >= 2 && cl.kind !== 'lines' && cl.kind !== 'homonym')
+				var bulkBtn = (cl.size >= 2 && cl.kind !== 'homonym' && (cl.kind !== 'lines' || extMode()))
 					? ('<span class="titlo-act">' +
 						'<input type="button" class="adm-btn titlo-dup-cluster-noindex" value="Эталон + закрыть остальных">' +
 						'<span class="titlo-act__tip">Первую карточку (зелёная) — «прорабатывать», все остальные в группе — закрыть от индексации.</span>' +
@@ -351,9 +367,9 @@ $q = (string) ($_GET['q'] ?? '');
 				var isLine = cl.kind === 'lines';
 				var refH1 = cl.items.length ? cl.items[0].h1 : '';
 				var rows = cl.items.map(function (item, i) {
-					return renderRow(item, i === 0 && !isLine, refH1);
+					return renderRow(item, i === 0 && (!isLine || extMode()), refH1);
 				}).join('');
-				return '<div class="cluster" data-key="' + escapeHtml(cl.key) + '" data-keep-id="' + keepId + '" data-ids="' + escapeHtml(ids.join(',')) + '">' +
+				return '<div class="cluster" data-kind="' + escapeHtml(cl.kind || '') + '" data-key="' + escapeHtml(cl.key) + '" data-keep-id="' + keepId + '" data-ids="' + escapeHtml(ids.join(',')) + '">' +
 					'<div class="cluster-h">' +
 					'<span>Группа ' + (idx + 1 + (res.page - 1) * res.page_size) + '</span>' +
 					(cl.kind_label ? '<span class="badge badge-kind">' + escapeHtml(cl.kind_label) + '</span>' : '') +
@@ -398,6 +414,9 @@ $q = (string) ($_GET['q'] ?? '');
 			var confirmMsg = closeAll
 				? ('Закрыть от индексации ВЕСЬ блок (' + idList.length + ' карточек), включая эталон #' + keepId + '?')
 				: ('Эталон #' + keepId + ' — прорабатывать.\nОстальные (' + others + ') — закрыть от индексации?');
+			if (cluster.getAttribute('data-kind') === 'lines') {
+				confirmMsg = 'Это линейка — разные товары (размеры/модели), не копии.\n' + confirmMsg;
+			}
 			if (!confirm(confirmMsg)) {
 				return;
 			}

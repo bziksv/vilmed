@@ -80,7 +80,7 @@ class ProductDuplicates
 	/** Пары внутри одного ключа — не больше (защита от n² на шумных словах). */
 	protected const POSTING_MAX = 200;
 	/** Линейку длиннее не показываем: это раздел каталога, а не группа карточек. */
-	protected const LINE_MAX = 100;
+	protected const LINE_MAX = 200;
 
 	/** @var array<int, string> */
 	protected static $redirects = [];
@@ -802,6 +802,18 @@ class ProductDuplicates
 				?: ($y['text_len'] <=> $x['text_len'])
 				?: ($x['id'] <=> $y['id']);
 		});
+		if ($isLine && $items[0]['decision'] !== self::DECISION_KEEP) {
+			$top = 0;
+			foreach ($items as $i => $it) {
+				$closed = $it['noindex'] || $it['decision'] === self::DECISION_NOINDEX;
+				if (!$closed && $it['views'] > $items[$top]['views']) {
+					$top = $i;
+				}
+			}
+			if ($top > 0) {
+				array_unshift($items, array_splice($items, $top, 1)[0]);
+			}
+		}
 
 		$ref = $items[0]['id'];
 		$best = [];
@@ -821,6 +833,12 @@ class ProductDuplicates
 			if ($isLine) {
 				$item['sim_to_top'] = null;
 				$item['sim_label'] = self::variantNote($ctx['parsed'][$item['id']]);
+				if ($i === 0) {
+					$item['sim_label'] = 'эталон линейки: ' . ($item['decision'] === self::DECISION_KEEP
+						? 'отмечен «прорабатывать»' : 'больше всего просмотров') . '; ' . $item['sim_label'];
+				} elseif ($items[0]['views'] > 0) {
+					$item['sim_label'] .= '; просмотров ' . (int) round(100 * $item['views'] / $items[0]['views']) . '% от эталона';
+				}
 				continue;
 			}
 			if ($i === 0) {
