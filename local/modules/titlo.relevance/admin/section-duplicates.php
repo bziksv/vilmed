@@ -60,6 +60,8 @@ $q = (string) ($_GET['q'] ?? '');
 					«одно название — разные товары» — тёзки с разным наполнением: лучше переименовать, чем закрывать.
 				</li>
 				<li>
+					Разделы с 301-редиректом из <code>.htaccess</code> (<code>Redirect 301</code>, правило <code>…-r/ → …</code>)
+					в дубли не попадают — это не отдельные страницы.
 					Не считаются дублями: разные бренды/модели, размеры и серии (0, 2/0, М 1,5),
 					разные страны («ИВЛ, Россия» / «ИВЛ, США»), фасет внутри раздела («X» → «X, Япония»).
 				</li>
@@ -256,7 +258,8 @@ $q = (string) ($_GET['q'] ?? '');
 			var bk = res.open_by_kind || {};
 			document.getElementById('titlo-sdup-list-status').textContent = 'Групп: ' + res.total +
 				' (открытых: по названию ' + (bk.names || 0) + ', по товарам ' + (bk.products || 0) +
-				', похожих ' + (bk.similar || 0) + ', тёзок ' + (bk.homonym || 0) + ')';
+				', похожих ' + (bk.similar || 0) + ', тёзок ' + (bk.homonym || 0) + ')' +
+				(res.redirect_hidden ? '; скрыто разделов с 301-редиректом: ' + res.redirect_hidden : '');
 			if (!res.clusters || !res.clusters.length) {
 				body.innerHTML = '<p>Ничего не найдено. Проверьте ID, поиск по названию, фильтр «Отмеченные: прорабатывать» или понизьте порог %.</p>';
 				document.getElementById('titlo-sdup-pager').innerHTML = '';

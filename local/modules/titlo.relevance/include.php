@@ -15,6 +15,7 @@ Loader::registerAutoLoadClasses('titlo.relevance', [
 	'Titlo\\Relevance\\PhraseBulk' => 'lib/PhraseBulk.php',
 	'Titlo\\Relevance\\ProductDuplicates' => 'lib/ProductDuplicates.php',
 	'Titlo\\Relevance\\SectionDuplicates' => 'lib/SectionDuplicates.php',
+	'Titlo\\Relevance\\RedirectMap' => 'lib/RedirectMap.php',
 	'Titlo\\Relevance\\IndexingControl' => 'lib/IndexingControl.php',
 	'Titlo\\Relevance\\Prompts' => 'lib/Prompts.php',
 	'Titlo\\Relevance\\WorkHistory' => 'lib/WorkHistory.php',

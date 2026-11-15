@@ -36,6 +36,9 @@ class SectionDuplicates
 	/** Слово встречается чаще — по нему кандидатов не ищем (слишком общее). */
 	protected const BLOCK_DF_MAX = 400;
 
+	/** @var array<int, string> */
+	protected static $redirects = [];
+
 	protected const STOP_WORDS = [
 		'для', 'или', 'и', 'в', 'во', 'на', 'с', 'со', 'по', 'из', 'к', 'ко', 'от', 'до',
 		'под', 'над', 'при', 'про', 'а', 'же', 'каталог', 'раздел', 'категория', 'товары',
@@ -167,7 +170,9 @@ class SectionDuplicates
 			$single = [$searchId => $sections[$searchId]];
 			self::enrichItems($single, $sections);
 			$item = $single[$searchId];
-			$item['sim_label'] = 'пар-дублей не найдено';
+			$item['sim_label'] = isset(self::$redirects[$searchId])
+				? ('301-редирект → ' . self::$redirects[$searchId] . ' (в дублях не участвует)')
+				: 'пар-дублей не найдено';
 			$item['reasons'] = [];
 			$filtered[] = [
 				'key' => 'id:' . $searchId,
@@ -195,6 +200,7 @@ class SectionDuplicates
 			'pages' => $pages,
 			'page_size' => $pageSize,
 			'open_by_kind' => $byKind,
+			'redirect_hidden' => count(self::$redirects),
 		];
 	}
 
@@ -348,6 +354,16 @@ class SectionDuplicates
 			}
 		}
 
+		$letters = [];
+		if (mb_strtoupper($name, 'UTF-8') !== $name
+			&& preg_match_all('/(?<![\p{L}\p{N}])\p{Lu}(?![\p{L}\p{N}])/u', $name, $lm)) {
+			foreach ($lm[0] as $l) {
+				$l = mb_strtolower($l, 'UTF-8');
+				if (!in_array($l, ['и', 'в', 'с', 'к', 'о', 'у'], true)) {
+					$letters[$l] = 1;
+				}
+			}
+		}
 		$s = mb_strtolower($name, 'UTF-8');
 		$s = str_replace('ё', 'е', $s);
 		$s = preg_replace('/[\x{00AD}\x{200B}-\x{200F}\x{2060}\x{FEFF}]/u', '', $s) ?? $s;
@@ -365,6 +381,9 @@ class SectionDuplicates
 			}
 			$hasDigit = preg_match('/\d/u', $t) === 1;
 			if (!$hasDigit && mb_strlen($t) === 1) {
+				if (isset($letters[$t])) {
+					$variants[$t] = 1;
+				}
 				continue;
 			}
 			if (preg_match('/^\d+(?:[\/.xх×*]\d+)*$/u', $t)) {
@@ -685,10 +704,12 @@ class SectionDuplicates
 	protected static function buildClusters(array $sections, int $minScore): array
 	{
 		$ctx = ['parsed' => [], 'idf' => [], 'psets' => []];
+		$redirects = self::redirectedSections($sections);
+		self::$redirects = $redirects;
 		$df = [];
 		$active = 0;
 		foreach ($sections as $id => $s) {
-			if (!$s['active']) {
+			if (!$s['active'] || isset($redirects[$id])) {
 				continue;
 			}
 			$active++;
@@ -878,6 +899,33 @@ class SectionDuplicates
 		});
 
 		return $clusters;
+	}
+
+	/**
+	 * Активные разделы, чей URL уходит 301-редиректом (.htaccess): это не отдельные страницы.
+	 *
+	 * @return array<int, string> id => URL назначения
+	 */
+	protected static function redirectedSections(array $sections): array
+	{
+		$ids = [];
+		foreach ($sections as $id => $s) {
+			if ($s['active']) {
+				$ids[] = $id;
+			}
+		}
+		$out = [];
+		foreach (UrlBuilder::mapSectionUrls($ids) as $id => $url) {
+			$path = (string) (parse_url($url, PHP_URL_PATH) ?? '');
+			if ($path === '') {
+				continue;
+			}
+			$to = RedirectMap::target($path);
+			if ($to !== null && RedirectMap::normalizePath($to) !== RedirectMap::normalizePath($path)) {
+				$out[$id] = $to;
+			}
+		}
+		return $out;
 	}
 
 	/**
