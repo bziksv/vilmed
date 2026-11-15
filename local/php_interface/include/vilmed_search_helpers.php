@@ -237,7 +237,7 @@ function vilmedSearchLookupSections(string $lookup, array $elementIds, int $iblo
         }
         $items[] = [
             'ID' => $id,
-            'NAME' => $sec['NAME'],
+            'NAME' => $sec['~NAME'],
             'URL' => $sec['SECTION_PAGE_URL'],
             'COUNT' => $count,
             'PICTURE' => $pic,
@@ -438,7 +438,7 @@ function vilmedSearchSectionFacets(array $elementIds, int $iblockId, int $limit 
         }
         $sections[] = [
             'ID' => $id,
-            'NAME' => $sec['NAME'],
+            'NAME' => $sec['~NAME'],
             'URL' => $sec['SECTION_PAGE_URL'],
             'COUNT' => $counts[$id],
             'PICTURE' => $pic,
@@ -666,7 +666,7 @@ function vilmedSearchBuildProducts(array $elementIds, int $iblockId, int $limit 
 
         $items[] = [
             'ID' => $productId,
-            'NAME' => $el['NAME'],
+            'NAME' => $el['~NAME'],
             'URL' => $el['DETAIL_PAGE_URL'],
             'IMAGE' => $pic,
             'SECTION_ID' => (int)($el['IBLOCK_SECTION_ID'] ?? 0),
@@ -727,7 +727,7 @@ function vilmedSearchBuildSectionsFromIndex(array $rawHits, int $iblockId, int $
         }
         $items[] = [
             'ID' => (int)$sec['ID'],
-            'NAME' => $sec['NAME'],
+            'NAME' => $sec['~NAME'],
             'URL' => $sec['SECTION_PAGE_URL'],
             'IMAGE' => $pic ?: (SITE_TEMPLATE_PATH . '/images/no-photo.jpg'),
             'TYPE' => 'section',

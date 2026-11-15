@@ -140,8 +140,8 @@ $inQuickView = in_array("QUICK_VIEW", $arSetting["GENERAL_SETTINGS"]["VALUE"]);
 					</div>
 					<?//ITEM_TITLE//?>
 					<div class="item-all-title">
-						<a class="item-title" href="<?=$arElement['DETAIL_PAGE_URL']?>" title="<?=htmlspecialcharsbx($arElement['NAME'])?>">
-							<?=htmlspecialcharsbx($arElement['NAME'])?>
+						<a class="item-title" href="<?=$arElement['DETAIL_PAGE_URL']?>" title="<?=htmlspecialcharsbx($arElement['NAME'], ENT_COMPAT, false)?>">
+							<?=htmlspecialcharsbx($arElement['NAME'], ENT_COMPAT, false)?>
 						</a>
 					</div>
 					<?//ARTICLE_RATING//
