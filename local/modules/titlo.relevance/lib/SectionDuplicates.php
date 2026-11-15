@@ -24,6 +24,8 @@ class SectionDuplicates
 	public const KIND_SIMILAR = 'similar';
 	/** Одно название, но товары разные — скорее переименовать, чем закрывать. */
 	public const KIND_HOMONYM = 'homonym';
+	/** Дети одного родителя, отличаются только размером/серией/страной — эталон родитель. */
+	public const KIND_VARIANTS = 'variants';
 
 	/** Совпадение товаров, при котором разные по словам разделы — дубль. */
 	protected const PRODUCTS_JACCARD_MIN = 80;
@@ -141,7 +143,7 @@ class SectionDuplicates
 		$searchId = (ctype_digit($q) && $q !== '') ? (int) $q : 0;
 		$needle = ($q !== '' && $searchId === 0) ? mb_strtolower($q) : '';
 
-		$byKind = ['names' => 0, 'products' => 0, 'similar' => 0, 'homonym' => 0];
+		$byKind = ['names' => 0, 'products' => 0, 'similar' => 0, 'homonym' => 0, 'variants' => 0];
 		$filtered = [];
 		foreach ($clusters as $cluster) {
 			$group = self::kindGroup($cluster['kind']);
@@ -217,6 +219,9 @@ class SectionDuplicates
 		}
 		if ($kind === self::KIND_HOMONYM) {
 			return 'homonym';
+		}
+		if ($kind === self::KIND_VARIANTS) {
+			return 'variants';
 		}
 		return 'names';
 	}
@@ -376,7 +381,7 @@ class SectionDuplicates
 		$s = preg_replace('/[^\p{L}\p{N}\/.\-×*]+/u', ' ', $s) ?? $s;
 		$tokens = preg_split('/\s+/u', trim($s), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
-		$core = $brands = $variants = $found = [];
+		$core = $brands = $variants = $found = $countryWords = [];
 		foreach ($tokens as $t) {
 			$t = trim($t, '.-/*');
 			if ($t === '') {
@@ -401,6 +406,7 @@ class SectionDuplicates
 			$st = self::stem($t);
 			if (isset($countries[$t]) || isset($countries[$st])) {
 				$found[$st] = 1;
+				$countryWords[$t] = 1;
 				continue;
 			}
 			if ($hasDigit) {
@@ -431,6 +437,7 @@ class SectionDuplicates
 			'brands' => $brands,
 			'variants' => $variants,
 			'countries' => $found,
+			'country_words' => $countryWords,
 			'full' => implode(' ', array_keys($core)) . '|' . implode(' ', array_keys($brands))
 				. '|' . implode(' ', array_keys($variants)) . '|' . implode(' ', array_keys($found)),
 		];
@@ -658,6 +665,58 @@ class SectionDuplicates
 		return $union > 0 ? (int) round(100 * $inter / $union) : null;
 	}
 
+	/**
+	 * Линейки: дети одного родителя с тем же смыслом и брендом, но разным размером/серией/страной.
+	 * Бренд — часть подписи, поэтому «Мониторы COMEN» / «Мониторы Mindray» сюда не попадают.
+	 *
+	 * @return array<string, array{0:int,1:int[]}> key => [parentId, memberIds]
+	 */
+	protected static function variantGroups(array $sections, array $ctx): array
+	{
+		$sig = static function (array $p): string {
+			return implode(' ', array_keys($p['core'])) . '|' . implode(' ', array_keys($p['brands']));
+		};
+		$byParent = [];
+		foreach ($ctx['parsed'] as $id => $p) {
+			$pid = (int) $sections[$id]['parent'];
+			if ($pid <= 0 || !isset($ctx['parsed'][$pid])) {
+				continue;
+			}
+			if (($p['core'] === [] && $p['brands'] === []) || ($p['variants'] === [] && $p['countries'] === [])) {
+				continue;
+			}
+			$byParent[$pid][$sig($p)][] = $id;
+		}
+		$out = [];
+		foreach ($byParent as $pid => $bySig) {
+			$parentSig = $sig($ctx['parsed'][$pid]);
+			foreach ($bySig as $s => $members) {
+				$fulls = [];
+				foreach ($members as $m) {
+					$fulls[$ctx['parsed'][$m]['full']] = true;
+				}
+				if (count($fulls) >= 2 || $s === $parentSig) {
+					$out[$pid . ':' . md5($s)] = [$pid, $members];
+				}
+			}
+		}
+		return $out;
+	}
+
+	protected static function variantNote(array $p): string
+	{
+		$parts = [];
+		if ($p['variants'] !== []) {
+			$parts[] = 'размер/серия ' . implode(', ', array_map('strval', array_keys($p['variants'])));
+		}
+		if (!empty($p['country_words'])) {
+			$parts[] = 'страна ' . implode(', ', array_map(static function ($w) {
+				return mb_convert_case((string) $w, MB_CASE_TITLE, 'UTF-8');
+			}, array_keys($p['country_words'])));
+		}
+		return $parts !== [] ? implode('; ', $parts) : 'вариант';
+	}
+
 	protected static function kindRank(string $kind): int
 	{
 		return [
@@ -667,6 +726,7 @@ class SectionDuplicates
 			self::KIND_PRODUCTS => 2,
 			self::KIND_SIMILAR => 3,
 			self::KIND_HOMONYM => 4,
+			self::KIND_VARIANTS => 5,
 		][$kind] ?? 9;
 	}
 
@@ -679,6 +739,7 @@ class SectionDuplicates
 			self::KIND_PRODUCTS => 'одни и те же товары',
 			self::KIND_SIMILAR => 'похожие названия',
 			self::KIND_HOMONYM => 'одно название — разные товары',
+			self::KIND_VARIANTS => 'линейка: размеры/серии/страны → родитель',
 		][$kind] ?? '';
 	}
 
@@ -691,6 +752,8 @@ class SectionDuplicates
 				return 'то же название, вложен';
 			case self::KIND_COUNTRY:
 				return 'то же название, другая страна';
+			case self::KIND_VARIANTS:
+				return $edge['note'];
 			case self::KIND_HOMONYM:
 				return 'то же название, товары другие (общих ' . $edge['products'] . '%)';
 			case self::KIND_PRODUCTS:
@@ -866,6 +929,24 @@ class SectionDuplicates
 			}
 		}
 
+		$forcedRef = [];
+		foreach (self::variantGroups($sections, $ctx) as $key => [$parentId, $members]) {
+			$root = '2:' . $key;
+			$groups[$root] = array_merge([$parentId], $members);
+			$forcedRef[$root] = $parentId;
+			foreach ($members as $m) {
+				$groupEdges[$root][] = [
+					'a' => $parentId,
+					'b' => $m,
+					'score' => 100,
+					'kind' => self::KIND_VARIANTS,
+					'name_score' => 100,
+					'products' => null,
+					'note' => self::variantNote($ctx['parsed'][$m]),
+				];
+			}
+		}
+
 		$clusterIds = [];
 		foreach ($groups as $ids) {
 			foreach ($ids as $id) {
@@ -893,6 +974,15 @@ class SectionDuplicates
 					?: ($x['depth'] <=> $y['depth'])
 					?: ($x['id'] <=> $y['id']);
 			});
+			if (isset($forcedRef[$root])) {
+				foreach ($items as $i => $it) {
+					if ($it['id'] === $forcedRef[$root] && $i > 0) {
+						array_splice($items, $i, 1);
+						array_unshift($items, $it);
+						break;
+					}
+				}
+			}
 
 			$ref = $items[0]['id'];
 			$best = [];
@@ -918,7 +1008,15 @@ class SectionDuplicates
 				$item['distinct'] = false;
 				if ($i === 0) {
 					$item['sim_to_top'] = 100;
-					$item['sim_label'] = 'эталон: ' . ($item['products'] > 0 ? 'больше всего товаров' : 'первый по структуре');
+					$item['sim_label'] = isset($forcedRef[$root])
+						? 'эталон: общий родитель линейки'
+						: ('эталон: ' . ($item['products'] > 0 ? 'больше всего товаров' : 'первый по структуре'));
+					continue;
+				}
+				if (isset($forcedRef[$root])) {
+					$e = $best[$item['id']];
+					$item['sim_to_top'] = 100;
+					$item['sim_label'] = 'вариант родителя #' . $ref . ': ' . self::reasonText($e);
 					continue;
 				}
 				$edge = self::evalPair(min($ref, $item['id']), max($ref, $item['id']), $sections, $minScore, $ctx);

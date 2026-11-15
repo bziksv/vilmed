@@ -64,8 +64,10 @@ $q = (string) ($_GET['q'] ?? '');
 					редирект в <code>.htaccess</code> (<code>Redirect</code>, <code>RedirectMatch</code>, <code>RewriteRule [R]</code>)
 					и фактический HTTP-ответ страницы — 3xx (nginx, Apache, PHP, SEO-модули) или canonical на другой URL.
 					HTTP-проверка кешируется на 7 дней; «Перепроверить URL» — сбросить кеш.
-					Не считаются дублями: разные бренды/модели, размеры и серии (0, 2/0, М 1,5),
-					разные страны («ИВЛ, Россия» / «ИВЛ, США»), фасет внутри раздела («X» → «X, Япония»).
+					<strong>Линейки</strong> — подразделы одного родителя, которые отличаются только размером/серией
+					(0, 2/0, М 1,5) или страной («ИВЛ, Россия» / «ИВЛ, США», «X» → «X, Япония»):
+					эталон — общий родитель, варианты можно закрыть одной кнопкой.
+					Разные бренды/модели («Мониторы» / «Мониторы COMEN») дублями не считаются.
 				</li>
 				<li>
 					Строка с пометкой <span class="badge badge-distinct">другие товары</span> — в группе по названию,
@@ -107,6 +109,7 @@ $q = (string) ($_GET['q'] ?? '');
 				<option value="products">одни и те же товары</option>
 				<option value="similar">похожие названия</option>
 				<option value="homonym">одно название — разные товары</option>
+				<option value="variants">линейки (размеры/серии/страны)</option>
 			</select>
 		</label>
 		<input type="text" id="titlo-sdup-q" class="adm-input" placeholder="ID / название / код" value="<?= htmlspecialcharsbx($q) ?>" style="width:260px">
@@ -172,7 +175,7 @@ $q = (string) ($_GET['q'] ?? '');
 		return s;
 	}
 	function scheduleProbeReload(p) {
-		if (p && p.pending && probeRetries < 30) {
+		if (p && p.pending && probeRetries < 200) {
 			probeRetries++;
 			setTimeout(function () { load({ keepHint: true }); }, 500);
 		} else {
@@ -280,7 +283,7 @@ $q = (string) ($_GET['q'] ?? '');
 			var bk = res.open_by_kind || {};
 			document.getElementById('titlo-sdup-list-status').textContent = 'Групп: ' + res.total +
 				' (открытых: по названию ' + (bk.names || 0) + ', по товарам ' + (bk.products || 0) +
-				', похожих ' + (bk.similar || 0) + ', тёзок ' + (bk.homonym || 0) + ')' +
+				', похожих ' + (bk.similar || 0) + ', тёзок ' + (bk.homonym || 0) + ', линеек ' + (bk.variants || 0) + ')' +
 				(res.redirect_hidden ? '; скрыто — редирект/canonical на другую страницу: ' + res.redirect_hidden : '') +
 				probeText(res.probe);
 			scheduleProbeReload(res.probe);
