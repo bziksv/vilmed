@@ -176,27 +176,27 @@ $q = (string) ($_GET['q'] ?? '');
 	}
 
 	/**
-	 * Перед закрытием: товары, у которых не останется открытой категории → модалка «добавить в категорию».
-	 * proceed() — само закрытие; «Отмена» — ничего не делаем.
+	 * Перед закрытием: товары, у которых не останется открытой категории → модалка «добавить в категорию»
+	 * (она же подтверждение). Нет таких товаров — обычный confirm(confirmMsg), если он задан.
 	 */
-	function guardOrphans(closeIds, targetId, proceed) {
+	function guardOrphans(closeIds, targetId, proceed, confirmMsg) {
 		var hint = document.getElementById('titlo-sdup-hint');
 		hint.style.display = '';
 		hint.innerHTML = 'Проверяю товары закрываемых категорий…';
 		post('section_dup_orphans', {ids: closeIds.join(','), target_id: targetId || 0}).then(function (res) {
+			hint.style.display = 'none';
 			if (!res.ok || !res.products || !res.products.length) {
-				hint.style.display = 'none';
-				proceed();
+				if (!confirmMsg || confirm(confirmMsg)) proceed();
 				return;
 			}
-			hint.style.display = 'none';
-			showOrphanModal(res, proceed);
+			showOrphanModal(res, proceed, confirmMsg);
 		}).catch(function () {
+			hint.style.display = '';
 			hint.innerHTML = '<span style="color:#c00">Не удалось проверить товары — закрытие отменено.</span>';
 		});
 	}
 
-	function showOrphanModal(res, proceed) {
+	function showOrphanModal(res, proceed, confirmMsg) {
 		var wrap = document.createElement('div');
 		wrap.className = 'titlo-modal';
 		var opts = (res.targets || []).map(function (t) {
@@ -210,6 +210,7 @@ $q = (string) ($_GET['q'] ?? '');
 		}).join('');
 		wrap.innerHTML =
 			'<div class="titlo-modal__box">' +
+			(confirmMsg ? '<p><b>' + escapeHtml(confirmMsg).replace(/\n/g, '<br>') + '</b></p>' : '') +
 			'<h3>' + res.products.length + ' товар(ов) останутся без открытой категории</h3>' +
 			'<p>Все их категории закрываются или уже закрыты от индексации. Добавьте им дополнительную категорию, которая остаётся в индексе — ' +
 			'основной раздел товара и URL не меняются.</p>' +
@@ -485,14 +486,8 @@ $q = (string) ($_GET['q'] ?? '');
 				? ('Закрыть от индексации ВЕСЬ блок (' + idList.length + ' категорий), включая эталон #' + keepId + '?')
 				: ('Эталон #' + keepId + ' — прорабатывать.\nОстальные (' + others + ') — закрыть от индексации?' +
 					(skipped > 0 ? '\nС другими товарами (' + skipped + ') — не трогаем.' : ''));
-			if (!confirm(confirmMsg)) {
-				return;
-			}
 			var closing = closeAll ? idList : idList.filter(function (x) { return x !== String(keepId); });
-			guardOrphans(closing, closeAll ? 0 : keepId, function () { runClusterClose(); });
-			return;
-
-			function runClusterClose() {
+			var runClusterClose = function () {
 			var labelKeep = 'Эталон + закрыть остальных';
 			var labelAll = 'Закрыть весь блок';
 			btn.disabled = true;
@@ -522,7 +517,9 @@ $q = (string) ($_GET['q'] ?? '');
 				hint.style.display = '';
 				hint.innerHTML = '<span style="color:#c00">Сеть/ответ сервера: ' + escapeHtml((err && err.message) ? err.message : 'ошибка') + '</span>';
 			});
-			}
+			};
+			guardOrphans(closing, closeAll ? 0 : keepId, runClusterClose, confirmMsg);
+			return;
 		}
 		if (!btn.classList.contains('titlo-sdup-keep') && !btn.classList.contains('titlo-sdup-noindex') && !btn.classList.contains('titlo-sdup-clear') && !btn.classList.contains('titlo-sdup-open')) return;
 		var tr = btn.closest('tr');
