@@ -137,8 +137,9 @@ $q = (string) ($_GET['q'] ?? '');
 				</li>
 				<li>
 					<strong>Прорабатывать</strong> — канон.
-					<strong>Закрыть от индексации</strong> — meta robots noindex на странице раздела
-					(<code>robots.txt</code> не меняем).
+					<strong>Закрыть от индексации</strong> — meta robots noindex только на странице раздела
+					(<code>robots.txt</code> не меняем). Товары сами не закрываются; галка раздела
+					«Скрыть товары от индексации» при этом не ставится.
 				</li>
 				<li>
 					<strong>Сбросить</strong> — убрать решение.
