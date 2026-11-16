@@ -395,10 +395,8 @@ class IndexingControl
 		self::setUfNoindexEntity('SECTION', $sectionId, $on);
 		$channels[] = 'uf:' . self::UF_NOINDEX;
 
-		// Нативное UF магазина (часто UF_ROBOTS_NOINDEX) — если колонка есть
-		if (self::syncShopSectionRobotsUf($sectionId, $on)) {
-			$channels[] = 'uf:UF_ROBOTS_NOINDEX';
-		}
+		// UF_ROBOTS_NOINDEX НЕ трогаем: у шаблона это «Скрыть товары от индексации»
+		// (каскад noindex на карточки с коротким описанием), а не закрытие раздела.
 
 		if (self::useSeoRobots()) {
 			self::setSectionSeoRobots($sectionId, $iblockId, $on);
@@ -411,30 +409,50 @@ class IndexingControl
 	}
 
 	/**
-	 * Синхронизация UF_ROBOTS_NOINDEX раздела (витрины, где шаблон читает это поле).
+	 * Снять ошибочно выставленный Titlo UF_ROBOTS_NOINDEX у закрытых разделов.
+	 * Поле магазина скрывает товары, а не страницу раздела.
+	 *
+	 * @return array{ok:bool,cleared:int}
 	 */
-	protected static function syncShopSectionRobotsUf(int $sectionId, bool $on): bool
+	public static function repairSectionProductHideFlag(): array
 	{
-		$col = 'UF_ROBOTS_NOINDEX';
-		if (!self::hasUfColumnEntity('SECTION', $col)) {
-			return false;
+		if (!self::hasUfColumnEntity('SECTION', 'UF_ROBOTS_NOINDEX')) {
+			return ['ok' => true, 'cleared' => 0];
 		}
 		global $DB;
-		$uts = 'b_uts_iblock_' . (int) Config::iblockId() . '_section';
-		$row = $DB->Query('SELECT VALUE_ID FROM ' . $uts . ' WHERE VALUE_ID=' . (int) $sectionId)->Fetch();
-		$val = $on ? '1' : '0';
-		if ($row) {
-			$DB->Query('UPDATE ' . $uts . ' SET ' . $col . '=' . $val . ' WHERE VALUE_ID=' . (int) $sectionId);
+		$iblockId = (int) Config::iblockId();
+		$uts = 'b_uts_iblock_' . $iblockId . '_section';
+		$where = 'UF_ROBOTS_NOINDEX IN (1,\'1\',\'Y\')';
+		if (self::hasUfColumnEntity('SECTION', self::UF_NOINDEX)) {
+			$where .= ' AND (' . self::UF_NOINDEX . " IN (1,'1','Y')";
+			if (self::hasUfColumnEntity('SECTION', 'UF_TITLO_DUP_DECISION')) {
+				$where .= " OR UF_TITLO_DUP_DECISION = 'noindex'";
+			}
+			$where .= ')';
+		} elseif (self::hasUfColumnEntity('SECTION', 'UF_TITLO_DUP_DECISION')) {
+			$where .= " AND UF_TITLO_DUP_DECISION = 'noindex'";
 		} else {
-			$DB->Query('INSERT INTO ' . $uts . ' (VALUE_ID, ' . $col . ') VALUES (' . (int) $sectionId . ', ' . $val . ')');
+			return ['ok' => true, 'cleared' => 0];
 		}
+		$ids = [];
+		$res = $DB->Query('SELECT VALUE_ID FROM ' . $uts . ' WHERE ' . $where);
+		while ($row = $res->Fetch()) {
+			$ids[] = (int) $row['VALUE_ID'];
+		}
+		if ($ids === []) {
+			return ['ok' => true, 'cleared' => 0];
+		}
+		$DB->Query('UPDATE ' . $uts . ' SET UF_ROBOTS_NOINDEX = 0 WHERE VALUE_ID IN (' . implode(',', $ids) . ')');
 		global $USER_FIELD_MANAGER;
 		if (is_object($USER_FIELD_MANAGER)) {
-			$USER_FIELD_MANAGER->Update('IBLOCK_' . Config::iblockId() . '_SECTION', $sectionId, [
-				$col => $on ? 1 : 0,
-			]);
+			foreach ($ids as $id) {
+				$USER_FIELD_MANAGER->Update('IBLOCK_' . $iblockId . '_SECTION', $id, [
+					'UF_ROBOTS_NOINDEX' => 0,
+				]);
+			}
 		}
-		return true;
+		\CIBlock::clearIblockTagCache($iblockId);
+		return ['ok' => true, 'cleared' => count($ids)];
 	}
 
 	public static function isSectionNoindex(int $sectionId): bool
@@ -444,15 +462,6 @@ class IndexingControl
 		}
 		if (self::readUfNoindexEntity('SECTION', $sectionId)) {
 			return true;
-		}
-		if (self::hasUfColumnEntity('SECTION', 'UF_ROBOTS_NOINDEX')) {
-			global $DB;
-			$uts = 'b_uts_iblock_' . (int) Config::iblockId() . '_section';
-			$row = $DB->Query('SELECT UF_ROBOTS_NOINDEX AS V FROM ' . $uts . ' WHERE VALUE_ID=' . (int) $sectionId)->Fetch();
-			$v = $row['V'] ?? null;
-			if ($v === '1' || $v === 1 || $v === 'Y') {
-				return true;
-			}
 		}
 		if (self::useSeoRobots() && self::readSectionSeoIsNoindex($sectionId, Config::iblockId())) {
 			return true;
@@ -507,20 +516,6 @@ class IndexingControl
 				$tpl = mb_strtolower((string) $row['TEMPLATE']);
 				if (strpos($tpl, 'noindex') !== false) {
 					$out[(int) $row['ENTITY_ID']] = true;
-				}
-			}
-		}
-
-		if (self::hasUfColumnEntity('SECTION', 'UF_ROBOTS_NOINDEX')) {
-			$res = $DB->Query('
-				SELECT VALUE_ID, UF_ROBOTS_NOINDEX AS V
-				FROM ' . $uts . '
-				WHERE VALUE_ID IN (' . $idList . ')
-			');
-			while ($row = $res->Fetch()) {
-				$v = $row['V'];
-				if ($v === '1' || $v === 1 || $v === 'Y' || $v === true) {
-					$out[(int) $row['VALUE_ID']] = true;
 				}
 			}
 		}
@@ -826,8 +821,11 @@ class IndexingControl
 			return;
 		}
 		$eid = self::guessCurrentElementId();
-		if ($eid > 0 && self::isNoindex($eid)) {
-			$APPLICATION->SetPageProperty('robots', 'noindex, nofollow');
+		if ($eid > 0) {
+			// Карточка товара: noindex только у самого товара, не наследуем от раздела.
+			if (self::isNoindex($eid)) {
+				$APPLICATION->SetPageProperty('robots', 'noindex, nofollow');
+			}
 			return;
 		}
 		$sid = self::guessCurrentSectionId();
@@ -855,14 +853,12 @@ class IndexingControl
 		}
 		$need = false;
 		$eid = self::guessCurrentElementId();
-		if ($eid > 0 && self::isNoindex($eid)) {
-			$need = true;
-		}
-		if (!$need) {
+		if ($eid > 0) {
+			// Карточка товара: только флаг товара, раздел не каскадируем.
+			$need = self::isNoindex($eid);
+		} else {
 			$sid = self::guessCurrentSectionId();
-			if ($sid > 0 && self::isSectionNoindex($sid)) {
-				$need = true;
-			}
+			$need = $sid > 0 && self::isSectionNoindex($sid);
 		}
 		if (!$need) {
 			return;
