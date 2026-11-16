@@ -792,6 +792,27 @@ class SectionDuplicates
 	}
 
 	/**
+	 * Подпись про пересечение товаров с эталоном ($ref).
+	 * Если все товары раздела входят в эталон — пишем прямо, иначе Jaccard %.
+	 */
+	protected static function productOverlapLabel(int $ref, int $id, array $sections, array &$ctx): string
+	{
+		$sa = self::productSet($id, $sections, $ctx);
+		$sb = self::productSet($ref, $sections, $ctx);
+		if ($sa === [] || $sb === []) {
+			return '';
+		}
+		$inter = count(array_intersect_key($sa, $sb));
+		$n = count($sa);
+		if ($inter === $n) {
+			return 'все ' . $n . ' товаров есть в эталоне';
+		}
+		$union = $n + count($sb) - $inter;
+		$pct = $union > 0 ? (int) round(100 * $inter / $union) : 0;
+		return 'общих товаров с эталоном ' . $pct . '%';
+	}
+
+	/**
 	 * Линейки: дети одного родителя с тем же смыслом и брендом, но разным размером/серией/страной.
 	 * Бренд — часть подписи, поэтому «Мониторы COMEN» / «Мониторы Mindray» сюда не попадают.
 	 *
@@ -881,7 +902,10 @@ class SectionDuplicates
 			case self::KIND_VARIANTS:
 				return $edge['note'];
 			case self::KIND_HOMONYM:
-				return 'то же название, товары другие (общих ' . $edge['products'] . '%)';
+				$p = $edge['products'];
+				return $p === null
+					? 'то же название, товары другие'
+					: ('то же название, товары другие (общих с эталоном ' . $p . '%)');
 			case self::KIND_PRODUCTS:
 				return 'общих товаров ' . $edge['products'] . '%, слова ' . $edge['name_score'] . '%';
 			default:
@@ -1151,10 +1175,15 @@ class SectionDuplicates
 					$e = $best[$item['id']];
 					$item['sim_to_top'] = 100;
 					$item['sim_label'] = 'вариант родителя #' . $ref . ': ' . self::reasonText($e);
+					$overlap = self::productOverlapLabel($ref, $item['id'], $sections, $ctx);
+					if ($overlap !== '') {
+						$item['sim_label'] .= '; ' . $overlap;
+					}
 					continue;
 				}
 				$edge = self::evalPair(min($ref, $item['id']), max($ref, $item['id']), $sections, $minScore, $ctx);
-				$item['distinct'] = $edge !== null && $edge['kind'] === self::KIND_HOMONYM && $worstKind !== self::KIND_HOMONYM;
+				// Бейдж «другие товары» — всегда, если относительно эталона это тёзки (и в чистой группе тёзок тоже).
+				$item['distinct'] = $edge !== null && $edge['kind'] === self::KIND_HOMONYM;
 				if ($edge !== null) {
 					$item['sim_to_top'] = $edge['score'];
 					$item['sim_label'] = 'как #' . $ref . ': ' . self::reasonText($edge);
@@ -1164,9 +1193,13 @@ class SectionDuplicates
 					$item['sim_to_top'] = $e['score'];
 					$item['sim_label'] = 'как #' . $other . ': ' . self::reasonText($e);
 				}
-				$j = self::productJaccard($ref, $item['id'], $sections, $ctx);
-				if ($j !== null && ($edge === null || $edge['kind'] !== self::KIND_PRODUCTS)) {
-					$item['sim_label'] .= '; общих товаров с эталоном ' . $j . '%';
+				// Не дублируем %: у homonym/products он уже в reasonText.
+				$skipOverlap = $edge !== null && in_array($edge['kind'], [self::KIND_PRODUCTS, self::KIND_HOMONYM], true);
+				if (!$skipOverlap) {
+					$overlap = self::productOverlapLabel($ref, $item['id'], $sections, $ctx);
+					if ($overlap !== '') {
+						$item['sim_label'] .= '; ' . $overlap;
+					}
 				}
 			}
 			unset($item);
