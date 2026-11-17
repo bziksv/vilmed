@@ -23,7 +23,8 @@ if(is_array($arResult["DETAIL_PICTURE"])) {
 
 //PROPERTY_LINKED_ID//
 $arResult["PROPERTY_LINKED_ID"] = $arResult["PROPERTIES"]["LINKED"]["VALUE"];
-$arResult["PROPERTY_DETAIL_TEXT_AFTER"] = $arResult["PROPERTIES"]["DETAIL_TEXT_AFTER"]["~VALUE"]["TEXT"];
+$vilmedAfter = $arResult["PROPERTIES"]["DETAIL_TEXT_AFTER"]["~VALUE"] ?? null;
+$arResult["PROPERTY_DETAIL_TEXT_AFTER"] = is_array($vilmedAfter) ? (string)($vilmedAfter["TEXT"] ?? "") : "";
 
 //CACHE_KEYS//
 $this->__component->SetResultCacheKeys(
