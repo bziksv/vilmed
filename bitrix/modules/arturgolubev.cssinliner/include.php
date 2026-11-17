@@ -106,50 +106,53 @@ Class CArturgolubevCssinliner
 		return trim($style);
 	}
 	
+	// CPHPCache::StartDataCache() делает ob_start(). Этот код вызывается из OnEndBufferContent,
+	// то есть уже внутри обработчика буфера: на промахе кеша PHP 8 даёт пустой HTTP 500.
+	protected static function readCachedStyle($bucket, $cacheId, $ttl)
+	{
+		$file = $_SERVER['DOCUMENT_ROOT'].'/bitrix/cache/arturgolubev.cssinliner/'.$bucket.'/'.$cacheId.'.css';
+		if (is_file($file) && (time() - filemtime($file) < $ttl))
+		{
+			$style = file_get_contents($file);
+			if ($style !== false)
+				return $style;
+		}
+		return null;
+	}
+
+	protected static function writeCachedStyle($bucket, $cacheId, $style)
+	{
+		$dir = $_SERVER['DOCUMENT_ROOT'].'/bitrix/cache/arturgolubev.cssinliner/'.$bucket;
+		if (!is_dir($dir))
+			@mkdir($dir, 0755, true);
+		@file_put_contents($dir.'/'.$cacheId.'.css', $style, LOCK_EX);
+	}
+
 	public static function getOuterCss($url, $useOptimize = 'N', $arDopSearch = array(), $arDopReplace = array()){
 		if(substr($url,0,2) == '//') $url = 'https:'.$url;
-		
-		$obCache = new CPHPCache();
-		
-		$timeSeconds = 86400;
+
 		$cacheId = md5($url.$useOptimize.serialize($arDopSearch).serialize($arDopReplace));
-		$cachePath = '/'.SITE_ID.'/arturgolubev.cssinliner/outer/';
-		
-		if($obCache->InitCache($timeSeconds, $cacheId, $cachePath))
-		{
-			$vars = $obCache->GetVars();
-			$style = $vars['style'];
-		}
-		elseif($obCache->StartDataCache())
-		{
-			$style = self::_getOuterStyle($url);
-			$style = self::baseOptimize($style, $useOptimize, $arDopSearch, $arDopReplace);
-			
-			$obCache->EndDataCache(array('style' => $style));
-		}
-		
+		$cached = self::readCachedStyle('outer', $cacheId, 86400);
+		if ($cached !== null)
+			return $cached;
+
+		$style = self::_getOuterStyle($url);
+		$style = self::baseOptimize($style, $useOptimize, $arDopSearch, $arDopReplace);
+		self::writeCachedStyle('outer', $cacheId, $style);
+
 		return $style;
 	}
 	
 	public static function getInnerCss($url, $useOptimize = 'N', $arDopSearch = array(), $arDopReplace = array()){
-		$obCache = new CPHPCache();
-		
-		$timeSeconds = 3600;
 		$cacheId = md5($url.$useOptimize.serialize($arDopSearch).serialize($arDopReplace));
-		$cachePath = '/'.SITE_ID.'/arturgolubev.cssinliner/'.basename($url);
-		
-		if($obCache->InitCache($timeSeconds, $cacheId, $cachePath))
-		{
-			$vars = $obCache->GetVars();
-			$style = $vars['style'];
-		}
-		elseif($obCache->StartDataCache())
-		{
-			$style = trim(file_get_contents($_SERVER['DOCUMENT_ROOT'].$url));
-			$style = self::baseOptimize($style, $useOptimize, $arDopSearch, $arDopReplace);
-			$obCache->EndDataCache(array('style' => $style));
-		}
-		
+		$cached = self::readCachedStyle('inner', $cacheId, 3600);
+		if ($cached !== null)
+			return $cached;
+
+		$style = trim(file_get_contents($_SERVER['DOCUMENT_ROOT'].$url));
+		$style = self::baseOptimize($style, $useOptimize, $arDopSearch, $arDopReplace);
+		self::writeCachedStyle('inner', $cacheId, $style);
+
 		return $style;
 	}
 	

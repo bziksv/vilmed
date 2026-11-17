@@ -272,7 +272,7 @@ ID инфоблоков зашиты в коде компонентов и inclu
 - `yandex.market` — Яндекс.Маркет
 
 ### SEO и производительность
-- `arturgolubev.cssinliner` — инлайн CSS
+- `arturgolubev.cssinliner` — инлайн CSS. В `include.php` кеш стилей пишется в файл (`bitrix/cache/arturgolubev.cssinliner/`), без `CPHPCache::StartDataCache()`: тот вызывал `ob_start()` из `OnEndBufferContent` и на промахе кеша отдавал пустой HTTP 500 (PHP 8). При обновлении модуля патч нужно вернуть.
 - `arturgolubev.htmlcompressor` — сжатие HTML
 - `delight.webpconverter` — конвертация в WebP
 - `dev2fun.imagecompress` — сжатие изображений
