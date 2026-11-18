@@ -51,6 +51,10 @@ class UserFields
 			return true;
 		}
 
+		// CUserTypeEntity::Add probes the column with a failing SELECT; mysqli strict reporting turns it into a fatal.
+		if (function_exists('mysqli_report')) {
+			mysqli_report(MYSQLI_REPORT_OFF);
+		}
 		$oUserType = new \CUserTypeEntity();
 		$id = $oUserType->Add([
 			'ENTITY_ID' => $entityId,
