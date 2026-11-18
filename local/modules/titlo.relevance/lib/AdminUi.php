@@ -72,19 +72,18 @@ class AdminUi
 						placeholder="части слов: отос kaw" autocomplete="off" spellcheck="false"
 						aria-label="Поиск раздела по частям слов">
 					<div class="titlo-section-ms__hint">Части слов в любом порядке · список разделов ниже</div>
-					<label class="titlo-section-ms__toggle" title="Если снять — в списке останутся только разделы с подразделами и разделы верхнего уровня. Выбор раздела всё равно включает все его подразделы.">
+					<label class="titlo-section-ms__toggle" title="Если снять — в списке только разделы верхнего уровня. Выбор раздела всё равно включает все его подразделы.">
 						<input type="checkbox" id="titlo-section-ms-show-all" checked>
-						Показывать все категории (снять — только родительские)
+						Показывать подразделы (снять — только верхний уровень)
 					</label>
 					<div class="titlo-section-ms__list" id="titlo-section-ms-list" role="listbox" aria-multiselectable="true">
-						<?php foreach ($tree as $i => $sec): ?>
+						<?php foreach ($tree as $sec): ?>
 							<?php
 							$sid = (int) $sec['id'];
 							$checked = isset($selectedMap[$sid]);
-							$hasChildren = isset($tree[$i + 1]) && (int) $tree[$i + 1]['depth'] > (int) $sec['depth'];
-							$isLeaf = !$hasChildren && (int) $sec['depth'] > 1;
+							$isNested = (int) $sec['depth'] > 1;
 							?>
-							<label class="titlo-section-ms__item" data-name="<?= htmlspecialcharsbx($sec['name']) ?>"<?= $isLeaf ? ' data-leaf="1"' : '' ?>>
+							<label class="titlo-section-ms__item" data-name="<?= htmlspecialcharsbx($sec['name']) ?>"<?= $isNested ? ' data-nested="1"' : '' ?>>
 								<input type="checkbox" class="titlo-section-ms__cb" value="<?= $sid ?>"
 									<?= $checked ? 'checked' : '' ?>>
 								<span><?= htmlspecialcharsbx($sec['label']) ?></span>
@@ -208,7 +207,7 @@ class AdminUi
 				var showAllEl = document.getElementById('titlo-section-ms-show-all');
 				var parentsOnly = showAllEl && !showAllEl.checked;
 				function allowed(item) {
-					if (!parentsOnly || item.getAttribute('data-leaf') !== '1') return true;
+					if (!parentsOnly || item.getAttribute('data-nested') !== '1') return true;
 					var cb = item.querySelector('.titlo-section-ms__cb');
 					return !!(cb && cb.checked);
 				}
