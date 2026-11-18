@@ -2464,6 +2464,11 @@ class CatalogRepository
 			)';
 		}
 
+		$dupSql = self::sqlSectionPhraseDupJoin($iblockId, $uts, $phraseCol);
+		if ($filterMode === 'phrase_dup') {
+			$where[] = 'PD.CNT IS NOT NULL';
+		}
+
 		$branchSql = self::sqlSectionInAnySubtree($sectionIds);
 		if ($branchSql !== null) {
 			$where[] = $branchSql;
@@ -2504,6 +2509,7 @@ class CatalogRepository
 			SELECT COUNT(*) AS CNT
 			FROM b_iblock_section BS
 			LEFT JOIN {$uts} UTS ON UTS.VALUE_ID = BS.ID
+			{$dupSql}
 			WHERE {$whereSql}
 		")->Fetch()['CNT'] ?? 0);
 
@@ -2513,6 +2519,8 @@ class CatalogRepository
 				. ' COALESCE(WH.AFTER_POINTS, WH.BEFORE_POINTS) ASC,'
 				. ' BS.ID DESC';
 		}
+		// Одинаковая фраза у нескольких категорий — сверху, рядом друг с другом: сначала решить, кого прорабатывать.
+		$orderSql = '(PD.CNT IS NULL) ASC, PD.P ASC, BS.DEPTH_LEVEL ASC, ' . $orderSql;
 		if ($q !== '' && !ctype_digit($q)) {
 			$orderSql = self::sqlSearchRelevanceScore('BS', $q, $phraseCol) . ' DESC, ' . $orderSql;
 		}
@@ -2522,10 +2530,12 @@ class CatalogRepository
 				BS.ID,
 				BS.NAME,
 				BS.CODE,
+				BS.IBLOCK_SECTION_ID,
 				{$detailExpr} AS DESCRIPTION,
 				CHAR_LENGTH(COALESCE({$detailExpr}, '')) AS DETAIL_LEN,
 				UTS.{$phraseCol} AS TITLO_PHRASE,
 				UTS.{$autoAtCol} AS TITLO_AUTO_AT,
+				PD.CNT AS PHRASE_DUP_CNT,
 				WH.WH_ID,
 				WH.BEFORE_POINTS, WH.AFTER_POINTS,
 				WH.BEFORE_POINTS_IDEAL, WH.AFTER_POINTS_IDEAL,
@@ -2533,6 +2543,7 @@ class CatalogRepository
 				WH.BEFORE_AT, WH.AFTER_AT
 			FROM b_iblock_section BS
 			LEFT JOIN {$uts} UTS ON UTS.VALUE_ID = BS.ID
+			{$dupSql}
 			{$whJoin}
 			WHERE {$whereSql}
 			ORDER BY {$orderSql}
@@ -2580,6 +2591,7 @@ class CatalogRepository
 				'id' => (int) $row['ID'],
 				'name' => (string) $row['NAME'],
 				'code' => (string) $row['CODE'],
+				'parent_id' => (int) ($row['IBLOCK_SECTION_ID'] ?? 0),
 				'titlo_phrase' => trim((string) ($row['TITLO_PHRASE'] ?? '')),
 				'detail_chars' => mb_strlen($detailPlain),
 				'has_detail' => $detailPlain !== '',
@@ -2587,8 +2599,11 @@ class CatalogRepository
 				'auto_done' => $autoAt !== '',
 				'score' => $score,
 				'url' => '',
+				'phrase_dup' => (int) ($row['PHRASE_DUP_CNT'] ?? 0) > 1 ? ['count' => (int) $row['PHRASE_DUP_CNT']] : null,
 			];
 		}
+
+		self::attachSectionPhraseDupInfo($items, $iblockId, $uts, $phraseCol, $detailExpr);
 
 		$urlMap = UrlBuilder::mapSectionUrls(array_column($items, 'id'));
 		$queueMap = BatchQueue::activeByEntityIds(array_column($items, 'id'), 'S');
@@ -2615,6 +2630,149 @@ class CatalogRepository
 			'section_id' => $sectionId,
 			'section_ids' => $sectionIds,
 		];
+	}
+
+	/**
+	 * JOIN PD: фраза, которая стоит у 2+ активных категорий (без учёта регистра и пробелов по краям).
+	 */
+	protected static function sqlSectionPhraseDupJoin(int $iblockId, string $uts, string $phraseCol): string
+	{
+		return "
+			LEFT JOIN (
+				SELECT LOWER(TRIM(U2.{$phraseCol})) AS P, COUNT(*) AS CNT
+				FROM b_iblock_section S2
+				INNER JOIN {$uts} U2 ON U2.VALUE_ID = S2.ID
+				WHERE S2.IBLOCK_ID = " . (int) $iblockId . "
+				  AND S2.ACTIVE = 'Y'
+				  AND U2.{$phraseCol} IS NOT NULL AND TRIM(U2.{$phraseCol}) <> ''
+				GROUP BY LOWER(TRIM(U2.{$phraseCol}))
+				HAVING COUNT(*) > 1
+			) PD ON PD.P = LOWER(TRIM(UTS.{$phraseCol}))
+		";
+	}
+
+	/**
+	 * Для категорий с повторяющейся фразой: кто ещё с этой фразой и общий родитель (если есть).
+	 *
+	 * @param array<int, array> $items
+	 */
+	protected static function attachSectionPhraseDupInfo(array &$items, int $iblockId, string $uts, string $phraseCol, string $detailExpr): void
+	{
+		global $DB;
+		$phrases = [];
+		foreach ($items as $item) {
+			if ($item['phrase_dup'] !== null) {
+				$phrases[mb_strtolower(trim($item['titlo_phrase']))] = true;
+			}
+		}
+		if ($phrases === []) {
+			return;
+		}
+		$in = implode(',', array_map(static function ($p) use ($DB) {
+			return "'" . $DB->ForSql($p) . "'";
+		}, array_keys($phrases)));
+
+		$members = [];
+		$res = $DB->Query("
+			SELECT BS.ID, BS.NAME, BS.IBLOCK_SECTION_ID, LOWER(TRIM(UTS.{$phraseCol})) AS P
+			FROM b_iblock_section BS
+			INNER JOIN {$uts} UTS ON UTS.VALUE_ID = BS.ID
+			WHERE BS.IBLOCK_ID = " . (int) $iblockId . "
+			  AND BS.ACTIVE = 'Y'
+			  AND LOWER(TRIM(UTS.{$phraseCol})) IN ({$in})
+			ORDER BY BS.ID
+		");
+		while ($row = $res->Fetch()) {
+			$members[(string) $row['P']][] = [
+				'id' => (int) $row['ID'],
+				'name' => (string) $row['NAME'],
+				'parent_id' => (int) ($row['IBLOCK_SECTION_ID'] ?? 0),
+			];
+		}
+
+		// Общий родитель группы: либо все с одной фразой — дети одного раздела,
+		// либо у самого родителя та же фраза, а остальные — его дети.
+		$groupParent = [];
+		foreach ($members as $p => $list) {
+			$pid = 0;
+			$pids = array_values(array_unique(array_column($list, 'parent_id')));
+			if (count($pids) === 1 && (int) $pids[0] > 0) {
+				$pid = (int) $pids[0];
+			} else {
+				foreach ($list as $cand) {
+					$allChildren = true;
+					foreach ($list as $m) {
+						if ($m['id'] !== $cand['id'] && $m['parent_id'] !== $cand['id']) {
+							$allChildren = false;
+							break;
+						}
+					}
+					if ($allChildren) {
+						$pid = $cand['id'];
+						break;
+					}
+				}
+			}
+			$groupParent[$p] = $pid;
+		}
+		$parentIds = [];
+		foreach ($groupParent as $pid) {
+			if ($pid > 0) {
+				$parentIds[$pid] = true;
+			}
+		}
+		$parents = [];
+		if ($parentIds !== []) {
+			$res = $DB->Query("
+				SELECT BS.ID, BS.NAME, BS.CODE, BS.ACTIVE,
+					UTS.{$phraseCol} AS TITLO_PHRASE,
+					{$detailExpr} AS DESCRIPTION
+				FROM b_iblock_section BS
+				LEFT JOIN {$uts} UTS ON UTS.VALUE_ID = BS.ID
+				WHERE BS.ID IN (" . implode(',', array_keys($parentIds)) . ")
+			");
+			$urlMap = UrlBuilder::mapSectionUrls(array_keys($parentIds));
+			while ($row = $res->Fetch()) {
+				$pid = (int) $row['ID'];
+				$plain = trim(html_entity_decode(strip_tags((string) ($row['DESCRIPTION'] ?? '')), ENT_QUOTES, 'UTF-8'));
+				$parents[$pid] = [
+					'id' => $pid,
+					'name' => (string) $row['NAME'],
+					'active' => $row['ACTIVE'] === 'Y',
+					'titlo_phrase' => trim((string) ($row['TITLO_PHRASE'] ?? '')),
+					'has_detail' => $plain !== '',
+					'detail_chars' => mb_strlen($plain),
+					'url' => $urlMap[$pid] ?? UrlBuilder::category((string) $row['CODE'], $pid),
+					'single_url' => 'titlo_relevance_single.php?lang=' . LANGUAGE_ID . '&ENTITY=S&ID=' . $pid,
+				];
+			}
+		}
+
+		foreach ($items as &$item) {
+			if ($item['phrase_dup'] === null) {
+				continue;
+			}
+			$p = mb_strtolower(trim($item['titlo_phrase']));
+			$list = $members[$p] ?? [];
+			$others = [];
+			foreach ($list as $m) {
+				if ($m['id'] !== $item['id']) {
+					$others[] = ['id' => $m['id'], 'name' => $m['name']];
+				}
+			}
+			$pid = $groupParent[$p] ?? 0;
+			$parent = $pid > 0 && isset($parents[$pid]) ? $parents[$pid] : null;
+			if ($parent !== null) {
+				$parent['same_phrase'] = mb_strtolower($parent['titlo_phrase']) === $p;
+				$parent['is_self'] = $pid === $item['id'];
+			}
+			$item['phrase_dup'] = [
+				'count' => count($list),
+				'others' => $others,
+				'parent' => $parent,
+			];
+		}
+		unset($item);
 	}
 
 	/**
@@ -2677,12 +2835,19 @@ class CatalogRepository
 			}
 		}
 
+		$dupSql = '';
+		if ($filterMode === 'phrase_dup') {
+			$dupSql = self::sqlSectionPhraseDupJoin($iblockId, $uts, $phraseCol);
+			$where[] = 'PD.CNT IS NOT NULL';
+		}
+
 		$whereSql = implode(' AND ', $where);
 
 		$total = (int) ($DB->Query("
 			SELECT COUNT(*) AS CNT
 			FROM b_iblock_section BS
 			LEFT JOIN {$uts} UTS ON UTS.VALUE_ID = BS.ID
+			{$dupSql}
 			WHERE {$whereSql}
 		")->Fetch()['CNT'] ?? 0);
 
@@ -2690,6 +2855,7 @@ class CatalogRepository
 			SELECT BS.ID
 			FROM b_iblock_section BS
 			LEFT JOIN {$uts} UTS ON UTS.VALUE_ID = BS.ID
+			{$dupSql}
 			WHERE {$whereSql}
 			ORDER BY BS.ID DESC
 			LIMIT " . (int) $limit . '

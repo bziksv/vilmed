@@ -191,7 +191,8 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 									<b>Все без отметки авто</b> — оба случая вместе (старое «Ещё без автопроработки»).<br>
 									<b>Уже есть балл анализа</b> — был анализ, цифры в «Балл» есть; дата автопроработки при этом может быть пустой.<br>
 									<b>Прошли автопроработку</b> — стоит дата: либо сгенерировали текст, либо отметили без генерации (политика «описание уже есть»). Это не «есть текст в разделе», а именно отметка автомата.<br>
-									<b>Все с короткой фразой</b> — весь пул, из которого можно ставить в очередь.
+									<b>Все с короткой фразой</b> — весь пул, из которого можно ставить в очередь.<br>
+									<b>Одинаковая фраза у нескольких категорий</b> — например «Мониторы пациента, Россия» и «…, Китай» с одной фразой. Такие категории в любом фильтре идут первыми и подсвечены: часто прорабатывать нужно их общего родителя, а дочерние — нет.
 								</span>
 							</span>:
 							<select id="titlo-auto-filter">
@@ -201,6 +202,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 								<option value="scored" <?= $filter === 'scored' ? 'selected' : '' ?>>Уже есть балл анализа</option>
 								<option value="done" <?= $filter === 'done' ? 'selected' : '' ?>>Прошли автопроработку</option>
 								<option value="all" <?= $filter === 'all' ? 'selected' : '' ?>>Все с короткой фразой</option>
+								<option value="phrase_dup" <?= $filter === 'phrase_dup' ? 'selected' : '' ?>>Одинаковая фраза у нескольких категорий</option>
 							</select>
 						</label>
 						<label>Сортировка
@@ -1119,6 +1121,33 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 		});
 	}
 
+	function phraseDupHtml(it) {
+		var d = it.phrase_dup;
+		if (!d) return '';
+		var out = '<div class="titlo-auto-dup__box">' +
+			'<span class="titlo-auto-dup__badge">та же фраза у ' + d.count + ' категорий</span>';
+		if (d.others && d.others.length) {
+			out += '<div class="titlo-auto-dup__line">ещё: ' + d.others.slice(0, 5).map(function (o) {
+				return '#' + o.id + ' ' + escapeHtml(o.name);
+			}).join('; ') + (d.others.length > 5 ? ' …' : '') + '</div>';
+		}
+		var p = d.parent;
+		if (p && p.is_self) {
+			out += '<div class="titlo-auto-dup__line"><b>это общий родитель</b> остальных — обычно прорабатывать его, а дочерние нет</div>';
+		} else if (p) {
+			out += '<div class="titlo-auto-dup__line titlo-auto-dup__parent">родитель: ' +
+				'<a href="' + escapeHtml(p.single_url) + '">#' + p.id + ' ' + escapeHtml(p.name) + '</a>' +
+				(p.active ? '' : ' <i>(неактивен)</i>') +
+				' · фраза: ' + (p.titlo_phrase ? '«' + escapeHtml(p.titlo_phrase) + '»' + (p.same_phrase ? ' (та же)' : '') : '<i>нет</i>') +
+				' · описание: ' + (p.has_detail ? ('есть, ' + p.detail_chars) : 'пусто') +
+				(p.url ? ' · <a href="' + safeHref(p.url) + '" target="_blank" rel="noopener">на сайте</a>' : '') +
+				'</div>';
+		} else {
+			out += '<div class="titlo-auto-dup__line">общего родителя нет — проверьте, нужны ли обе категории</div>';
+		}
+		return out + '</div>';
+	}
+
 	function loadList() {
 		setStatus('titlo-auto-list-status', 'Загрузка…');
 		var fp = listFilterParams();
@@ -1141,10 +1170,10 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 			(res.items || []).forEach(function (it) {
 				var checked = !!selected[it.id];
 				rows.push(
-					'<tr data-id="' + it.id + '">' +
+					'<tr data-id="' + it.id + '"' + (it.phrase_dup ? ' class="titlo-auto-dup"' : '') + '>' +
 					'<td><input type="checkbox" class="titlo-auto-row" value="' + it.id + '"' + (checked ? ' checked' : '') + '></td>' +
 					'<td>' + it.id + '</td>' +
-					'<td>' + escapeHtml(it.name) + '</td>' +
+					'<td>' + escapeHtml(it.name) + phraseDupHtml(it) + '</td>' +
 					'<td>' + escapeHtml(it.titlo_phrase) + '</td>' +
 					'<td>' + (it.has_detail ? ('есть · ' + it.detail_chars) : 'пусто') + '</td>' +
 					'<td class="titlo-auto-score-td">' + scoreCell(it) + '</td>' +
