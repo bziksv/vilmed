@@ -2613,10 +2613,12 @@ class CatalogRepository
 
 		$urlMap = UrlBuilder::mapSectionUrls(array_column($items, 'id'));
 		$queueMap = BatchQueue::activeByEntityIds(array_column($items, 'id'), 'S');
+		$noindexMap = IndexingControl::mapSectionNoindex(array_column($items, 'id'));
 		foreach ($items as &$item) {
 			$id = $item['id'];
 			$item['url'] = $urlMap[$id] ?? UrlBuilder::category($item['code'], $id);
 			$item['queue'] = $queueMap[$id] ?? null;
+			$item['noindex'] = !empty($noindexMap[$id]);
 			$item['single_url'] = 'titlo_relevance_single.php?lang=' . LANGUAGE_ID . '&ENTITY=S&ID=' . $id;
 		}
 		unset($item);

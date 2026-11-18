@@ -7,6 +7,7 @@ use Titlo\Relevance\ApiClient;
 use Titlo\Relevance\BatchQueue;
 use Titlo\Relevance\CatalogRepository;
 use Titlo\Relevance\Config;
+use Titlo\Relevance\IndexingControl;
 use Titlo\Relevance\PhraseBulk;
 use Titlo\Relevance\ProductDuplicates;
 use Titlo\Relevance\Prompts;
@@ -499,9 +500,21 @@ try {
 			if ($ids === []) {
 				titlo_json(['ok' => false, 'error' => 'Не выбраны категории']);
 			}
-			$skip = (string) ($_POST['skip'] ?? '1') === '1';
-			$n = UserFields::setSectionAutoSkip($ids, $skip);
-			titlo_json(['ok' => true, 'count' => $n, 'skip' => $skip]);
+			$n = 0;
+			if (isset($_POST['skip']) && $_POST['skip'] !== '') {
+				$n = UserFields::setSectionAutoSkip($ids, (string) $_POST['skip'] === '1');
+			}
+			$noindexN = 0;
+			if (isset($_POST['noindex']) && $_POST['noindex'] !== '') {
+				$on = (string) $_POST['noindex'] === '1';
+				foreach ($ids as $sid) {
+					$r = IndexingControl::setSectionNoindex($sid, $on);
+					if (!empty($r['ok'])) {
+						$noindexN++;
+					}
+				}
+			}
+			titlo_json(['ok' => true, 'count' => max($n, $noindexN), 'noindex_count' => $noindexN]);
 
 		case 'auto_list_ids':
 			BatchQueue::ensureSchema();

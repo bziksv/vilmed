@@ -1151,8 +1151,13 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 		var children = d.parent ? dupChildIds(d) : [];
 		var btn = '';
 		if (children.length) {
-			btn = '<button type="button" class="adm-btn titlo-grp__btn" data-skip-ids="' + children.join(',') + '">' +
+			btn = '<div class="titlo-grp__btns">' +
+				'<button type="button" class="adm-btn titlo-grp__btn" data-skip-ids="' + children.join(',') + '" data-skip="1">' +
 				'Исключить дочерние (' + children.length + ')</button>' +
+				'<button type="button" class="adm-btn titlo-grp__btn" data-skip-ids="' + children.join(',') + '" data-skip="1" data-noindex="1"' +
+				' title="Исключить из автопроработки и закрыть страницы дочерних категорий: meta robots noindex, follow. Товары не закрываются.">' +
+				'+ noindex</button>' +
+				'</div>' +
 				'<span class="titlo-grp__hint">' + (d.role === 'parent'
 					? 'останется только родитель'
 					: 'прорабатывать родителя — по ссылке «проработка»') + '</span>';
@@ -1176,23 +1181,41 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 	}
 
 	function skipLink(it) {
-		return it.auto_skip
-			? ' · <a href="#" class="titlo-skip-link" data-skip-ids="' + it.id + '" data-skip="0">вернуть в работу</a>'
-			: ' · <a href="#" class="titlo-skip-link titlo-skip-link--off" data-skip-ids="' + it.id + '" data-skip="1" title="Не прорабатывать автоматически">исключить</a>';
+		var out = '';
+		if (it.auto_skip) {
+			out += '<br><a href="#" class="titlo-skip-link" data-skip-ids="' + it.id + '" data-skip="0">вернуть в работу</a>';
+		} else {
+			out += '<br><a href="#" class="titlo-skip-link titlo-skip-link--off" data-skip-ids="' + it.id + '" data-skip="1" title="Не прорабатывать автоматически">исключить</a>';
+			if (!it.noindex) {
+				out += ' · <a href="#" class="titlo-skip-link titlo-skip-link--off" data-skip-ids="' + it.id + '" data-skip="1" data-noindex="1"' +
+					' title="Исключить и закрыть страницу категории от индексации (meta robots noindex). Товары не закрываются.">+ noindex</a>';
+			}
+		}
+		if (it.noindex) {
+			out += ' · <a href="#" class="titlo-skip-link" data-skip-ids="' + it.id + '" data-skip="" data-noindex="0" title="Убрать noindex со страницы категории">открыть индексацию</a>';
+		}
+		return out;
 	}
 
-	function setAutoSkip(ids, skip) {
-		setStatus('titlo-auto-list-status', skip ? 'Исключаю…' : 'Возвращаю…');
-		return post('auto_section_skip', {ids: ids.join(','), skip: skip ? '1' : '0'}).then(function (res) {
+	function setAutoSkip(ids, skip, noindex) {
+		if (noindex === '1' && !window.confirm('Закрыть от индексации (meta robots noindex) категорий: ' + ids.length +
+			'?\nСтраницы категорий выпадут из поиска; товары внутри останутся открытыми.')) {
+			return Promise.resolve();
+		}
+		setStatus('titlo-auto-list-status', 'Сохраняю…');
+		return post('auto_section_skip', {ids: ids.join(','), skip: skip, noindex: noindex}).then(function (res) {
 			if (!res.ok) {
 				setStatus('titlo-auto-list-status', res.error || 'Ошибка', true);
 				return;
 			}
 			ids.forEach(function (id) { delete selected[id]; });
 			return loadList().then(function () {
-				setStatus('titlo-auto-list-status', skip
-					? ('Исключено: ' + res.count + '. Посмотреть и вернуть — фильтр «Исключённые из автопроработки».')
-					: ('Вернули в работу: ' + res.count));
+				var msg = [];
+				if (skip === '1') msg.push('Исключено: ' + ids.length + ' (вернуть — фильтр «Исключённые из автопроработки»)');
+				if (skip === '0') msg.push('Вернули в работу: ' + ids.length);
+				if (noindex === '1') msg.push('noindex: ' + (res.noindex_count || 0));
+				if (noindex === '0') msg.push('индексация открыта: ' + (res.noindex_count || 0));
+				setStatus('titlo-auto-list-status', msg.join(' · '));
 			});
 		});
 	}
@@ -1204,8 +1227,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 				var ids = (el.getAttribute('data-skip-ids') || '').split(',').map(function (x) { return parseInt(x, 10) || 0; })
 					.filter(function (x) { return x > 0; });
 				if (!ids.length) return;
-				var skip = el.getAttribute('data-skip') !== '0';
-				setAutoSkip(ids, skip);
+				setAutoSkip(ids, el.getAttribute('data-skip') || '', el.getAttribute('data-noindex') || '');
 			};
 		});
 	}
@@ -1245,7 +1267,8 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 					'<td><input type="checkbox" class="titlo-auto-row" value="' + it.id + '"' + (checked ? ' checked' : '') + '></td>' +
 					'<td>' + it.id + '</td>' +
 					'<td>' + (d && d.role === 'child' ? '<span class="titlo-auto-dup__indent">↳</span>' : '') +
-					escapeHtml(it.name) + dupRoleTag(it) + '</td>' +
+					escapeHtml(it.name) + dupRoleTag(it) +
+					(it.noindex ? ' <span class="titlo-tag titlo-tag--noindex">noindex</span>' : '') + '</td>' +
 					'<td>' + escapeHtml(it.titlo_phrase) + '</td>' +
 					'<td>' + (it.has_detail ? ('есть · ' + it.detail_chars) : 'пусто') + '</td>' +
 					'<td class="titlo-auto-score-td">' + scoreCell(it) + '</td>' +
