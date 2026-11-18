@@ -1155,7 +1155,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 				'<button type="button" class="adm-btn titlo-grp__btn" data-skip-ids="' + children.join(',') + '" data-skip="1">' +
 				'Исключить дочерние (' + children.length + ')</button>' +
 				'<button type="button" class="adm-btn titlo-grp__btn" data-skip-ids="' + children.join(',') + '" data-skip="1" data-noindex="1"' +
-				' title="Исключить из автопроработки и закрыть страницы дочерних категорий: meta robots noindex, follow. Товары не закрываются.">' +
+				' title="Исключить из автопроработки и закрыть страницы дочерних категорий: meta robots noindex, nofollow. Товары не закрываются.">' +
 				'+ noindex</button>' +
 				'</div>' +
 				'<span class="titlo-grp__hint">' + (d.role === 'parent'
