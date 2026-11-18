@@ -492,6 +492,17 @@ try {
 			]);
 			titlo_json(array_merge(['ok' => true], $list));
 
+		case 'auto_section_skip':
+			$rawIds = $_POST['ids'] ?? '';
+			$ids = is_array($rawIds) ? $rawIds : (preg_split('/\s*,\s*/', (string) $rawIds) ?: []);
+			$ids = array_values(array_filter(array_map('intval', $ids)));
+			if ($ids === []) {
+				titlo_json(['ok' => false, 'error' => 'Не выбраны категории']);
+			}
+			$skip = (string) ($_POST['skip'] ?? '1') === '1';
+			$n = UserFields::setSectionAutoSkip($ids, $skip);
+			titlo_json(['ok' => true, 'count' => $n, 'skip' => $skip]);
+
 		case 'auto_list_ids':
 			BatchQueue::ensureSchema();
 			UserFields::ensurePhraseField();

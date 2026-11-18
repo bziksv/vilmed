@@ -2463,6 +2463,10 @@ class CatalogRepository
 				  AND (whx.BEFORE_POINTS IS NOT NULL OR whx.AFTER_POINTS IS NOT NULL)
 			)';
 		}
+		$skipCond = self::sqlSectionAutoSkipCondition($filterMode);
+		if ($skipCond !== null) {
+			$where[] = $skipCond;
+		}
 
 		$dupSql = self::sqlSectionPhraseDupJoin($iblockId, $uts, $phraseCol);
 		if ($filterMode === 'phrase_dup') {
@@ -2535,6 +2539,7 @@ class CatalogRepository
 				CHAR_LENGTH(COALESCE({$detailExpr}, '')) AS DETAIL_LEN,
 				UTS.{$phraseCol} AS TITLO_PHRASE,
 				UTS.{$autoAtCol} AS TITLO_AUTO_AT,
+				UTS." . UserFields::AUTO_SKIP_FIELD . " AS TITLO_AUTO_SKIP,
 				PD.CNT AS PHRASE_DUP_CNT,
 				WH.WH_ID,
 				WH.BEFORE_POINTS, WH.AFTER_POINTS,
@@ -2599,6 +2604,7 @@ class CatalogRepository
 				'auto_done' => $autoAt !== '',
 				'score' => $score,
 				'url' => '',
+				'auto_skip' => (int) ($row['TITLO_AUTO_SKIP'] ?? 0) === 1,
 				'phrase_dup' => (int) ($row['PHRASE_DUP_CNT'] ?? 0) > 1 ? ['count' => (int) $row['PHRASE_DUP_CNT']] : null,
 			];
 		}
@@ -2633,10 +2639,26 @@ class CatalogRepository
 	}
 
 	/**
+	 * Флаг «не прорабатывать автоматически»: скрыт из рабочих фильтров, виден в «done»/«scored», отдельный фильтр «skipped».
+	 */
+	protected static function sqlSectionAutoSkipCondition(string $filterMode): ?string
+	{
+		$col = 'UTS.' . UserFields::AUTO_SKIP_FIELD;
+		if ($filterMode === 'skipped') {
+			return $col . ' = 1';
+		}
+		if ($filterMode === 'done' || $filterMode === 'scored') {
+			return null;
+		}
+		return '(' . $col . ' IS NULL OR ' . $col . ' = 0)';
+	}
+
+	/**
 	 * JOIN PD: фраза, которая стоит у 2+ активных категорий (без учёта регистра и пробелов по краям).
 	 */
 	protected static function sqlSectionPhraseDupJoin(int $iblockId, string $uts, string $phraseCol): string
 	{
+		$skipCol = UserFields::AUTO_SKIP_FIELD;
 		return "
 			LEFT JOIN (
 				SELECT LOWER(TRIM(U2.{$phraseCol})) AS P, COUNT(*) AS CNT
@@ -2645,6 +2667,7 @@ class CatalogRepository
 				WHERE S2.IBLOCK_ID = " . (int) $iblockId . "
 				  AND S2.ACTIVE = 'Y'
 				  AND U2.{$phraseCol} IS NOT NULL AND TRIM(U2.{$phraseCol}) <> ''
+				  AND (U2.{$skipCol} IS NULL OR U2.{$skipCol} = 0)
 				GROUP BY LOWER(TRIM(U2.{$phraseCol}))
 				HAVING COUNT(*) > 1
 			) PD ON PD.P = LOWER(TRIM(UTS.{$phraseCol}))
@@ -2680,6 +2703,7 @@ class CatalogRepository
 			WHERE BS.IBLOCK_ID = " . (int) $iblockId . "
 			  AND BS.ACTIVE = 'Y'
 			  AND LOWER(TRIM(UTS.{$phraseCol})) IN ({$in})
+			  AND (UTS." . UserFields::AUTO_SKIP_FIELD . " IS NULL OR UTS." . UserFields::AUTO_SKIP_FIELD . " = 0)
 			ORDER BY BS.ID
 		");
 		while ($row = $res->Fetch()) {
@@ -2766,10 +2790,17 @@ class CatalogRepository
 				$parent['same_phrase'] = mb_strtolower($parent['titlo_phrase']) === $p;
 				$parent['is_self'] = $pid === $item['id'];
 			}
+			$role = 'peer';
+			if ($parent !== null) {
+				$role = $parent['is_self'] ? 'parent' : 'child';
+			}
 			$item['phrase_dup'] = [
+				'key' => $p,
 				'count' => count($list),
+				'member_ids' => array_column($list, 'id'),
 				'others' => $others,
 				'parent' => $parent,
+				'role' => $role,
 			];
 		}
 		unset($item);
@@ -2821,6 +2852,10 @@ class CatalogRepository
 				WHERE whx.ENTITY_TYPE = \'S\' AND whx.ENTITY_ID = BS.ID
 				  AND (whx.BEFORE_POINTS IS NOT NULL OR whx.AFTER_POINTS IS NOT NULL)
 			)';
+		}
+		$skipCond = self::sqlSectionAutoSkipCondition($filterMode);
+		if ($skipCond !== null) {
+			$where[] = $skipCond;
 		}
 
 		$branchSql = self::sqlSectionInAnySubtree($sectionIds);

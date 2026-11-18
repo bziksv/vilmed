@@ -192,7 +192,8 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 									<b>Уже есть балл анализа</b> — был анализ, цифры в «Балл» есть; дата автопроработки при этом может быть пустой.<br>
 									<b>Прошли автопроработку</b> — стоит дата: либо сгенерировали текст, либо отметили без генерации (политика «описание уже есть»). Это не «есть текст в разделе», а именно отметка автомата.<br>
 									<b>Все с короткой фразой</b> — весь пул, из которого можно ставить в очередь.<br>
-									<b>Одинаковая фраза у нескольких категорий</b> — например «Мониторы пациента, Россия» и «…, Китай» с одной фразой. Такие категории в любом фильтре идут первыми и подсвечены: часто прорабатывать нужно их общего родителя, а дочерние — нет.
+									<b>Одинаковая фраза у нескольких категорий</b> — например «Мониторы пациента, Россия» и «…, Китай» с одной фразой. Такие категории в любом фильтре идут первыми, группой: сверху шапка с общим родителем и кнопкой «Исключить дочерние».<br>
+									<b>Исключённые из автопроработки</b> — категории с отметкой «исключить» (поле «Titlo: не прорабатывать автоматически»). Из остальных рабочих фильтров и групп они пропадают; вернуть — ссылкой «вернуть в работу».
 								</span>
 							</span>:
 							<select id="titlo-auto-filter">
@@ -203,6 +204,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 								<option value="done" <?= $filter === 'done' ? 'selected' : '' ?>>Прошли автопроработку</option>
 								<option value="all" <?= $filter === 'all' ? 'selected' : '' ?>>Все с короткой фразой</option>
 								<option value="phrase_dup" <?= $filter === 'phrase_dup' ? 'selected' : '' ?>>Одинаковая фраза у нескольких категорий</option>
+								<option value="skipped" <?= $filter === 'skipped' ? 'selected' : '' ?>>Исключённые из автопроработки</option>
 							</select>
 						</label>
 						<label>Сортировка
@@ -1121,31 +1123,91 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 		});
 	}
 
-	function phraseDupHtml(it) {
+	function dupParentLine(d) {
+		var p = d.parent;
+		if (!p) {
+			return 'Общего родителя нет — оставьте в работе одну категорию, остальные исключите.';
+		}
+		var meta = [];
+		meta.push(p.titlo_phrase
+			? ('фраза «' + escapeHtml(p.titlo_phrase) + '»' + (p.same_phrase ? ' — та же' : ''))
+			: 'без фразы');
+		meta.push(p.has_detail ? ('описание есть, ' + p.detail_chars + ' зн.') : 'описания нет');
+		if (!p.active) meta.push('неактивен');
+		return 'Родитель: <b>#' + p.id + ' ' + escapeHtml(p.name) + '</b>' +
+			(p.is_self || d.role === 'parent' ? ' (в этом списке)' : '') +
+			' <span class="titlo-grp__meta">· ' + meta.join(' · ') + '</span>' +
+			' · <a href="' + escapeHtml(p.single_url) + '">проработка</a>' +
+			(p.url ? ' · <a href="' + safeHref(p.url) + '" target="_blank" rel="noopener">на сайте</a>' : '');
+	}
+
+	function dupChildIds(d) {
+		var pid = d.parent ? d.parent.id : 0;
+		return (d.member_ids || []).filter(function (id) { return id !== pid; });
+	}
+
+	function dupGroupHeadHtml(it) {
+		var d = it.phrase_dup;
+		var children = d.parent ? dupChildIds(d) : [];
+		var btn = '';
+		if (children.length) {
+			btn = '<button type="button" class="adm-btn titlo-grp__btn" data-skip-ids="' + children.join(',') + '">' +
+				'Исключить дочерние (' + children.length + ')</button>' +
+				'<span class="titlo-grp__hint">' + (d.role === 'parent'
+					? 'останется только родитель'
+					: 'прорабатывать родителя — по ссылке «проработка»') + '</span>';
+		}
+		return '<tr class="titlo-grp-head"><td colspan="' + COLSPAN + '">' +
+			'<div class="titlo-grp">' +
+			'<div class="titlo-grp__main">' +
+			'<div class="titlo-grp__title">Фраза «' + escapeHtml(it.titlo_phrase) + '» у ' + d.count + ' категорий</div>' +
+			'<div class="titlo-grp__parent">' + dupParentLine(d) + '</div>' +
+			'</div>' +
+			'<div class="titlo-grp__actions">' + btn + '</div>' +
+			'</div></td></tr>';
+	}
+
+	function dupRoleTag(it) {
 		var d = it.phrase_dup;
 		if (!d) return '';
-		var out = '<div class="titlo-auto-dup__box">' +
-			'<span class="titlo-auto-dup__badge">та же фраза у ' + d.count + ' категорий</span>';
-		if (d.others && d.others.length) {
-			out += '<div class="titlo-auto-dup__line">ещё: ' + d.others.slice(0, 5).map(function (o) {
-				return '#' + o.id + ' ' + escapeHtml(o.name);
-			}).join('; ') + (d.others.length > 5 ? ' …' : '') + '</div>';
-		}
-		var p = d.parent;
-		if (p && p.is_self) {
-			out += '<div class="titlo-auto-dup__line"><b>это общий родитель</b> остальных — обычно прорабатывать его, а дочерние нет</div>';
-		} else if (p) {
-			out += '<div class="titlo-auto-dup__line titlo-auto-dup__parent">родитель: ' +
-				'<a href="' + escapeHtml(p.single_url) + '">#' + p.id + ' ' + escapeHtml(p.name) + '</a>' +
-				(p.active ? '' : ' <i>(неактивен)</i>') +
-				' · фраза: ' + (p.titlo_phrase ? '«' + escapeHtml(p.titlo_phrase) + '»' + (p.same_phrase ? ' (та же)' : '') : '<i>нет</i>') +
-				' · описание: ' + (p.has_detail ? ('есть, ' + p.detail_chars) : 'пусто') +
-				(p.url ? ' · <a href="' + safeHref(p.url) + '" target="_blank" rel="noopener">на сайте</a>' : '') +
-				'</div>';
-		} else {
-			out += '<div class="titlo-auto-dup__line">общего родителя нет — проверьте, нужны ли обе категории</div>';
-		}
-		return out + '</div>';
+		if (d.role === 'parent') return ' <span class="titlo-tag titlo-tag--parent">родитель</span>';
+		if (d.role === 'child') return ' <span class="titlo-tag">дочерняя</span>';
+		return ' <span class="titlo-tag">та же фраза</span>';
+	}
+
+	function skipLink(it) {
+		return it.auto_skip
+			? ' · <a href="#" class="titlo-skip-link" data-skip-ids="' + it.id + '" data-skip="0">вернуть в работу</a>'
+			: ' · <a href="#" class="titlo-skip-link titlo-skip-link--off" data-skip-ids="' + it.id + '" data-skip="1" title="Не прорабатывать автоматически">исключить</a>';
+	}
+
+	function setAutoSkip(ids, skip) {
+		setStatus('titlo-auto-list-status', skip ? 'Исключаю…' : 'Возвращаю…');
+		return post('auto_section_skip', {ids: ids.join(','), skip: skip ? '1' : '0'}).then(function (res) {
+			if (!res.ok) {
+				setStatus('titlo-auto-list-status', res.error || 'Ошибка', true);
+				return;
+			}
+			ids.forEach(function (id) { delete selected[id]; });
+			return loadList().then(function () {
+				setStatus('titlo-auto-list-status', skip
+					? ('Исключено: ' + res.count + '. Посмотреть и вернуть — фильтр «Исключённые из автопроработки».')
+					: ('Вернули в работу: ' + res.count));
+			});
+		});
+	}
+
+	function bindSkipEvents(body) {
+		Array.prototype.forEach.call(body.querySelectorAll('[data-skip-ids]'), function (el) {
+			el.onclick = function (e) {
+				e.preventDefault();
+				var ids = (el.getAttribute('data-skip-ids') || '').split(',').map(function (x) { return parseInt(x, 10) || 0; })
+					.filter(function (x) { return x > 0; });
+				if (!ids.length) return;
+				var skip = el.getAttribute('data-skip') !== '0';
+				setAutoSkip(ids, skip);
+			};
+		});
 	}
 
 	function loadList() {
@@ -1167,13 +1229,23 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 			}
 			listTotal = res.total || 0;
 			var rows = [];
+			var prevGroup = '';
 			(res.items || []).forEach(function (it) {
 				var checked = !!selected[it.id];
+				var d = it.phrase_dup;
+				var cls = [];
+				if (d) {
+					if (d.key !== prevGroup) rows.push(dupGroupHeadHtml(it));
+					cls.push('titlo-auto-dup', 'titlo-auto-dup--' + d.role);
+				}
+				prevGroup = d ? d.key : '';
+				if (it.auto_skip) cls.push('titlo-auto-skipped');
 				rows.push(
-					'<tr data-id="' + it.id + '"' + (it.phrase_dup ? ' class="titlo-auto-dup"' : '') + '>' +
+					'<tr data-id="' + it.id + '"' + (cls.length ? ' class="' + cls.join(' ') + '"' : '') + '>' +
 					'<td><input type="checkbox" class="titlo-auto-row" value="' + it.id + '"' + (checked ? ' checked' : '') + '></td>' +
 					'<td>' + it.id + '</td>' +
-					'<td>' + escapeHtml(it.name) + phraseDupHtml(it) + '</td>' +
+					'<td>' + (d && d.role === 'child' ? '<span class="titlo-auto-dup__indent">↳</span>' : '') +
+					escapeHtml(it.name) + dupRoleTag(it) + '</td>' +
 					'<td>' + escapeHtml(it.titlo_phrase) + '</td>' +
 					'<td>' + (it.has_detail ? ('есть · ' + it.detail_chars) : 'пусто') + '</td>' +
 					'<td class="titlo-auto-score-td">' + scoreCell(it) + '</td>' +
@@ -1181,11 +1253,13 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 					'<td>' + queueLabel(it.queue) + '</td>' +
 					'<td><a href="' + escapeHtml(it.single_url) + '">проработка</a>' +
 					(it.url ? (' · <a href="' + safeHref(it.url) + '" target="_blank" rel="noopener">на сайте</a>') : '') +
+					skipLink(it) +
 					'</td></tr>'
 				);
 			});
 			body.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="' + COLSPAN + '">Нет категорий по фильтру (нужна короткая фраза)</td></tr>';
 			bindListEvents(body);
+			bindSkipEvents(body);
 			renderPager(res.total || 0, res.page_size || 25, res.pages || 1);
 			var qShow = (fp.q || '').trim();
 			setStatus(

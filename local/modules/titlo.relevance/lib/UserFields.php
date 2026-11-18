@@ -13,6 +13,8 @@ class UserFields
 	public const NAME_ORIG_FIELD = 'UF_TITLO_NAME_ORIG';
 	/** Дата автопроработки карточки (анализ → генерация → сохранение). */
 	public const AUTO_AT_FIELD = 'UF_TITLO_AUTO_AT';
+	/** Категория исключена из автопроработки (например, «Аппараты ИВЛ, Китай» — прорабатываем родителя). */
+	public const AUTO_SKIP_FIELD = 'UF_TITLO_AUTO_SKIP';
 	/** Макс. длина фразы (совпадает с лимитом NAME в Bitrix). Стандартные промпты ≈50, свой — до этого потолка. */
 	public const PHRASE_MAX_LEN = 255;
 
@@ -34,8 +36,74 @@ class UserFields
 		$okSection = self::ensurePhraseFieldsForEntity('IBLOCK_' . $iblockId . '_SECTION');
 		$okAutoEl = self::ensureAutoAtField('IBLOCK_' . $iblockId . '_ELEMENT');
 		$okAutoSec = self::ensureAutoAtField('IBLOCK_' . $iblockId . '_SECTION');
+		$okSkipSec = self::ensureAutoSkipField('IBLOCK_' . $iblockId . '_SECTION');
 
-		return $okElement && $okSection && $okAutoEl && $okAutoSec;
+		return $okElement && $okSection && $okAutoEl && $okAutoSec && $okSkipSec;
+	}
+
+	protected static function ensureAutoSkipField(string $entityId): bool
+	{
+		$exists = \CUserTypeEntity::GetList([], [
+			'ENTITY_ID' => $entityId,
+			'FIELD_NAME' => self::AUTO_SKIP_FIELD,
+		])->Fetch();
+		if ($exists) {
+			return true;
+		}
+
+		$oUserType = new \CUserTypeEntity();
+		$id = $oUserType->Add([
+			'ENTITY_ID' => $entityId,
+			'FIELD_NAME' => self::AUTO_SKIP_FIELD,
+			'USER_TYPE_ID' => 'boolean',
+			'XML_ID' => self::AUTO_SKIP_FIELD,
+			'SORT' => 125,
+			'MULTIPLE' => 'N',
+			'MANDATORY' => 'N',
+			'SHOW_FILTER' => 'I',
+			'SHOW_IN_LIST' => 'Y',
+			'EDIT_IN_LIST' => 'Y',
+			'IS_SEARCHABLE' => 'N',
+			'SETTINGS' => [
+				'DEFAULT_VALUE' => 0,
+				'DISPLAY' => 'CHECKBOX',
+				'LABEL' => ['', ''],
+				'LABEL_CHECKBOX' => 'Не прорабатывать автоматически',
+			],
+			'EDIT_FORM_LABEL' => ['ru' => 'Titlo: не прорабатывать автоматически', 'en' => 'Titlo: skip auto processing'],
+			'LIST_COLUMN_LABEL' => ['ru' => 'Titlo: без авто', 'en' => 'Titlo no auto'],
+			'LIST_FILTER_LABEL' => ['ru' => 'Без автопроработки', 'en' => 'Skip auto'],
+			'ERROR_MESSAGE' => ['ru' => '', 'en' => ''],
+			'HELP_MESSAGE' => [
+				'ru' => 'Категория не попадает в списки автопроработки (обычно — дочерние «…, Китай» с той же фразой, что у родителя)',
+				'en' => 'Hidden from auto processing lists',
+			],
+		]);
+
+		return (bool) $id;
+	}
+
+	/**
+	 * @param int[] $sectionIds
+	 */
+	public static function setSectionAutoSkip(array $sectionIds, bool $skip): int
+	{
+		if (!Loader::includeModule('iblock')) {
+			return 0;
+		}
+		self::ensurePhraseField();
+		$iblockId = Config::iblockId();
+		$n = 0;
+		foreach (array_unique(array_map('intval', $sectionIds)) as $id) {
+			if ($id <= 0) {
+				continue;
+			}
+			$GLOBALS['USER_FIELD_MANAGER']->Update('IBLOCK_' . $iblockId . '_SECTION', $id, [
+				self::AUTO_SKIP_FIELD => $skip ? 1 : 0,
+			]);
+			$n++;
+		}
+		return $n;
 	}
 
 	/**
