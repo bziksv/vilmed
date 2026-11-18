@@ -1232,6 +1232,25 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 		});
 	}
 
+	function emptyListHtml(res, fp) {
+		var st = res.branch_stats;
+		if (!st) {
+			return 'Нет категорий по фильтру (нужна короткая фраза)';
+		}
+		var namesUrl = 'titlo_relevance_section_names.php?lang=ru&section_ids=' + encodeURIComponent(fp.section_ids || '');
+		var lines = ['<b>В выбранной ветке ' + st.total + ' категорий, но под этот фильтр ни одна не подходит.</b>'];
+		if (st.no_phrase) {
+			lines.push('Без короткой фразы: <b>' + st.no_phrase + '</b> — автопроработка берёт только категории с фразой. ' +
+				'Сначала сгенерируйте фразы: <a href="' + namesUrl + '">Проверка названий категорий по этой ветке</a>.');
+		}
+		if (st.with_detail) {
+			lines.push('С описанием: ' + st.with_detail + ' — их видно в фильтре «Есть описание (без отметки авто)».');
+		}
+		if (st.done) lines.push('Уже прошли автопроработку: ' + st.done + ' (фильтр «Прошли автопроработку»).');
+		if (st.skipped) lines.push('Исключены: ' + st.skipped + ' (фильтр «Исключённые из автопроработки»).');
+		return '<div class="titlo-auto-empty">' + lines.join('<br>') + '</div>';
+	}
+
 	function loadList() {
 		setStatus('titlo-auto-list-status', 'Загрузка…');
 		var fp = listFilterParams();
@@ -1280,7 +1299,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 					'</td></tr>'
 				);
 			});
-			body.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="' + COLSPAN + '">Нет категорий по фильтру (нужна короткая фраза)</td></tr>';
+			body.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="' + COLSPAN + '">' + emptyListHtml(res, fp) + '</td></tr>';
 			bindListEvents(body);
 			bindSkipEvents(body);
 			renderPager(res.total || 0, res.page_size || 25, res.pages || 1);

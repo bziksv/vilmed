@@ -491,6 +491,9 @@ try {
 				'sort' => (string) ($_POST['sort'] ?? 'id_desc'),
 				'section_ids' => $_POST['section_ids'] ?? ($_POST['section_id'] ?? 0),
 			]);
+			if ((int) $list['total'] === 0 && $list['section_ids'] !== []) {
+				$list['branch_stats'] = CatalogRepository::sectionAutoBranchStats($list['section_ids']);
+			}
 			titlo_json(array_merge(['ok' => true], $list));
 
 		case 'auto_section_skip':

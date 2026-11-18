@@ -2641,6 +2641,45 @@ class CatalogRepository
 	}
 
 	/**
+	 * Почему в ветке нет категорий для автопроработки: разбивка активных разделов ветки.
+	 *
+	 * @param int[] $sectionIds
+	 * @return array{total:int,no_phrase:int,with_detail:int,done:int,skipped:int}|null
+	 */
+	public static function sectionAutoBranchStats(array $sectionIds): ?array
+	{
+		global $DB;
+		$branchSql = self::sqlSectionInAnySubtree(self::normalizeSectionIds($sectionIds));
+		if ($branchSql === null) {
+			return null;
+		}
+		$iblockId = (int) Config::iblockId();
+		$uts = 'b_uts_iblock_' . $iblockId . '_section';
+		$phraseCol = UserFields::PHRASE_FIELD;
+		$autoAtCol = UserFields::AUTO_AT_FIELD;
+		$skipCol = UserFields::AUTO_SKIP_FIELD;
+		$detailFilled = self::sqlHtmlFieldFilled(self::sqlCatalogTextExpr(Config::sectionTextField(), 'BS'));
+		$hasPhrase = "(UTS.{$phraseCol} IS NOT NULL AND UTS.{$phraseCol} <> '')";
+		$row = $DB->Query("
+			SELECT COUNT(*) AS TOTAL,
+				SUM(CASE WHEN {$hasPhrase} THEN 0 ELSE 1 END) AS NO_PHRASE,
+				SUM(CASE WHEN {$detailFilled} THEN 1 ELSE 0 END) AS WITH_DETAIL,
+				SUM(CASE WHEN NOT " . self::sqlAutoAtEmpty('UTS', $autoAtCol) . " THEN 1 ELSE 0 END) AS DONE_CNT,
+				SUM(CASE WHEN UTS.{$skipCol} = 1 THEN 1 ELSE 0 END) AS SKIPPED
+			FROM b_iblock_section BS
+			LEFT JOIN {$uts} UTS ON UTS.VALUE_ID = BS.ID
+			WHERE BS.IBLOCK_ID = {$iblockId} AND BS.ACTIVE = 'Y' AND {$branchSql}
+		")->Fetch() ?: [];
+		return [
+			'total' => (int) ($row['TOTAL'] ?? 0),
+			'no_phrase' => (int) ($row['NO_PHRASE'] ?? 0),
+			'with_detail' => (int) ($row['WITH_DETAIL'] ?? 0),
+			'done' => (int) ($row['DONE_CNT'] ?? 0),
+			'skipped' => (int) ($row['SKIPPED'] ?? 0),
+		];
+	}
+
+	/**
 	 * Флаг «не прорабатывать автоматически»: скрыт из рабочих фильтров, виден в «done»/«scored», отдельный фильтр «skipped».
 	 */
 	protected static function sqlSectionAutoSkipCondition(string $filterMode): ?string
