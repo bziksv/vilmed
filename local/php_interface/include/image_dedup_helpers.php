@@ -196,6 +196,86 @@ if (!function_exists('vilmedImagesPixelSimilar')) {
 	}
 }
 
+if (!function_exists('vilmedImageFingerprint')) {
+	/**
+	 * md5 + dHash + 32×32 RGB за одно декодирование; кеш на диске по пути/размеру/mtime.
+	 * Без кеша карточка с 18 фото сравнивала пары заново (~20 с CPU на каждый промах композита).
+	 *
+	 * @return array{md5:string,dhash:?string,thumb:?string}|null
+	 */
+	function vilmedImageFingerprint(string $path): ?array
+	{
+		static $mem = [];
+		$st = @stat($path);
+		if ($st === false) {
+			return null;
+		}
+		$key = md5($path . '|' . $st['size'] . '|' . $st['mtime']);
+		if (isset($mem[$key])) {
+			return $mem[$key];
+		}
+
+		$dir = rtrim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''), '/') . '/bitrix/cache/vilmed_img_fp/' . substr($key, 0, 2);
+		$file = $dir . '/' . $key . '.json';
+		if (is_file($file)) {
+			$data = json_decode((string) @file_get_contents($file), true);
+			if (is_array($data) && isset($data['md5'])) {
+				$data['thumb'] = isset($data['thumb']) ? base64_decode($data['thumb']) : null;
+				return $mem[$key] = $data;
+			}
+		}
+
+		$md5 = (string) @md5_file($path);
+		$dhash = null;
+		$thumb = null;
+		$img = function_exists('imagecreatefromstring') ? @imagecreatefromstring((string) @file_get_contents($path)) : false;
+		if ($img) {
+			$w = imagesx($img);
+			$h = imagesy($img);
+			$d = imagecreatetruecolor(9, 8);
+			if ($d) {
+				imagecopyresampled($d, $img, 0, 0, 0, 0, 9, 8, $w, $h);
+				$dhash = '';
+				for ($y = 0; $y < 8; $y++) {
+					for ($x = 0; $x < 8; $x++) {
+						$l = imagecolorat($d, $x, $y);
+						$r = imagecolorat($d, $x + 1, $y);
+						$lg = (($l >> 16) & 0xFF) * 299 + (($l >> 8) & 0xFF) * 587 + ($l & 0xFF) * 114;
+						$rg = (($r >> 16) & 0xFF) * 299 + (($r >> 8) & 0xFF) * 587 + ($r & 0xFF) * 114;
+						$dhash .= ($lg < $rg) ? '1' : '0';
+					}
+				}
+				imagedestroy($d);
+			}
+			$t = imagecreatetruecolor(32, 32);
+			if ($t) {
+				imagecopyresampled($t, $img, 0, 0, 0, 0, 32, 32, $w, $h);
+				$thumb = '';
+				for ($y = 0; $y < 32; $y++) {
+					for ($x = 0; $x < 32; $x++) {
+						$c = imagecolorat($t, $x, $y);
+						$thumb .= chr(($c >> 16) & 0xFF) . chr(($c >> 8) & 0xFF) . chr($c & 0xFF);
+					}
+				}
+				imagedestroy($t);
+			}
+			imagedestroy($img);
+		}
+
+		$data = ['md5' => $md5, 'dhash' => $dhash, 'thumb' => $thumb];
+		if (!is_dir($dir)) {
+			@mkdir($dir, 0755, true);
+		}
+		@file_put_contents($file, json_encode([
+			'md5' => $md5,
+			'dhash' => $dhash,
+			'thumb' => $thumb !== null ? base64_encode($thumb) : null,
+		]), LOCK_EX);
+
+		return $mem[$key] = $data;
+	}
+}
+
 if (!function_exists('vilmedImagesAreDuplicate')) {
 	function vilmedImagesAreDuplicate(string $pathA, string $pathB): bool
 	{
@@ -207,18 +287,26 @@ if (!function_exists('vilmedImagesAreDuplicate')) {
 			return false;
 		}
 
-		$md5A = @md5_file($pathA);
-		$md5B = @md5_file($pathB);
-		if ($md5A && $md5B && $md5A === $md5B) {
+		$a = vilmedImageFingerprint($pathA);
+		$b = vilmedImageFingerprint($pathB);
+		if ($a === null || $b === null) {
+			return false;
+		}
+		if ($a['md5'] !== '' && $a['md5'] === $b['md5']) {
 			return true;
 		}
-
-		$hashA = vilmedImagePerceptualHash($pathA);
-		$hashB = vilmedImagePerceptualHash($pathB);
-		if ($hashA && $hashB && vilmedImageHashesSimilar($hashA, $hashB)) {
+		if ($a['dhash'] && $b['dhash'] && vilmedImageHashesSimilar($a['dhash'], $b['dhash'])) {
 			return true;
 		}
+		if ($a['thumb'] === null || $b['thumb'] === null || strlen($a['thumb']) !== strlen($b['thumb'])) {
+			return false;
+		}
+		$sum = 0;
+		$len = strlen($a['thumb']);
+		for ($i = 0; $i < $len; $i++) {
+			$sum += abs(ord($a['thumb'][$i]) - ord($b['thumb'][$i]));
+		}
 
-		return vilmedImagesPixelSimilar($pathA, $pathB);
+		return ($sum / $len) <= 10.0;
 	}
 }
