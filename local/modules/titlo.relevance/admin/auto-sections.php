@@ -1146,7 +1146,18 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 		return (d.member_ids || []).filter(function (id) { return id !== pid; });
 	}
 
-	function dupGroupHeadHtml(it) {
+	function dupHiddenMembersHtml(d, pageIds) {
+		var hidden = (d.others || []).filter(function (o) { return !pageIds[o.id]; });
+		if (!hidden.length) return '';
+		return '<div class="titlo-grp__hidden">Не видна в этом списке: ' + hidden.map(function (o) {
+			var why = o.auto_done ? 'уже прошла автопроработку' : (o.detail_chars ? ('есть описание, ' + o.detail_chars + ' зн.') : 'на другой странице списка');
+			return '<a href="' + escapeHtml(o.single_url) + '">#' + o.id + ' ' + escapeHtml(o.name) + '</a>' +
+				(o.parent_name ? ' <span class="titlo-grp__meta">в «' + escapeHtml(o.parent_name) + '»</span>' : '') +
+				' — ' + why;
+		}).join('; ') + '</div>';
+	}
+
+	function dupGroupHeadHtml(it, pageIds) {
 		var d = it.phrase_dup;
 		var children = d.parent ? dupChildIds(d) : [];
 		var btn = '';
@@ -1167,6 +1178,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 			'<div class="titlo-grp__main">' +
 			'<div class="titlo-grp__title">Фраза «' + escapeHtml(it.titlo_phrase) + '» у ' + d.count + ' категорий</div>' +
 			'<div class="titlo-grp__parent">' + dupParentLine(d) + '</div>' +
+			dupHiddenMembersHtml(d, pageIds || {}) +
 			'</div>' +
 			'<div class="titlo-grp__actions">' + btn + '</div>' +
 			'</div></td></tr>';
@@ -1271,12 +1283,14 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 			listTotal = res.total || 0;
 			var rows = [];
 			var prevGroup = '';
+			var pageIds = {};
+			(res.items || []).forEach(function (it) { pageIds[it.id] = true; });
 			(res.items || []).forEach(function (it) {
 				var checked = !!selected[it.id];
 				var d = it.phrase_dup;
 				var cls = [];
 				if (d) {
-					if (d.key !== prevGroup) rows.push(dupGroupHeadHtml(it));
+					if (d.key !== prevGroup) rows.push(dupGroupHeadHtml(it, pageIds));
 					cls.push('titlo-auto-dup', 'titlo-auto-dup--' + d.role);
 				}
 				prevGroup = d ? d.key : '';

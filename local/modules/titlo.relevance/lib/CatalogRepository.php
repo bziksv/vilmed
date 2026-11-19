@@ -2738,9 +2738,13 @@ class CatalogRepository
 
 		$members = [];
 		$res = $DB->Query("
-			SELECT BS.ID, BS.NAME, BS.IBLOCK_SECTION_ID, LOWER(TRIM(UTS.{$phraseCol})) AS P
+			SELECT BS.ID, BS.NAME, BS.IBLOCK_SECTION_ID, LOWER(TRIM(UTS.{$phraseCol})) AS P,
+				PS.NAME AS PARENT_NAME,
+				{$detailExpr} AS DESCRIPTION,
+				UTS." . UserFields::AUTO_AT_FIELD . " AS AUTO_AT
 			FROM b_iblock_section BS
 			INNER JOIN {$uts} UTS ON UTS.VALUE_ID = BS.ID
+			LEFT JOIN b_iblock_section PS ON PS.ID = BS.IBLOCK_SECTION_ID
 			WHERE BS.IBLOCK_ID = " . (int) $iblockId . "
 			  AND BS.ACTIVE = 'Y'
 			  AND LOWER(TRIM(UTS.{$phraseCol})) IN ({$in})
@@ -2748,10 +2752,14 @@ class CatalogRepository
 			ORDER BY BS.ID
 		");
 		while ($row = $res->Fetch()) {
+			$plain = trim(html_entity_decode(strip_tags((string) ($row['DESCRIPTION'] ?? '')), ENT_QUOTES, 'UTF-8'));
 			$members[(string) $row['P']][] = [
 				'id' => (int) $row['ID'],
 				'name' => (string) $row['NAME'],
 				'parent_id' => (int) ($row['IBLOCK_SECTION_ID'] ?? 0),
+				'parent_name' => (string) ($row['PARENT_NAME'] ?? ''),
+				'detail_chars' => mb_strlen($plain),
+				'auto_done' => UserFields::formatPhraseAt($row['AUTO_AT'] ?? null) !== '',
 			];
 		}
 
@@ -2822,7 +2830,14 @@ class CatalogRepository
 			$others = [];
 			foreach ($list as $m) {
 				if ($m['id'] !== $item['id']) {
-					$others[] = ['id' => $m['id'], 'name' => $m['name']];
+					$others[] = [
+						'id' => $m['id'],
+						'name' => $m['name'],
+						'parent_name' => $m['parent_name'],
+						'detail_chars' => $m['detail_chars'],
+						'auto_done' => $m['auto_done'],
+						'single_url' => 'titlo_relevance_single.php?lang=' . LANGUAGE_ID . '&ENTITY=S&ID=' . $m['id'],
+					];
 				}
 			}
 			$pid = $groupParent[$p] ?? 0;
