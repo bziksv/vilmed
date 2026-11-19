@@ -523,6 +523,28 @@ class IndexingControl
 		return $out;
 	}
 
+	/**
+	 * SQL-условие «страница раздела закрыта noindex» (те же каналы, что mapSectionNoindex).
+	 */
+	public static function sqlSectionNoindexExpr(string $bsAlias, string $utsAlias): string
+	{
+		$parts = [];
+		if (self::hasUfColumnEntity('SECTION', self::UF_NOINDEX)) {
+			$parts[] = $utsAlias . '.' . self::UF_NOINDEX . " IN (1,'1','Y')";
+		}
+		if (self::useSeoRobots()) {
+			$parts[] = "EXISTS (
+				SELECT 1 FROM b_iblock_iproperty IPN
+				WHERE IPN.IBLOCK_ID = " . (int) Config::iblockId() . "
+				  AND IPN.ENTITY_TYPE = 'S'
+				  AND IPN.ENTITY_ID = {$bsAlias}.ID
+				  AND IPN.CODE = 'SECTION_META_ROBOTS'
+				  AND LOWER(IPN.TEMPLATE) LIKE '%noindex%'
+			)";
+		}
+		return $parts === [] ? '0 = 1' : '(' . implode(' OR ', $parts) . ')';
+	}
+
 	protected static function setUfNoindexEntity(string $kind, int $id, bool $on): void
 	{
 		$kind = $kind === 'SECTION' ? 'SECTION' : 'ELEMENT';

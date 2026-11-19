@@ -1879,6 +1879,8 @@ tr.titlo-auto-skipped > td { color: #9ca3af; }
 .titlo-row-actions__btns { margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
 .titlo-mini-btn { padding: 1px 7px; border: 1px solid #d1d5db; border-radius: 3px; background: #fff; color: #4b5563; font-size: 11px; line-height: 16px; cursor: pointer; }
 .titlo-mini-btn:hover { border-color: #f87171; color: #b91c1c; background: #fef2f2; }
+.titlo-auto-noindex-bar { display: flex; align-items: center; gap: 10px; margin: 10px 0; padding: 8px 12px; border: 1px solid #fecaca; border-radius: 6px; background: #fef2f2; color: #991b1b; font-size: 12px; }
+.titlo-auto-noindex-bar[hidden] { display: none; }
 
 .titlo-section-ms__toggle { display: flex; align-items: center; gap: 6px; margin: 4px 0 6px; font-size: 12px; color: #334155; cursor: pointer; user-select: none; }
 .titlo-section-ms__toggle input { margin: 0; }

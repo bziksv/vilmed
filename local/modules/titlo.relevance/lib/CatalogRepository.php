@@ -2467,6 +2467,11 @@ class CatalogRepository
 		if ($skipCond !== null) {
 			$where[] = $skipCond;
 		}
+		if ($filterMode === 'noindex') {
+			$where[] = IndexingControl::sqlSectionNoindexExpr('BS', 'UTS');
+		} elseif ($filterMode === 'skipped_open') {
+			$where[] = 'NOT ' . IndexingControl::sqlSectionNoindexExpr('BS', 'UTS');
+		}
 
 		$dupSql = self::sqlSectionPhraseDupJoin($iblockId, $uts, $phraseCol);
 		if ($filterMode === 'phrase_dup') {
@@ -2688,10 +2693,10 @@ class CatalogRepository
 	protected static function sqlSectionAutoSkipCondition(string $filterMode): ?string
 	{
 		$col = 'UTS.' . UserFields::AUTO_SKIP_FIELD;
-		if ($filterMode === 'skipped') {
+		if ($filterMode === 'skipped' || $filterMode === 'skipped_open') {
 			return $col . ' = 1';
 		}
-		if ($filterMode === 'done' || $filterMode === 'scored') {
+		if ($filterMode === 'done' || $filterMode === 'scored' || $filterMode === 'noindex') {
 			return null;
 		}
 		return '(' . $col . ' IS NULL OR ' . $col . ' = 0)';
@@ -2915,6 +2920,11 @@ class CatalogRepository
 		$skipCond = self::sqlSectionAutoSkipCondition($filterMode);
 		if ($skipCond !== null) {
 			$where[] = $skipCond;
+		}
+		if ($filterMode === 'noindex') {
+			$where[] = IndexingControl::sqlSectionNoindexExpr('BS', 'UTS');
+		} elseif ($filterMode === 'skipped_open') {
+			$where[] = 'NOT ' . IndexingControl::sqlSectionNoindexExpr('BS', 'UTS');
 		}
 
 		$branchSql = self::sqlSectionInAnySubtree($sectionIds);

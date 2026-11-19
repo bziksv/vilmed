@@ -193,7 +193,9 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 									<b>Прошли автопроработку</b> — стоит дата: либо сгенерировали текст, либо отметили без генерации (политика «описание уже есть»). Это не «есть текст в разделе», а именно отметка автомата.<br>
 									<b>Все с короткой фразой</b> — весь пул, из которого можно ставить в очередь.<br>
 									<b>Одинаковая фраза у нескольких категорий</b> — например «Мониторы пациента, Россия» и «…, Китай» с одной фразой. Такие категории в любом фильтре идут первыми, группой: сверху шапка с общим родителем и кнопкой «Исключить дочерние».<br>
-									<b>Исключённые из автопроработки</b> — категории с отметкой «исключить» (поле «Titlo: не прорабатывать автоматически»). Из остальных рабочих фильтров и групп они пропадают; вернуть — ссылкой «вернуть в работу».
+									<b>Исключённые из автопроработки</b> — категории с отметкой «исключить» (поле «Titlo: не прорабатывать автоматически»). Из остальных рабочих фильтров и групп они пропадают; вернуть — кнопкой «вернуть».<br>
+									<b>Исключённые, но открыты для индексации</b> — исключили, а страницу noindex не закрыли; там есть кнопка «Закрыть noindex все найденные».<br>
+									<b>Закрыты от индексации (noindex)</b> — все категории с noindex на странице (исключённые и нет).
 								</span>
 							</span>:
 							<select id="titlo-auto-filter">
@@ -205,6 +207,8 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 								<option value="all" <?= $filter === 'all' ? 'selected' : '' ?>>Все с короткой фразой</option>
 								<option value="phrase_dup" <?= $filter === 'phrase_dup' ? 'selected' : '' ?>>Одинаковая фраза у нескольких категорий</option>
 								<option value="skipped" <?= $filter === 'skipped' ? 'selected' : '' ?>>Исключённые из автопроработки</option>
+								<option value="skipped_open" <?= $filter === 'skipped_open' ? 'selected' : '' ?>>Исключённые, но открыты для индексации</option>
+								<option value="noindex" <?= $filter === 'noindex' ? 'selected' : '' ?>>Закрыты от индексации (noindex)</option>
 							</select>
 						</label>
 						<label>Сортировка
@@ -308,6 +312,11 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 		<span id="titlo-auto-run-status" class="bulk-status">Очередь не запущена</span>
 		</div>
 	</section>
+
+	<div id="titlo-auto-noindex-bar" class="titlo-auto-noindex-bar" hidden>
+		<span id="titlo-auto-noindex-msg"></span>
+		<input type="button" id="titlo-auto-noindex-all" class="adm-btn" value="Закрыть noindex все найденные">
+	</div>
 
 	<div id="titlo-auto-sel-bar" class="titlo-auto-sel-bar" hidden>
 		<span id="titlo-auto-sel-msg"></span>
@@ -1249,6 +1258,35 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 		});
 	}
 
+	function updateNoindexBar(filter, total) {
+		var bar = document.getElementById('titlo-auto-noindex-bar');
+		if (!bar) return;
+		var show = filter === 'skipped_open' && total > 0;
+		bar.hidden = !show;
+		if (show) {
+			document.getElementById('titlo-auto-noindex-msg').textContent =
+				'Исключены, но страница открыта для индексации: ' + total + '.';
+			document.getElementById('titlo-auto-noindex-all').value = 'Закрыть noindex все найденные (' + total + ')';
+		}
+	}
+
+	function closeNoindexAllFound() {
+		var fp = listFilterParams();
+		return post('auto_list_ids', {
+			entity_type: 'S',
+			q: fp.q,
+			filter: 'skipped_open',
+			section_ids: fp.section_ids
+		}).then(function (res) {
+			var ids = (res && res.ok && res.ids) ? res.ids : [];
+			if (!ids.length) {
+				setStatus('titlo-auto-list-status', 'Нечего закрывать');
+				return;
+			}
+			return setAutoSkip(ids, '', '1');
+		});
+	}
+
 	function emptyListHtml(res, fp) {
 		var st = res.branch_stats;
 		if (!st) {
@@ -1286,6 +1324,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 				return;
 			}
 			listTotal = res.total || 0;
+			updateNoindexBar(fp.filter, listTotal);
 			var rows = [];
 			var prevGroup = '';
 			var pageIds = {};
@@ -1512,6 +1551,11 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 	document.getElementById('titlo-auto-run-mode').onchange = function () {
 		syncModeUi();
 		loadPrompts();
+	};
+
+	document.getElementById('titlo-auto-noindex-all').onclick = function (e) {
+		e.preventDefault();
+		closeNoindexAllFound();
 	};
 
 	document.getElementById('titlo-auto-check-all').onchange = function () {
