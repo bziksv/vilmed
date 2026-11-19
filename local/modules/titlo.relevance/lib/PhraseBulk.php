@@ -18,8 +18,8 @@ class PhraseBulk
 	public const JOB_DONE = 'done';
 	public const JOB_FAILED = 'failed';
 
-	/** Максимум товаров в одну пачку (защита от случайных 20k без лимита). */
-	public const MAX_LIMIT = 500;
+	/** Максимум товаров/категорий в одну пачку (защита от случайных 20k без лимита). */
+	public const MAX_LIMIT = 5000;
 	/** Дефолт UI / без явного limit */
 	public const DEFAULT_LIMIT = 200;
 
