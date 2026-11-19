@@ -531,7 +531,7 @@ class IndexingControl
 	{
 		$parts = [];
 		if (self::hasUfColumnEntity('SECTION', self::UF_NOINDEX)) {
-			$parts[] = 'CAST(' . $utsAlias . '.' . self::UF_NOINDEX . " AS CHAR) IN ('1','Y')";
+			$parts[] = 'CAST(COALESCE(' . $utsAlias . '.' . self::UF_NOINDEX . ", 0) AS CHAR) IN ('1','Y')";
 		}
 		if (self::useSeoRobots()) {
 			$parts[] = "EXISTS (
