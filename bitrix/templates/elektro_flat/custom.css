@@ -7,17 +7,13 @@
     flex-direction: column;
     align-items: flex-end;
 }
+/* hide "В наличии" badges site-wide */
 .catalog-item-card .item-image .sticker .new.in-stock,
 .catalog-item .catalog-item-image .sticker .new.in-stock,
-.catalog-detail-pictures .detail_picture .sticker .new.in-stock {
-    width: 80px;
-}
-
-@media screen and (max-width: 787px){
-    .catalog-item-card .item-image .sticker .new.in-stock,
-    .catalog-item .catalog-item-image .sticker .new.in-stock {
-        width: 60px;
-    }
+.catalog-detail-pictures .detail_picture .sticker .new.in-stock,
+.detail_picture .ticker .new.in-stock,
+.ticker .new.in-stock {
+    display: none !important;
 }
 
 /***CUSTOM CSS RULES FOR YOUR SITE***/

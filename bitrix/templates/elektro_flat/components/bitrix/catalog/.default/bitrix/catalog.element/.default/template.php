@@ -199,9 +199,6 @@ if(array_key_exists("PROPERTIES", $arResult) && is_array($arResult["PROPERTIES"]
 	//NEW//
 	if(array_key_exists("NEWPRODUCT", $arResult["PROPERTIES"]) && !$arResult["PROPERTIES"]["NEWPRODUCT"]["VALUE"] == false)
 		$sticker .= "<span class='new'>".GetMessage("CATALOG_ELEMENT_NEWPRODUCT")."</span>";
-    //IN_STOCK//
-    if(array_key_exists("IN_STOCK", $arResult["PROPERTIES"]) && !$arResult["PROPERTIES"]["IN_STOCK"]["VALUE"] == false)
-        $sticker .= "<span class='new in-stock'>".GetMessage("CATALOG_ELEMENT_IN_STOCK")."</span>";
 	//HIT//
 	if(array_key_exists("SALELEADER", $arResult["PROPERTIES"]) && !$arResult["PROPERTIES"]["SALELEADER"]["VALUE"] == false)
 		$sticker .= "<span class='hit'>".GetMessage("CATALOG_ELEMENT_SALELEADER")."</span>";

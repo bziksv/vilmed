@@ -57,9 +57,6 @@ if(isset($arResult['ITEM'])) {
 		//NEW//
 		if(array_key_exists("NEWPRODUCT", $arElement["PROPERTIES"]) && !$arElement["PROPERTIES"]["NEWPRODUCT"]["VALUE"] == false)
 			$sticker .= "<span class='new'>".GetMessage("CT_BCS_BIGDATA_ELEMENT_NEWPRODUCT")."</span>";
-        //IN_STOCK//
-        if(array_key_exists("IN_STOCK", $arElement["PROPERTIES"]) && !$arElement["PROPERTIES"]["IN_STOCK"]["VALUE"] == false)
-            $sticker .= "<span class='new in-stock'><span class='text'>".GetMessage("CT_BCS_BIGDATA_ELEMENT_AVAILABLE")."</span></span>";
 		//HIT//
 		if(array_key_exists("SALELEADER", $arElement["PROPERTIES"]) && !$arElement["PROPERTIES"]["SALELEADER"]["VALUE"] == false)
 			$sticker .= "<span class='hit'>".GetMessage("CT_BCS_BIGDATA_ELEMENT_SALELEADER")."</span>";
