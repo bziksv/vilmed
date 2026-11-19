@@ -1162,7 +1162,8 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 		return '<div class="titlo-grp__hidden"><span class="titlo-grp__hidden-label">Ещё в группе, но скрыты фильтром:</span> ' + hidden.map(function (o) {
 			var why = o.auto_done ? 'уже прошла автопроработку' : (o.detail_chars ? ('есть описание ' + o.detail_chars + ' зн.') : 'на другой странице');
 			return '<span class="titlo-grp__chip"><a href="' + escapeHtml(o.single_url) + '">' + escapeHtml(o.name) + '</a>' +
-				'<span class="titlo-grp__meta"> #' + o.id + (o.parent_name ? ' · в «' + escapeHtml(o.parent_name) + '»' : '') + ' · ' + why + '</span></span>';
+				'<span class="titlo-grp__meta"> #' + o.id + (o.parent_name ? ' · в «' + escapeHtml(o.parent_name) + '»' : '') + ' · ' + why + '</span>' +
+				(o.url ? ' <a class="titlo-grp__ext" href="' + safeHref(o.url) + '" target="_blank" rel="noopener">сайт ↗</a>' : '') + '</span>';
 		}).join('') + '</div>';
 	}
 

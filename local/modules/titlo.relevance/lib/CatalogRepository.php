@@ -2771,6 +2771,14 @@ class CatalogRepository
 			];
 		}
 
+		$memberIds = [];
+		foreach ($members as $list) {
+			foreach ($list as $m) {
+				$memberIds[] = $m['id'];
+			}
+		}
+		$memberUrls = $memberIds !== [] ? UrlBuilder::mapSectionUrls($memberIds) : [];
+
 		// Общий родитель группы: либо все с одной фразой — дети одного раздела,
 		// либо у самого родителя та же фраза, а остальные — его дети.
 		$groupParent = [];
@@ -2845,6 +2853,7 @@ class CatalogRepository
 						'detail_chars' => $m['detail_chars'],
 						'auto_done' => $m['auto_done'],
 						'single_url' => 'titlo_relevance_single.php?lang=' . LANGUAGE_ID . '&ENTITY=S&ID=' . $m['id'],
+						'url' => $memberUrls[$m['id']] ?? '',
 					];
 				}
 			}
