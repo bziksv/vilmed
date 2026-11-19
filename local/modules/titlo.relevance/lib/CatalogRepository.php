@@ -2849,6 +2849,7 @@ class CatalogRepository
 					$others[] = [
 						'id' => $m['id'],
 						'name' => $m['name'],
+						'parent_id' => $m['parent_id'],
 						'parent_name' => $m['parent_name'],
 						'detail_chars' => $m['detail_chars'],
 						'auto_done' => $m['auto_done'],
@@ -2863,14 +2864,32 @@ class CatalogRepository
 				$parent['same_phrase'] = mb_strtolower($parent['titlo_phrase']) === $p;
 				$parent['is_self'] = $pid === $item['id'];
 			}
+			// Без общего родителя всё равно бывают связи внутри группы: раздел и его подраздел с одной фразой.
+			$inGroup = array_fill_keys(array_column($list, 'id'), true);
+			$childrenOf = [];
+			foreach ($list as $m) {
+				if (isset($inGroup[$m['parent_id']])) {
+					$childrenOf[$m['parent_id']][] = $m['id'];
+				}
+			}
 			$role = 'peer';
 			if ($parent !== null) {
 				$role = $parent['is_self'] ? 'parent' : 'child';
+			} elseif (isset($inGroup[$item['parent_id']])) {
+				$role = 'child';
+			} elseif (!empty($childrenOf[$item['id']])) {
+				$role = 'parent';
 			}
 			$item['phrase_dup'] = [
 				'key' => $p,
 				'count' => count($list),
 				'member_ids' => array_column($list, 'id'),
+				'self' => [
+					'id' => $item['id'],
+					'name' => $item['name'],
+					'parent_id' => $item['parent_id'],
+					'parent_name' => (string) ($item['parent_name'] ?? ''),
+				],
 				'others' => $others,
 				'parent' => $parent,
 				'role' => $role,

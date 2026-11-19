@@ -1173,10 +1173,55 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 		});
 	}
 
+	function dupMembers(d) {
+		return (d.others || []).concat(d.self ? [d.self] : []);
+	}
+
+	function dupStructure(d) {
+		var members = dupMembers(d);
+		var byId = {};
+		members.forEach(function (m) { byId[m.id] = m; });
+		var kids = {};
+		var roots = [];
+		members.forEach(function (m) {
+			if (byId[m.parent_id]) (kids[m.parent_id] = kids[m.parent_id] || []).push(m);
+			else roots.push(m);
+		});
+		return {byId: byId, kids: kids, roots: roots};
+	}
+
+	function dupMemberRef(m) {
+		return '<b>#' + m.id + ' ' + escapeHtml(m.name) + '</b>';
+	}
+
+	function dupInGroupChildIds(d) {
+		var st = dupStructure(d);
+		var ids = [];
+		Object.keys(st.kids).forEach(function (pid) {
+			st.kids[pid].forEach(function (m) { ids.push(m.id); });
+		});
+		return ids;
+	}
+
 	function dupParentLine(d) {
 		var p = d.parent;
 		if (!p) {
-			return '<span class="titlo-grp__warn">Общего родителя нет</span> — это разные ветки каталога. Оставьте фразу одной категории, у остальных смените фразу или исключите.';
+			var st = dupStructure(d);
+			var linked = st.roots.filter(function (r) { return st.kids[r.id]; });
+			var alone = st.roots.filter(function (r) { return !st.kids[r.id]; });
+			if (!linked.length) {
+				return '<span class="titlo-grp__warn">Общего родителя нет</span> — это разные ветки каталога. Оставьте фразу одной категории, у остальных смените фразу или исключите.';
+			}
+			var lines = linked.map(function (r) {
+				return 'Внутри группы: ' + dupMemberRef(r) + ' — родитель для ' +
+					st.kids[r.id].map(dupMemberRef).join(', ') + '. Обычно прорабатывают родителя, дочерние исключают.';
+			});
+			if (alone.length) {
+				lines.push('<span class="titlo-grp__warn">Отдельная ветка:</span> ' + alone.map(function (m) {
+					return dupMemberRef(m) + (m.parent_name ? ' в «' + escapeHtml(m.parent_name) + '»' : '');
+				}).join(', ') + ' — ей лучше задать свою фразу или исключить.');
+			}
+			return lines.join('<br>');
 		}
 		var meta = [];
 		meta.push(p.titlo_phrase
@@ -1210,7 +1255,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 
 	function dupGroupHeadHtml(it, pageIds) {
 		var d = it.phrase_dup;
-		var children = d.parent ? dupChildIds(d) : [];
+		var children = d.parent ? dupChildIds(d) : dupInGroupChildIds(d);
 		var btn = '';
 		if (children.length) {
 			btn = '<button type="button" class="adm-btn titlo-grp__btn" data-skip-ids="' + children.join(',') + '" data-skip="1">' +
