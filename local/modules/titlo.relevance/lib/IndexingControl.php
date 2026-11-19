@@ -422,9 +422,10 @@ class IndexingControl
 		global $DB;
 		$iblockId = (int) Config::iblockId();
 		$uts = 'b_uts_iblock_' . $iblockId . '_section';
-		$where = 'UF_ROBOTS_NOINDEX IN (1,\'1\',\'Y\')';
+		// CAST: in MySQL an INT column IN (1,'Y') also matches 0 ('Y' casts to 0).
+		$where = "CAST(UF_ROBOTS_NOINDEX AS CHAR) IN ('1','Y')";
 		if (self::hasUfColumnEntity('SECTION', self::UF_NOINDEX)) {
-			$where .= ' AND (' . self::UF_NOINDEX . " IN (1,'1','Y')";
+			$where .= ' AND (CAST(' . self::UF_NOINDEX . " AS CHAR) IN ('1','Y')";
 			if (self::hasUfColumnEntity('SECTION', 'UF_TITLO_DUP_DECISION')) {
 				$where .= " OR UF_TITLO_DUP_DECISION = 'noindex'";
 			}
@@ -530,7 +531,7 @@ class IndexingControl
 	{
 		$parts = [];
 		if (self::hasUfColumnEntity('SECTION', self::UF_NOINDEX)) {
-			$parts[] = $utsAlias . '.' . self::UF_NOINDEX . " IN (1,'1','Y')";
+			$parts[] = 'CAST(' . $utsAlias . '.' . self::UF_NOINDEX . " AS CHAR) IN ('1','Y')";
 		}
 		if (self::useSeoRobots()) {
 			$parts[] = "EXISTS (
