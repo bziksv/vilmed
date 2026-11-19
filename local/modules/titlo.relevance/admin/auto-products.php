@@ -801,6 +801,57 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 		});
 	}
 
+	function pagerHtml(cur, pages, total, extra) {
+		function btn(p, label, cls, title) {
+			var dis = p < 1 || p > pages || p === cur;
+			return '<button type="button" class="titlo-pg__btn' + (cls ? ' ' + cls : '') + '"' +
+				(dis ? ' disabled' : ' data-goto="' + p + '"') + (title ? ' title="' + title + '"' : '') + '>' + label + '</button>';
+		}
+		var nums = [];
+		var from = Math.max(1, cur - 2);
+		var to = Math.min(pages, cur + 2);
+		if (from > 1) {
+			nums.push(btn(1, '1'));
+			if (from > 2) nums.push('<span class="titlo-pg__gap">…</span>');
+		}
+		for (var i = from; i <= to; i++) {
+			nums.push(i === cur ? '<span class="titlo-pg__cur">' + i + '</span>' : btn(i, String(i)));
+		}
+		if (to < pages) {
+			if (to < pages - 1) nums.push('<span class="titlo-pg__gap">…</span>');
+			nums.push(btn(pages, String(pages)));
+		}
+		return '<div class="titlo-pg">' +
+			btn(cur - 1, '← Назад', 'titlo-pg__btn--nav') +
+			nums.join('') +
+			btn(cur + 1, 'Вперёд →', 'titlo-pg__btn--nav') +
+			'<span class="titlo-pg__jump">стр. <input type="number" class="titlo-pg__input" min="1" max="' + pages + '" value="' + cur + '"> из ' + pages + '</span>' +
+			'<span class="titlo-pg__total">всего ' + total + (extra ? ', ' + extra : '') + '</span>' +
+			'</div>';
+	}
+
+	function bindPager(host, go) {
+		Array.prototype.forEach.call(host.querySelectorAll('[data-goto]'), function (b) {
+			b.onclick = function (e) {
+				e.preventDefault();
+				go(parseInt(b.getAttribute('data-goto'), 10) || 1);
+			};
+		});
+		var inp = host.querySelector('.titlo-pg__input');
+		if (inp) {
+			inp.onkeydown = function (e) {
+				if (e.key !== 'Enter') return;
+				e.preventDefault();
+				var max = parseInt(inp.getAttribute('max'), 10) || 1;
+				go(Math.max(1, Math.min(max, parseInt(inp.value, 10) || 1)));
+			};
+			inp.onchange = function () {
+				var max = parseInt(inp.getAttribute('max'), 10) || 1;
+				go(Math.max(1, Math.min(max, parseInt(inp.value, 10) || 1)));
+			};
+		}
+	}
+
 	function renderPager(total, pageSize, pages) {
 		var host = document.getElementById('titlo-auto-pager');
 		if (!host) return;
@@ -808,16 +859,12 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 			host.innerHTML = 'Всего: ' + total;
 			return;
 		}
-		var html = 'Стр. ' + page + ' / ' + pages + ' (всего ' + total + ') ';
-		if (page > 1) html += '<a href="#" data-p="' + (page - 1) + '" class="titlo-auto-page">←</a> ';
-		if (page < pages) html += '<a href="#" data-p="' + (page + 1) + '" class="titlo-auto-page">→</a>';
-		host.innerHTML = html;
-		Array.prototype.forEach.call(host.querySelectorAll('.titlo-auto-page'), function (a) {
-			a.onclick = function (e) {
-				e.preventDefault();
-				page = parseInt(a.getAttribute('data-p'), 10) || 1;
-				loadList();
-			};
+		host.innerHTML = pagerHtml(page, pages, total);
+		bindPager(host, function (p) {
+			page = p;
+			loadList();
+			var top = document.getElementById('titlo-auto-body');
+			if (top && top.scrollIntoView) top.closest('table').scrollIntoView({block: 'start'});
 		});
 	}
 
@@ -829,16 +876,10 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 			host.innerHTML = total ? ('В журнале: ' + total) : '';
 			return;
 		}
-		var html = 'Стр. ' + queuePage + ' / ' + pages + ' (всего ' + total + ', по ' + pageSize + ') ';
-		if (queuePage > 1) html += '<a href="#" data-qp="' + (queuePage - 1) + '" class="titlo-auto-queue-page">←</a> ';
-		if (queuePage < pages) html += '<a href="#" data-qp="' + (queuePage + 1) + '" class="titlo-auto-queue-page">→</a>';
-		host.innerHTML = html;
-		Array.prototype.forEach.call(host.querySelectorAll('.titlo-auto-queue-page'), function (a) {
-			a.onclick = function (e) {
-				e.preventDefault();
-				queuePage = parseInt(a.getAttribute('data-qp'), 10) || 1;
-				loadQueue();
-			};
+		host.innerHTML = pagerHtml(queuePage, pages, total, 'по ' + pageSize);
+		bindPager(host, function (p) {
+			queuePage = p;
+			loadQueue();
 		});
 	}
 
