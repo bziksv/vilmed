@@ -346,9 +346,9 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 					<span class="titlo-help__tip">Текущий шаг задания: анализ, генерация, сохранение и т.д. «—» — не в очереди.</span>
 				</span>
 			</th>
-			<th style="width:160px">Ссылки
-				<span class="titlo-help" tabindex="0" aria-label="Ссылки">?
-					<span class="titlo-help__tip"><b>Проработка</b> — точечная страница анализа и генерации по одной категории.<br><b>На сайте</b> — публичный раздел в новой вкладке.</span>
+			<th style="width:190px">Действия
+				<span class="titlo-help" tabindex="0" aria-label="Действия">?
+					<span class="titlo-help__tip"><b>Проработка</b> — точечная страница анализа и генерации по одной категории.<br><b>Сайт</b> — публичный раздел в новой вкладке.<br><b>Исключить</b> — убрать из автопроработки (вернуть — фильтр «Исключённые»).<br><b>+ noindex</b> — исключить и закрыть страницу категории от индексации; товары не закрываются.</span>
 				</span>
 			</th>
 		</tr>
@@ -1126,19 +1126,20 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 	function dupParentLine(d) {
 		var p = d.parent;
 		if (!p) {
-			return 'Общего родителя нет — оставьте в работе одну категорию, остальные исключите.';
+			return '<span class="titlo-grp__warn">Общего родителя нет</span> — это разные ветки каталога. Оставьте фразу одной категории, у остальных смените фразу или исключите.';
 		}
 		var meta = [];
 		meta.push(p.titlo_phrase
-			? ('фраза «' + escapeHtml(p.titlo_phrase) + '»' + (p.same_phrase ? ' — та же' : ''))
+			? (p.same_phrase ? 'та же фраза' : ('своя фраза «' + escapeHtml(p.titlo_phrase) + '»'))
 			: 'без фразы');
-		meta.push(p.has_detail ? ('описание есть, ' + p.detail_chars + ' зн.') : 'описания нет');
+		meta.push(p.has_detail ? ('описание ' + p.detail_chars + ' зн.') : 'без описания');
 		if (!p.active) meta.push('неактивен');
-		return 'Родитель: <b>#' + p.id + ' ' + escapeHtml(p.name) + '</b>' +
-			(p.is_self || d.role === 'parent' ? ' (в этом списке)' : '') +
-			' <span class="titlo-grp__meta">· ' + meta.join(' · ') + '</span>' +
-			' · <a href="' + escapeHtml(p.single_url) + '">проработка</a>' +
-			(p.url ? ' · <a href="' + safeHref(p.url) + '" target="_blank" rel="noopener">на сайте</a>' : '');
+		return 'Общий родитель: <a href="' + escapeHtml(p.single_url) + '"><b>' + escapeHtml(p.name) + '</b></a>' +
+			' <span class="titlo-grp__meta">#' + p.id + ' · ' + meta.join(' · ') + '</span>' +
+			(p.url ? ' <a class="titlo-grp__ext" href="' + safeHref(p.url) + '" target="_blank" rel="noopener">на сайте ↗</a>' : '') +
+			'<span class="titlo-grp__advice">' + (d.role === 'parent'
+				? 'Обычно прорабатывают родителя, дочерние исключают.'
+				: 'Обычно прорабатывают родителя, а эти дочерние исключают.') + '</span>';
 	}
 
 	function dupChildIds(d) {
@@ -1149,12 +1150,11 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 	function dupHiddenMembersHtml(d, pageIds) {
 		var hidden = (d.others || []).filter(function (o) { return !pageIds[o.id]; });
 		if (!hidden.length) return '';
-		return '<div class="titlo-grp__hidden">Не видна в этом списке: ' + hidden.map(function (o) {
-			var why = o.auto_done ? 'уже прошла автопроработку' : (o.detail_chars ? ('есть описание, ' + o.detail_chars + ' зн.') : 'на другой странице списка');
-			return '<a href="' + escapeHtml(o.single_url) + '">#' + o.id + ' ' + escapeHtml(o.name) + '</a>' +
-				(o.parent_name ? ' <span class="titlo-grp__meta">в «' + escapeHtml(o.parent_name) + '»</span>' : '') +
-				' — ' + why;
-		}).join('; ') + '</div>';
+		return '<div class="titlo-grp__hidden"><span class="titlo-grp__hidden-label">Ещё в группе, но скрыты фильтром:</span> ' + hidden.map(function (o) {
+			var why = o.auto_done ? 'уже прошла автопроработку' : (o.detail_chars ? ('есть описание ' + o.detail_chars + ' зн.') : 'на другой странице');
+			return '<span class="titlo-grp__chip"><a href="' + escapeHtml(o.single_url) + '">' + escapeHtml(o.name) + '</a>' +
+				'<span class="titlo-grp__meta"> #' + o.id + (o.parent_name ? ' · в «' + escapeHtml(o.parent_name) + '»' : '') + ' · ' + why + '</span></span>';
+		}).join('') + '</div>';
 	}
 
 	function dupGroupHeadHtml(it, pageIds) {
@@ -1162,51 +1162,56 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 		var children = d.parent ? dupChildIds(d) : [];
 		var btn = '';
 		if (children.length) {
-			btn = '<div class="titlo-grp__btns">' +
-				'<button type="button" class="adm-btn titlo-grp__btn" data-skip-ids="' + children.join(',') + '" data-skip="1">' +
+			btn = '<button type="button" class="adm-btn titlo-grp__btn" data-skip-ids="' + children.join(',') + '" data-skip="1">' +
 				'Исключить дочерние (' + children.length + ')</button>' +
 				'<button type="button" class="adm-btn titlo-grp__btn" data-skip-ids="' + children.join(',') + '" data-skip="1" data-noindex="1"' +
-				' title="Исключить из автопроработки и закрыть страницы дочерних категорий: meta robots noindex, nofollow. Товары не закрываются.">' +
-				'+ noindex</button>' +
-				'</div>' +
-				'<span class="titlo-grp__hint">' + (d.role === 'parent'
-					? 'останется только родитель'
-					: 'прорабатывать родителя — по ссылке «проработка»') + '</span>';
+				' title="Исключить из автопроработки и закрыть страницы дочерних категорий (meta robots noindex, nofollow). Товары не закрываются.">' +
+				'… и закрыть noindex</button>';
 		}
 		return '<tr class="titlo-grp-head"><td colspan="' + COLSPAN + '">' +
 			'<div class="titlo-grp">' +
 			'<div class="titlo-grp__main">' +
-			'<div class="titlo-grp__title">Фраза «' + escapeHtml(it.titlo_phrase) + '» у ' + d.count + ' категорий</div>' +
+			'<div class="titlo-grp__title"><span class="titlo-grp__phrase">«' + escapeHtml(it.titlo_phrase) + '»</span>' +
+			'<span class="titlo-grp__count">одна фраза у ' + d.count + ' категорий</span></div>' +
 			'<div class="titlo-grp__parent">' + dupParentLine(d) + '</div>' +
 			dupHiddenMembersHtml(d, pageIds || {}) +
 			'</div>' +
-			'<div class="titlo-grp__actions">' + btn + '</div>' +
+			(btn ? '<div class="titlo-grp__actions">' + btn + '</div>' : '') +
 			'</div></td></tr>';
 	}
 
-	function dupRoleTag(it) {
+	function nameCellHtml(it) {
 		var d = it.phrase_dup;
-		if (!d) return '';
-		if (d.role === 'parent') return ' <span class="titlo-tag titlo-tag--parent">родитель</span>';
-		if (d.role === 'child') return ' <span class="titlo-tag">дочерняя</span>';
-		return ' <span class="titlo-tag">та же фраза</span>';
+		var out = '<div class="titlo-auto-name">';
+		if (d && d.role === 'child') out += '<span class="titlo-auto-dup__indent">↳</span>';
+		out += '<span class="titlo-auto-name__text">' + escapeHtml(it.name) + '</span>';
+		if (d && d.role === 'parent') out += ' <span class="titlo-tag titlo-tag--parent">родитель</span>';
+		if (it.noindex) out += ' <span class="titlo-tag titlo-tag--noindex">noindex</span>';
+		if (it.auto_skip) out += ' <span class="titlo-tag">исключена</span>';
+		out += '</div>';
+		if (it.parent_name) {
+			out += '<div class="titlo-auto-name__path">в «' + escapeHtml(it.parent_name) + '»</div>';
+		}
+		return out;
 	}
 
-	function skipLink(it) {
-		var out = '';
+	function actionsCellHtml(it) {
+		var out = '<div class="titlo-row-actions__links"><a href="' + escapeHtml(it.single_url) + '">проработка</a>' +
+			(it.url ? ' · <a href="' + safeHref(it.url) + '" target="_blank" rel="noopener">сайт ↗</a>' : '') + '</div>' +
+			'<div class="titlo-row-actions__btns">';
 		if (it.auto_skip) {
-			out += '<br><a href="#" class="titlo-skip-link" data-skip-ids="' + it.id + '" data-skip="0">вернуть в работу</a>';
+			out += '<button type="button" class="titlo-mini-btn" data-skip-ids="' + it.id + '" data-skip="0">вернуть</button>';
 		} else {
-			out += '<br><a href="#" class="titlo-skip-link titlo-skip-link--off" data-skip-ids="' + it.id + '" data-skip="1" title="Не прорабатывать автоматически">исключить</a>';
+			out += '<button type="button" class="titlo-mini-btn" data-skip-ids="' + it.id + '" data-skip="1" title="Не прорабатывать автоматически">исключить</button>';
 			if (!it.noindex) {
-				out += ' · <a href="#" class="titlo-skip-link titlo-skip-link--off" data-skip-ids="' + it.id + '" data-skip="1" data-noindex="1"' +
-					' title="Исключить и закрыть страницу категории от индексации (meta robots noindex). Товары не закрываются.">+ noindex</a>';
+				out += '<button type="button" class="titlo-mini-btn" data-skip-ids="' + it.id + '" data-skip="1" data-noindex="1"' +
+					' title="Исключить и закрыть страницу категории (meta robots noindex, nofollow). Товары не закрываются.">+ noindex</button>';
 			}
 		}
 		if (it.noindex) {
-			out += ' · <a href="#" class="titlo-skip-link" data-skip-ids="' + it.id + '" data-skip="" data-noindex="0" title="Убрать noindex со страницы категории">открыть индексацию</a>';
+			out += '<button type="button" class="titlo-mini-btn" data-skip-ids="' + it.id + '" data-skip="" data-noindex="0" title="Убрать noindex со страницы категории">открыть индекс</button>';
 		}
-		return out;
+		return out + '</div>';
 	}
 
 	function setAutoSkip(ids, skip, noindex) {
@@ -1299,18 +1304,13 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 					'<tr data-id="' + it.id + '"' + (cls.length ? ' class="' + cls.join(' ') + '"' : '') + '>' +
 					'<td><input type="checkbox" class="titlo-auto-row" value="' + it.id + '"' + (checked ? ' checked' : '') + '></td>' +
 					'<td>' + it.id + '</td>' +
-					'<td>' + (d && d.role === 'child' ? '<span class="titlo-auto-dup__indent">↳</span>' : '') +
-					escapeHtml(it.name) + dupRoleTag(it) +
-					(it.noindex ? ' <span class="titlo-tag titlo-tag--noindex">noindex</span>' : '') + '</td>' +
+					'<td>' + nameCellHtml(it) + '</td>' +
 					'<td>' + escapeHtml(it.titlo_phrase) + '</td>' +
 					'<td>' + (it.has_detail ? ('есть · ' + it.detail_chars) : 'пусто') + '</td>' +
 					'<td class="titlo-auto-score-td">' + scoreCell(it) + '</td>' +
 					'<td>' + (it.auto_done ? ('✓ ' + escapeHtml(it.auto_at)) : '—') + '</td>' +
 					'<td>' + queueLabel(it.queue) + '</td>' +
-					'<td><a href="' + escapeHtml(it.single_url) + '">проработка</a>' +
-					(it.url ? (' · <a href="' + safeHref(it.url) + '" target="_blank" rel="noopener">на сайте</a>') : '') +
-					skipLink(it) +
-					'</td></tr>'
+					'<td class="titlo-row-actions">' + actionsCellHtml(it) + '</td></tr>'
 				);
 			});
 			body.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="' + COLSPAN + '">' + emptyListHtml(res, fp) + '</td></tr>';

@@ -2535,6 +2535,7 @@ class CatalogRepository
 				BS.NAME,
 				BS.CODE,
 				BS.IBLOCK_SECTION_ID,
+				PSN.NAME AS PARENT_NAME,
 				{$detailExpr} AS DESCRIPTION,
 				CHAR_LENGTH(COALESCE({$detailExpr}, '')) AS DETAIL_LEN,
 				UTS.{$phraseCol} AS TITLO_PHRASE,
@@ -2548,6 +2549,7 @@ class CatalogRepository
 				WH.BEFORE_AT, WH.AFTER_AT
 			FROM b_iblock_section BS
 			LEFT JOIN {$uts} UTS ON UTS.VALUE_ID = BS.ID
+			LEFT JOIN b_iblock_section PSN ON PSN.ID = BS.IBLOCK_SECTION_ID
 			{$dupSql}
 			{$whJoin}
 			WHERE {$whereSql}
@@ -2597,6 +2599,7 @@ class CatalogRepository
 				'name' => (string) $row['NAME'],
 				'code' => (string) $row['CODE'],
 				'parent_id' => (int) ($row['IBLOCK_SECTION_ID'] ?? 0),
+				'parent_name' => (string) ($row['PARENT_NAME'] ?? ''),
 				'titlo_phrase' => trim((string) ($row['TITLO_PHRASE'] ?? '')),
 				'detail_chars' => mb_strlen($detailPlain),
 				'has_detail' => $detailPlain !== '',
