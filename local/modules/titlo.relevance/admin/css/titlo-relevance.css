@@ -1911,3 +1911,5 @@ tr.titlo-auto-skipped > td { color: #9ca3af; }
 .titlo-queue-table__phrase { min-width: 200px; }
 .titlo-queue-table__err { min-width: 260px; }
 .titlo-queue-table td { word-break: normal; overflow-wrap: anywhere; }
+.titlo-tag--skip { background: #e2e8f0; color: #475569; }
+.titlo-queue-table .titlo-row-actions__btns { margin-top: 4px; }

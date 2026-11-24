@@ -1385,6 +1385,26 @@ class BatchQueue
 			$items[] = self::serializeRow($row);
 		}
 
+		$secIds = [];
+		foreach ($items as $it) {
+			if (($it['entity_type'] ?? '') === 'S') {
+				$secIds[] = (int) $it['entity_id'];
+			}
+		}
+		if ($secIds !== []) {
+			$skipMap = self::excludedSectionIds($secIds);
+			$noindexMap = IndexingControl::mapSectionNoindex($secIds);
+			foreach ($items as &$it) {
+				if (($it['entity_type'] ?? '') !== 'S') {
+					continue;
+				}
+				$eid = (int) $it['entity_id'];
+				$it['auto_skip'] = isset($skipMap[$eid]);
+				$it['noindex'] = !empty($noindexMap[$eid]);
+			}
+			unset($it);
+		}
+
 		$counts = [
 			'queued' => 0,
 			'running' => 0,

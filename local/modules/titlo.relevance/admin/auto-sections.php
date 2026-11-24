@@ -432,7 +432,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 				<tr>
 					<th style="width:36px"><input type="checkbox" id="titlo-auto-queue-check-all" aria-label="Выбрать все в журнале"></th>
 					<th style="width:50px">№</th>
-					<th style="width:70px">Категория</th>
+					<th style="width:150px">Категория</th>
 					<th class="titlo-queue-table__phrase">Фраза</th>
 					<th style="width:90px">Режим</th>
 					<th style="width:110px">Система
@@ -1310,19 +1310,42 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 		return out + '</div>';
 	}
 
-	function setAutoSkip(ids, skip, noindex) {
+	function queueEntityCellHtml(it) {
+		var sid = ' data-status-id="titlo-auto-requeue-status"';
+		var out = '<a href="' + escapeHtml(it.single_url) + '">' + it.entity_id + '</a>' +
+			(it.url ? ' · <a href="' + safeHref(it.url) + '" target="_blank" rel="noopener" title="Открыть на сайте">↗</a>' : '');
+		var tags = [];
+		if (it.auto_skip) tags.push('<span class="titlo-tag titlo-tag--skip">исключена</span>');
+		if (it.noindex) tags.push('<span class="titlo-tag titlo-tag--noindex">noindex</span>');
+		if (tags.length) out += '<div>' + tags.join(' ') + '</div>';
+		var btns = '';
+		if (!it.auto_skip) {
+			btns += '<button type="button" class="titlo-mini-btn" data-skip-ids="' + it.entity_id + '" data-skip="1"' + sid +
+				' title="Не прорабатывать автоматически; задания «в очереди» и «ошибка» снимутся">исключить</button>';
+			if (!it.noindex) {
+				btns += '<button type="button" class="titlo-mini-btn" data-skip-ids="' + it.entity_id + '" data-skip="1" data-noindex="1"' + sid +
+					' title="Исключить и закрыть страницу категории (meta robots noindex, nofollow). Товары не закрываются.">+ noindex</button>';
+			}
+		} else {
+			btns += '<button type="button" class="titlo-mini-btn" data-skip-ids="' + it.entity_id + '" data-skip="0"' + sid + '>вернуть</button>';
+		}
+		return out + '<div class="titlo-row-actions__btns">' + btns + '</div>';
+	}
+
+	function setAutoSkip(ids, skip, noindex, statusId) {
+		statusId = statusId || 'titlo-auto-list-status';
 		if (noindex === '1' && !window.confirm('Закрыть от индексации (meta robots noindex) категорий: ' + ids.length +
 			'?\nСтраницы категорий выпадут из поиска; товары внутри останутся открытыми.')) {
 			return Promise.resolve();
 		}
-		setStatus('titlo-auto-list-status', 'Сохраняю…');
+		setStatus(statusId, 'Сохраняю…');
 		return post('auto_section_skip', {ids: ids.join(','), skip: skip, noindex: noindex}).then(function (res) {
 			if (!res.ok) {
-				setStatus('titlo-auto-list-status', res.error || 'Ошибка', true);
+				setStatus(statusId, res.error || 'Ошибка', true);
 				return;
 			}
 			ids.forEach(function (id) { delete selected[id]; });
-			if (res.cancelled_jobs) loadQueue();
+			loadQueue();
 			return loadList().then(function () {
 				var msg = [];
 				if (skip === '1') msg.push('Исключено: ' + ids.length + ' (вернуть — фильтр «Исключённые из автопроработки»)');
@@ -1330,7 +1353,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 				if (skip === '0') msg.push('Вернули в работу: ' + ids.length);
 				if (noindex === '1') msg.push('noindex: ' + (res.noindex_count || 0));
 				if (noindex === '0') msg.push('индексация открыта: ' + (res.noindex_count || 0));
-				setStatus('titlo-auto-list-status', msg.join(' · '));
+				setStatus(statusId, msg.join(' · '));
 			});
 		});
 	}
@@ -1342,7 +1365,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 				var ids = (el.getAttribute('data-skip-ids') || '').split(',').map(function (x) { return parseInt(x, 10) || 0; })
 					.filter(function (x) { return x > 0; });
 				if (!ids.length) return;
-				setAutoSkip(ids, el.getAttribute('data-skip') || '', el.getAttribute('data-noindex') || '');
+				setAutoSkip(ids, el.getAttribute('data-skip') || '', el.getAttribute('data-noindex') || '', el.getAttribute('data-status-id') || '');
 			};
 		});
 	}
@@ -1691,7 +1714,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 						(checked ? ' checked' : '') +
 						(selectable ? '' : ' disabled') + '></td>' +
 					'<td>' + it.id + '</td>' +
-					'<td><a href="' + escapeHtml(it.single_url) + '">' + it.entity_id + '</a></td>' +
+					'<td>' + queueEntityCellHtml(it) + '</td>' +
 					'<td>' + escapeHtml(it.phrase) + '</td>' +
 					'<td>' + escapeHtml(it.run_mode_label || it.run_mode || '') + '</td>' +
 					'<td>' + formatQueueEngine(it) + '</td>' +
@@ -1707,6 +1730,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 			body.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="' + QUEUE_COLSPAN + '">Пока пусто</td></tr>';
 			bindQueueChecks(body);
 			bindPhraseFix(body);
+			bindSkipEvents(body);
 			restorePhraseFixFocus(body, fixFocus);
 			updateQueueRequeueBtn();
 			var all = document.getElementById('titlo-auto-queue-check-all');
