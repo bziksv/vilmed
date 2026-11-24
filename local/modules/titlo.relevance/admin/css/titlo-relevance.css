@@ -1906,3 +1906,8 @@ tr.titlo-auto-skipped > td { color: #9ca3af; }
 .titlo-fixph__cnt.is-over { color: #dc2626; font-weight: 600; }
 .titlo-fixph__msg { margin-top: 4px; font-size: 12px; color: #475569; }
 .titlo-fixph__msg.is-err { color: #dc2626; }
+.titlo-queue-scroll { overflow-x: auto; max-width: 100%; }
+.titlo-queue-table { min-width: 1280px; }
+.titlo-queue-table__phrase { min-width: 200px; }
+.titlo-queue-table__err { min-width: 260px; }
+.titlo-queue-table td { word-break: normal; overflow-wrap: anywhere; }

@@ -93,6 +93,7 @@ class Agent
 		}
 
 		try {
+			BatchQueue::markPolled($id);
 			// Актуальная строка после lock — иначе тик по устаревшему STEP/STATUS
 			$fresh = BatchQueue::findById($id);
 			if (!$fresh) {

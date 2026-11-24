@@ -254,6 +254,7 @@ class BatchQueue
 			'ANALYSIS_ENGINE' => "ALTER TABLE titlo_relevance_queue ADD COLUMN ANALYSIS_ENGINE varchar(16) NOT NULL DEFAULT '' AFTER RUN_MODE",
 			'ANALYSIS_REGION' => "ALTER TABLE titlo_relevance_queue ADD COLUMN ANALYSIS_REGION varchar(32) NOT NULL DEFAULT '' AFTER ANALYSIS_ENGINE",
 			'ANALYSIS_TOP' => 'ALTER TABLE titlo_relevance_queue ADD COLUMN ANALYSIS_TOP int(11) NOT NULL DEFAULT 0 AFTER ANALYSIS_REGION',
+			'POLLED_AT' => 'ALTER TABLE titlo_relevance_queue ADD COLUMN POLLED_AT datetime DEFAULT NULL AFTER LEASE_UNTIL',
 		];
 		foreach ($alters as $col => $sql) {
 			if (!isset($cols[$col])) {
@@ -1015,7 +1016,7 @@ class BatchQueue
 		$res = $DB->Query(
 			"SELECT * FROM titlo_relevance_queue
 			WHERE STATUS = '" . $DB->ForSql($runningStatus) . "'" . $typeSql . '
-			ORDER BY ID ASC
+			ORDER BY (POLLED_AT IS NULL) DESC, POLLED_AT ASC, ID ASC
 			LIMIT ' . (int) $limit
 		);
 		while ($row = $res->Fetch()) {
@@ -1170,6 +1171,13 @@ class BatchQueue
 		$DB->Query("UPDATE titlo_relevance_queue SET UPDATED_AT = '" . $DB->ForSql(self::now()) . "', ERROR = '"
 			. $DB->ForSql(mb_substr($text, 0, 500)) . "'"
 			. ' WHERE ID = ' . (int) $id . " AND STATUS = '" . self::STATUS_RUNNING . "'");
+	}
+
+	/** Опрос по кругу: listWorkable берёт running с самым старым POLLED_AT. */
+	public static function markPolled(int $id): void
+	{
+		global $DB;
+		$DB->Query("UPDATE titlo_relevance_queue SET POLLED_AT = '" . $DB->ForSql(self::now()) . "' WHERE ID = " . (int) $id);
 	}
 
 	/** Шаги ожидания, на которых задание можно продолжить по ID в кабинете. */

@@ -427,13 +427,13 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 				<input type="button" id="titlo-auto-queue-select-no-text" class="adm-btn" value="Выбрать «текст не писали»">
 				<span id="titlo-auto-requeue-status" class="bulk-status"></span>
 			</div>
-			<table>
+			<div class="titlo-queue-scroll"><table class="titlo-queue-table">
 				<thead>
 				<tr>
 					<th style="width:36px"><input type="checkbox" id="titlo-auto-queue-check-all" aria-label="Выбрать все в журнале"></th>
 					<th style="width:50px">№</th>
 					<th style="width:70px">Категория</th>
-					<th>Фраза</th>
+					<th class="titlo-queue-table__phrase">Фраза</th>
 					<th style="width:90px">Режим</th>
 					<th style="width:110px">Система
 						<span class="titlo-help" tabindex="0" aria-label="Поисковая система">?
@@ -456,13 +456,13 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 							<span class="titlo-help__tip">Время последнего изменения статуса. Ниже мелким — время постановки в очередь.</span>
 						</span>
 					</th>
-					<th>Ошибка</th>
+					<th class="titlo-queue-table__err">Ошибка</th>
 				</tr>
 				</thead>
 				<tbody id="titlo-auto-queue-body">
 				<tr><td colspan="11">Пока пусто</td></tr>
 				</tbody>
-			</table>
+			</table></div>
 			<div class="pager" id="titlo-auto-queue-pager"></div>
 		</div>
 	</details>
