@@ -442,6 +442,7 @@ class BatchQueue
 			");
 			$newId = (int) $DB->LastID();
 			$connection->commitTransaction();
+			self::supersedeFailed($entityType, [$entityId]);
 
 			return $newId;
 		} catch (\Throwable $e) {
@@ -920,6 +921,43 @@ class BatchQueue
 	}
 
 	public const ERROR_SECTION_EXCLUDED = 'категория исключена из автопроработки';
+
+	/**
+	 * Старые «ошибки» по сущности, у которой есть более новое задание, — снять (не висят в журнале
+	 * и не мешают «Запустить выбранные»). Пустой $entityIds = по всей таблице.
+	 *
+	 * @param int[] $entityIds
+	 */
+	public static function supersedeFailed(string $entityType = '', array $entityIds = []): int
+	{
+		self::ensureSchema();
+		global $DB;
+		$where = "o.STATUS = '" . self::STATUS_FAILED . "'";
+		$entityType = strtoupper($entityType);
+		if ($entityType === 'S' || $entityType === 'E') {
+			$where .= " AND o.ENTITY_TYPE = '" . $entityType . "'";
+		}
+		$entityIds = array_values(array_filter(array_map('intval', $entityIds)));
+		if ($entityIds !== []) {
+			$where .= ' AND o.ENTITY_ID IN (' . implode(',', $entityIds) . ')';
+		}
+		$DB->Query("
+			UPDATE titlo_relevance_queue o
+			JOIN (
+				SELECT ENTITY_TYPE, ENTITY_ID, MAX(ID) AS LAST_ID
+				FROM titlo_relevance_queue
+				GROUP BY ENTITY_TYPE, ENTITY_ID
+			) n ON n.ENTITY_TYPE = o.ENTITY_TYPE AND n.ENTITY_ID = o.ENTITY_ID AND n.LAST_ID > o.ID
+			SET o.STATUS = '" . self::STATUS_CANCELLED . "',
+				o.ERROR = CONCAT('заменено заданием №', n.LAST_ID),
+				o.WORKER_TOKEN = '',
+				o.LEASE_UNTIL = NULL,
+				o.UPDATED_AT = '" . $DB->ForSql(self::now()) . "'
+			WHERE " . $where
+		);
+
+		return self::affectedRows();
+	}
 
 	/**
 	 * @param int[] $sectionIds
