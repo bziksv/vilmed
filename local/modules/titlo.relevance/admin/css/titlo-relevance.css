@@ -1898,3 +1898,11 @@ tr.titlo-auto-skipped > td { color: #9ca3af; }
 .titlo-pg__total { margin-left: 12px; color: #6b7280; }
 
 .titlo-error .titlo-queue-note { color: #64748b; font-weight: 400; }
+.titlo-fixph { color: #334155; font-weight: 400; min-width: 260px; }
+.titlo-fixph__hint { color: #b91c1c; margin-bottom: 6px; }
+.titlo-fixph__row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.titlo-fixph__input { flex: 1; min-width: 200px; padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; }
+.titlo-fixph__cnt { font-size: 12px; color: #16a34a; white-space: nowrap; }
+.titlo-fixph__cnt.is-over { color: #dc2626; font-weight: 600; }
+.titlo-fixph__msg { margin-top: 4px; font-size: 12px; color: #475569; }
+.titlo-fixph__msg.is-err { color: #dc2626; }

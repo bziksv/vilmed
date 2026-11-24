@@ -658,6 +658,10 @@ try {
 			$res = BatchQueue::requeueByIds($decoded, $opts);
 			titlo_json(array_merge(['ok' => !empty($res['ok'])], $res), !empty($res['ok']) ? 200 : 422);
 
+		case 'auto_fix_phrase':
+			$res = BatchQueue::fixPhraseAndRequeue((int) ($_POST['id'] ?? 0), (string) ($_POST['phrase'] ?? ''));
+			titlo_json($res, !empty($res['ok']) ? 200 : 422);
+
 		case 'auto_cancel_jobs':
 			BatchQueue::ensureSchema();
 			$rawIds = (string) ($_POST['ids'] ?? '[]');

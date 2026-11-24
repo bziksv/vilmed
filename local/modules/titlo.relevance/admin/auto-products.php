@@ -1288,8 +1288,94 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 		return html;
 	}
 
+	var phraseDrafts = {};
+	var PHRASE_MAX = 50;
+
+	function needsPhraseFix(it) {
+		if (it.status !== 'failed') return false;
+		var err = String(it.error || '');
+		return err.indexOf('max 50 chars') >= 0 || err.indexOf('анализатор принимает до') >= 0 || String(it.phrase || '').length > PHRASE_MAX;
+	}
+
+	function phraseFixHtml(it) {
+		var v = Object.prototype.hasOwnProperty.call(phraseDrafts, it.id) ? phraseDrafts[it.id] : (it.phrase || '');
+		return '<div class="titlo-fixph" data-id="' + it.id + '">' +
+			'<div class="titlo-fixph__hint">Фраза длиннее ' + PHRASE_MAX + ' зн. — анализатор её не принимает. Сократите и перезапустите:</div>' +
+			'<div class="titlo-fixph__row">' +
+			'<input type="text" class="titlo-fixph__input" value="' + escapeHtml(v) + '">' +
+			'<span class="titlo-fixph__cnt"></span>' +
+			'</div>' +
+			'<button type="button" class="adm-btn adm-btn-save titlo-fixph__btn">Сохранить и запустить</button>' +
+			'<div class="titlo-fixph__msg"></div>' +
+			'</div>';
+	}
+
+	function bindPhraseFix(host) {
+		Array.prototype.forEach.call(host.querySelectorAll('.titlo-fixph'), function (box) {
+			var id = parseInt(box.getAttribute('data-id'), 10);
+			var input = box.querySelector('.titlo-fixph__input');
+			var cnt = box.querySelector('.titlo-fixph__cnt');
+			var btn = box.querySelector('.titlo-fixph__btn');
+			var msg = box.querySelector('.titlo-fixph__msg');
+			function sync() {
+				var n = input.value.trim().length;
+				cnt.textContent = n + ' / ' + PHRASE_MAX;
+				cnt.className = 'titlo-fixph__cnt' + (n > PHRASE_MAX || n === 0 ? ' is-over' : '');
+				btn.disabled = n === 0 || n > PHRASE_MAX;
+			}
+			sync();
+			input.addEventListener('input', function () {
+				phraseDrafts[id] = input.value;
+				sync();
+			});
+			input.addEventListener('keydown', function (e) {
+				if (e.key === 'Enter') {
+					e.preventDefault();
+					if (!btn.disabled) btn.click();
+				}
+			});
+			btn.addEventListener('click', function () {
+				btn.disabled = true;
+				msg.textContent = 'Сохраняем…';
+				msg.className = 'titlo-fixph__msg';
+				post('auto_fix_phrase', { id: id, phrase: input.value }).then(function (res) {
+					if (res && res.ok) {
+						delete phraseDrafts[id];
+						msg.textContent = 'Сохранено, задание снова в очереди';
+						loadQueue();
+						if (typeof loadList === 'function') loadList();
+						return;
+					}
+					msg.textContent = (res && res.error) || 'Ошибка';
+					msg.className = 'titlo-fixph__msg is-err';
+					sync();
+				}).catch(function () {
+					msg.textContent = 'Ошибка сети';
+					msg.className = 'titlo-fixph__msg is-err';
+					sync();
+				});
+			});
+		});
+	}
+
+	function focusedPhraseFix() {
+		var a = document.activeElement;
+		if (!a || !a.classList || !a.classList.contains('titlo-fixph__input')) return null;
+		var box = a.closest('.titlo-fixph');
+		return box ? { id: box.getAttribute('data-id'), pos: a.selectionStart } : null;
+	}
+
+	function restorePhraseFixFocus(host, f) {
+		if (!f) return;
+		var input = host.querySelector('.titlo-fixph[data-id="' + f.id + '"] .titlo-fixph__input');
+		if (!input) return;
+		input.focus();
+		try { input.setSelectionRange(f.pos, f.pos); } catch (e) {}
+	}
+
 	function formatQueueError(it) {
 		var err = (it.error || '').trim();
+		if (needsPhraseFix(it)) return phraseFixHtml(it);
 		if (!err) return '';
 		if (err === 'cancelled_by_user') return '';
 		if (err === 'analysis_failed' || err === '1') {
@@ -1411,8 +1497,11 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 					'</tr>'
 				);
 			});
+			var fixFocus = focusedPhraseFix();
 			body.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="' + QUEUE_COLSPAN + '">Пока пусто</td></tr>';
 			bindQueueChecks(body);
+			bindPhraseFix(body);
+			restorePhraseFixFocus(body, fixFocus);
 			updateQueueRequeueBtn();
 			var all = document.getElementById('titlo-auto-queue-check-all');
 			if (all) all.checked = false;

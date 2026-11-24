@@ -529,6 +529,57 @@ class BatchQueue
 	 * } $opts
 	 * @return array{ok:bool,requeued:int,ids:int[],error?:string}
 	 */
+	/**
+	 * Исправить фразу упавшего задания (в UF товара/категории и в строке очереди) и перепоставить
+	 * с теми же режимом/промптами/поисковиком.
+	 *
+	 * @return array{ok:bool,phrase?:string,error?:string}
+	 */
+	public static function fixPhraseAndRequeue(int $queueId, string $phrase): array
+	{
+		self::ensureSchema();
+		global $DB;
+		$row = self::findById($queueId);
+		if (!$row) {
+			return ['ok' => false, 'error' => 'задание не найдено'];
+		}
+		if ((string) $row['STATUS'] !== self::STATUS_FAILED) {
+			return ['ok' => false, 'error' => 'править фразу можно только у задания с ошибкой'];
+		}
+		$phrase = trim(preg_replace('/\s+/u', ' ', $phrase) ?? '');
+		$len = mb_strlen($phrase);
+		if ($phrase === '') {
+			return ['ok' => false, 'error' => 'фраза пустая'];
+		}
+		if ($len > self::ANALYSIS_PHRASE_MAX) {
+			return ['ok' => false, 'error' => 'фраза ' . $len . ' зн., нужно не больше ' . self::ANALYSIS_PHRASE_MAX];
+		}
+		$etype = strtoupper((string) ($row['ENTITY_TYPE'] ?? 'E')) === 'S' ? 'S' : 'E';
+		$eid = (int) $row['ENTITY_ID'];
+		$saved = $etype === 'S'
+			? CatalogRepository::saveSectionPhrase($eid, $phrase)
+			: CatalogRepository::saveElementPhrase($eid, $phrase);
+		if (!$saved) {
+			return ['ok' => false, 'error' => 'не удалось сохранить фразу'];
+		}
+		$stored = $etype === 'S' ? CatalogRepository::getSectionPhrase($eid) : CatalogRepository::getElementPhrase($eid);
+		if ($stored !== '' && mb_strlen($stored) <= self::ANALYSIS_PHRASE_MAX) {
+			$phrase = $stored;
+		}
+		$DB->Query("UPDATE titlo_relevance_queue SET PHRASE = '" . $DB->ForSql($phrase) . "' WHERE ID = " . (int) $queueId);
+		$res = self::requeueByIds([$queueId], [
+			'entity_type' => $etype,
+			'run_mode' => (string) ($row['RUN_MODE'] ?? self::MODE_FULL),
+			'existing_policy' => (string) ($row['EXISTING_POLICY'] ?? self::POLICY_OVERWRITE),
+		]);
+		if (empty($res['ok'])) {
+			$err = $res['errors'][$queueId] ?? ($res['error'] ?? 'не удалось перепоставить');
+			return ['ok' => false, 'phrase' => $phrase, 'error' => 'фраза сохранена, но задание не перезапущено: ' . $err];
+		}
+
+		return ['ok' => true, 'phrase' => $phrase];
+	}
+
 	public static function requeueByIds(array $ids, array $opts = []): array
 	{
 		self::ensureSchema();
