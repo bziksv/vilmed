@@ -619,7 +619,7 @@ class Agent
 		}
 		BatchQueue::touchWaiting(
 			(int) $row['ID'],
-			'в очереди кабинета Titlo · ' . $what . ' ещё не начат, ждём'
+			'ждёт в очереди кабинета Titlo (' . $what . ')'
 		);
 
 		return true;
