@@ -1322,9 +1322,11 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 				return;
 			}
 			ids.forEach(function (id) { delete selected[id]; });
+			if (res.cancelled_jobs) loadQueue();
 			return loadList().then(function () {
 				var msg = [];
 				if (skip === '1') msg.push('Исключено: ' + ids.length + ' (вернуть — фильтр «Исключённые из автопроработки»)');
+				if (res.cancelled_jobs) msg.push('снято заданий из очереди: ' + res.cancelled_jobs);
 				if (skip === '0') msg.push('Вернули в работу: ' + ids.length);
 				if (noindex === '1') msg.push('noindex: ' + (res.noindex_count || 0));
 				if (noindex === '0') msg.push('индексация открыта: ' + (res.noindex_count || 0));
@@ -1585,7 +1587,7 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 		if (err === 'analysis_failed' || err === '1') {
 			return 'анализ в Titlo не сохранился · ' + escapeHtml(it.step_label || it.step || 'анализ');
 		}
-		if (it.status === 'running') {
+		if (it.status === 'running' || it.status === 'cancelled') {
 			return '<span class="titlo-queue-note">' + escapeHtml(err) + '</span>';
 		}
 		return escapeHtml(err);

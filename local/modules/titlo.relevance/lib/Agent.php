@@ -106,6 +106,10 @@ class Agent
 			}
 
 			if ($status === BatchQueue::STATUS_QUEUED) {
+				if (strtoupper((string) ($row['ENTITY_TYPE'] ?? 'E')) === 'S'
+					&& BatchQueue::cancelForExcludedSections([(int) ($row['ENTITY_ID'] ?? 0)]) > 0) {
+					return;
+				}
 				if (!BatchQueue::claim($id)) {
 					return;
 				}

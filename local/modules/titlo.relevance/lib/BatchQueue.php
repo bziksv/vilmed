@@ -326,6 +326,9 @@ class BatchQueue
 				'фраза ' . mb_strlen($phrase) . ' зн. — анализатор принимает до ' . self::ANALYSIS_PHRASE_MAX . ', сократите её в «Названиях»'
 			);
 		}
+		if ($entityType === 'S' && self::excludedSectionIds([$entityId]) !== []) {
+			throw new \InvalidArgumentException(self::ERROR_SECTION_EXCLUDED);
+		}
 
 		$active = self::activeByEntityIds([$entityId], $entityType);
 		if (isset($active[$entityId])) {
@@ -637,6 +640,7 @@ class BatchQueue
 
 		$activeE = self::activeByEntityIds(array_unique($entityIdsE), 'E');
 		$activeS = self::activeByEntityIds(array_unique($entityIdsS), 'S');
+		$excludedS = self::excludedSectionIds($entityIdsS);
 		$claimedEntityE = [];
 		$claimedEntityS = [];
 
@@ -648,6 +652,10 @@ class BatchQueue
 			$qid = (int) $row['ID'];
 			$etype = strtoupper((string) ($row['ENTITY_TYPE'] ?? 'E')) === 'S' ? 'S' : 'E';
 			$eid = (int) $row['ENTITY_ID'];
+			if ($etype === 'S' && isset($excludedS[$eid])) {
+				$errors[$qid] = self::ERROR_SECTION_EXCLUDED;
+				continue;
+			}
 			$claimed = $etype === 'S' ? $claimedEntityS : $claimedEntityE;
 			if (isset($claimed[$eid])) {
 				$errors[$qid] = 'уже есть активная задача в очереди';
@@ -908,6 +916,57 @@ class BatchQueue
 			'ids' => $okIds,
 			'skipped' => $skipped,
 		];
+	}
+
+	public const ERROR_SECTION_EXCLUDED = 'категория исключена из автопроработки';
+
+	/**
+	 * @param int[] $sectionIds
+	 * @return array<int, true> ID категорий с UF_TITLO_AUTO_SKIP = 1
+	 */
+	public static function excludedSectionIds(array $sectionIds): array
+	{
+		$sectionIds = array_values(array_unique(array_filter(array_map('intval', $sectionIds))));
+		if ($sectionIds === []) {
+			return [];
+		}
+		global $DB;
+		$uts = 'b_uts_iblock_' . (int) Config::iblockId() . '_section';
+		$res = $DB->Query('SELECT VALUE_ID FROM ' . $uts . ' WHERE VALUE_ID IN (' . implode(',', $sectionIds) . ')'
+			. ' AND COALESCE(' . UserFields::AUTO_SKIP_FIELD . ', 0) = 1');
+		$out = [];
+		while ($row = $res->Fetch()) {
+			$out[(int) $row['VALUE_ID']] = true;
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Снять с очереди задания исключённых категорий («в очереди» и «ошибка»; running доработают сами).
+	 *
+	 * @param int[] $sectionIds
+	 */
+	public static function cancelForExcludedSections(array $sectionIds): int
+	{
+		self::ensureSchema();
+		$ids = array_keys(self::excludedSectionIds($sectionIds));
+		if ($ids === []) {
+			return 0;
+		}
+		global $DB;
+		$DB->Query("
+			UPDATE titlo_relevance_queue SET
+				STATUS = '" . self::STATUS_CANCELLED . "',
+				ERROR = '" . $DB->ForSql(self::ERROR_SECTION_EXCLUDED) . "',
+				WORKER_TOKEN = '',
+				LEASE_UNTIL = NULL,
+				UPDATED_AT = '" . $DB->ForSql(self::now()) . "'
+			WHERE ENTITY_TYPE = 'S' AND ENTITY_ID IN (" . implode(',', $ids) . ")
+			  AND STATUS IN ('" . self::STATUS_QUEUED . "','" . self::STATUS_FAILED . "')
+		");
+
+		return self::affectedRows();
 	}
 
 	/** Сколько заданий одного типа (товар/категория) крутить параллельно. Только этот сайт (модуль vilmed). */

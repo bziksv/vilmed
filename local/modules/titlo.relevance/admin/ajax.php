@@ -507,6 +507,10 @@ try {
 			if (isset($_POST['skip']) && $_POST['skip'] !== '') {
 				$n = UserFields::setSectionAutoSkip($ids, (string) $_POST['skip'] === '1');
 			}
+			$cancelledN = 0;
+			if ((string) ($_POST['skip'] ?? '') === '1') {
+				$cancelledN = BatchQueue::cancelForExcludedSections($ids);
+			}
 			$noindexN = 0;
 			if (isset($_POST['noindex']) && $_POST['noindex'] !== '') {
 				$on = (string) $_POST['noindex'] === '1';
@@ -517,7 +521,7 @@ try {
 					}
 				}
 			}
-			titlo_json(['ok' => true, 'count' => max($n, $noindexN), 'noindex_count' => $noindexN]);
+			titlo_json(['ok' => true, 'count' => max($n, $noindexN), 'noindex_count' => $noindexN, 'cancelled_jobs' => $cancelledN]);
 
 		case 'auto_list_ids':
 			BatchQueue::ensureSchema();
