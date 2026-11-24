@@ -1295,6 +1295,9 @@ if (!in_array($analysisTop, Config::analysisTopOptions(), true)) {
 		if (err === 'analysis_failed' || err === '1') {
 			return 'анализ в Titlo не сохранился · ' + escapeHtml(it.step_label || it.step || 'анализ');
 		}
+		if (it.status === 'running') {
+			return '<span class="titlo-queue-note">' + escapeHtml(err) + '</span>';
+		}
 		return escapeHtml(err);
 	}
 

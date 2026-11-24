@@ -321,6 +321,11 @@ class BatchQueue
 		if ($phrase === '') {
 			throw new \InvalidArgumentException('phrase required');
 		}
+		if (mb_strlen($phrase) > self::ANALYSIS_PHRASE_MAX) {
+			throw new \InvalidArgumentException(
+				'фраза ' . mb_strlen($phrase) . ' зн. — анализатор принимает до ' . self::ANALYSIS_PHRASE_MAX . ', сократите её в «Названиях»'
+			);
+		}
 
 		$active = self::activeByEntityIds([$entityId], $entityType);
 		if (isset($active[$entityId])) {
@@ -857,6 +862,9 @@ class BatchQueue
 	/** Сколько заданий одного типа (товар/категория) крутить параллельно. Только этот сайт (модуль vilmed). */
 	public const CONCURRENCY = 8;
 
+	/** Лимит фразы в API анализа кабинета («phrase is required (max 50 chars)»). */
+	public const ANALYSIS_PHRASE_MAX = 50;
+
 	/**
 	 * Следующая задача: queued или running (продолжение шага).
 	 *
@@ -1042,6 +1050,18 @@ class BatchQueue
 			. ' WHERE ID = ' . (int) $id . " AND STATUS = '" . self::STATUS_RUNNING . "'");
 	}
 
+	/**
+	 * Задание стоит в очереди кабинета: UPDATED_AT = сейчас (отсчёт WAIT_MAX_SEC начнётся,
+	 * когда кабинет возьмёт его в работу) + пометка.
+	 */
+	public static function touchWaiting(int $id, string $text): void
+	{
+		global $DB;
+		$DB->Query("UPDATE titlo_relevance_queue SET UPDATED_AT = '" . $DB->ForSql(self::now()) . "', ERROR = '"
+			. $DB->ForSql(mb_substr($text, 0, 500)) . "'"
+			. ' WHERE ID = ' . (int) $id . " AND STATUS = '" . self::STATUS_RUNNING . "'");
+	}
+
 	/** Шаги ожидания, на которых задание можно продолжить по ID в кабинете. */
 	protected const RESUMABLE_STEPS = [
 		self::STEP_WAIT_ANALYSIS => 'ANALYSIS_ID',
@@ -1083,7 +1103,12 @@ class BatchQueue
 			} catch (\Throwable $e) {
 				continue;
 			}
-			if ($st !== 'done' && $st !== 'completed') {
+			$finished = $st === 'done' || $st === 'completed';
+			// Упали по нашему таймауту, а кабинет ещё держит задание (очередь medium и т.п.) — ждать дальше
+			$stillInCabinet = (Agent::isRemoteWaitingStatus($st) || $st === 'running' || $st === 'processing')
+				&& self::isLocalWaitTimeout((string) ($row['ERROR'] ?? ''))
+				&& self::ageSeconds($row['CREATED_AT'] ?? null) < Agent::WAIT_QUEUED_MAX_SEC;
+			if (!$finished && !$stillInCabinet) {
 				continue;
 			}
 			if (self::mark((int) $row['ID'], self::STATUS_RUNNING, [
@@ -1095,6 +1120,11 @@ class BatchQueue
 			}
 		}
 		return $resumed;
+	}
+
+	protected static function isLocalWaitTimeout(string $err): bool
+	{
+		return mb_strpos($err, 'завис') !== false || mb_strpos($err, 'Генерация зависла') !== false;
 	}
 
 	/**

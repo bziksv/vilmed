@@ -1896,3 +1896,5 @@ tr.titlo-auto-skipped > td { color: #9ca3af; }
 .titlo-pg__jump { margin-left: 12px; color: #4b5563; }
 .titlo-pg__input { width: 64px; height: 28px; padding: 0 6px; border: 1px solid #c8d1db; border-radius: 4px; font-size: 13px; }
 .titlo-pg__total { margin-left: 12px; color: #6b7280; }
+
+.titlo-error .titlo-queue-note { color: #64748b; font-weight: 400; }

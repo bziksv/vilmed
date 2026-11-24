@@ -6,8 +6,15 @@ use Bitrix\Main\Loader;
 
 class Agent
 {
-	/** Сколько ждать анализ/генерацию в кабинете с начала шага (кабинет бывает перегружен). */
+	/** Сколько ждать анализ/генерацию, когда кабинет уже взял задание в работу (status=running). */
 	public const WAIT_MAX_SEC = 3600;
+	/**
+	 * Пока задание стоит в очереди кабинета (status=queued, напр. группа medium) — это не зависание.
+	 * Валим только если с создания задания прошло столько секунд.
+	 */
+	public const WAIT_QUEUED_MAX_SEC = 172800;
+	/** Статусы кабинета «ещё не начали обрабатывать». */
+	protected const REMOTE_WAITING_STATUSES = ['queued', 'pending', 'waiting', 'new'];
 
 	/**
 	 * Bitrix agent: массовые фразы, затем очередь автопроработки.
@@ -291,6 +298,9 @@ class Agent
 			throw new \RuntimeException($which . ': ' . $err);
 		}
 		if ($st !== 'done') {
+			if (self::waitInCabinetQueue($row, $st, $isRecheck ? 'повторный анализ' : 'анализ')) {
+				return;
+			}
 			// UPDATED_AT не трогаем на каждом poll — иначе таймаут никогда не сработает
 			$waitSec = BatchQueue::ageSeconds($row['UPDATED_AT'] ?? null);
 			if ($waitSec > self::WAIT_MAX_SEC) {
@@ -529,6 +539,9 @@ class Agent
 			throw new \RuntimeException($err);
 		}
 		if ($st !== 'completed' && $st !== 'done') {
+			if (self::waitInCabinetQueue($row, $st, $preview ? 'генерация анонса' : 'генерация описания')) {
+				return;
+			}
 			// Не bump UPDATED_AT на poll — иначе ceiling не сработает
 			$waitSec = BatchQueue::ageSeconds($row['UPDATED_AT'] ?? null);
 			if ($waitSec > self::WAIT_MAX_SEC) {
@@ -582,6 +595,34 @@ class Agent
 			BatchQueue::note($id, null);
 		}
 		return $res;
+	}
+
+	public static function isRemoteWaitingStatus(string $st): bool
+	{
+		return in_array(strtolower(trim($st)), self::REMOTE_WAITING_STATUSES, true);
+	}
+
+	/**
+	 * Задание ещё стоит в очереди кабинета: сдвигаем UPDATED_AT (час на выполнение считается
+	 * с момента, когда кабинет возьмёт его в работу) и пишем пометку. false — статус не «ожидание».
+	 */
+	protected static function waitInCabinetQueue(array $row, string $st, string $what): bool
+	{
+		if (!self::isRemoteWaitingStatus($st)) {
+			return false;
+		}
+		$totalSec = BatchQueue::ageSeconds($row['CREATED_AT'] ?? null);
+		if ($totalSec > self::WAIT_QUEUED_MAX_SEC) {
+			throw new \RuntimeException(
+				$what . ': кабинет так и не взял задание в работу за ' . round($totalSec / 3600) . ' ч (status=' . $st . ')'
+			);
+		}
+		BatchQueue::touchWaiting(
+			(int) $row['ID'],
+			'в очереди кабинета Titlo · ' . $what . ' ещё не начат, ждём'
+		);
+
+		return true;
 	}
 
 	protected static function isTransientRemoteError(string $err): bool
