@@ -439,7 +439,7 @@ class WorkHistory
 	}
 
 	/**
-	 * Снимок длины текстов «до» / «после» (символы HTML в каталоге).
+	 * Снимок длины текстов «до» / «после» (символы видимого текста, без HTML-разметки).
 	 *
 	 * @return array<string,int>
 	 */
@@ -480,15 +480,15 @@ class WorkHistory
 		try {
 			if ($entityType === 'S') {
 				$entity = CatalogRepository::findSection($entityId);
-				$len = mb_strlen((string) ($entity['description'] ?? ''));
+				$len = CatalogRepository::plainTextLength((string) ($entity['description'] ?? ''));
 
 				return ['preview' => $len, 'detail' => 0];
 			}
 			$entity = CatalogRepository::findElement($entityId);
 
 			return [
-				'preview' => mb_strlen((string) ($entity['preview_text'] ?? '')),
-				'detail' => mb_strlen((string) ($entity['detail_text'] ?? '')),
+				'preview' => CatalogRepository::plainTextLength((string) ($entity['preview_text'] ?? '')),
+				'detail' => CatalogRepository::plainTextLength((string) ($entity['detail_text'] ?? '')),
 			];
 		} catch (\Throwable $e) {
 			return ['preview' => 0, 'detail' => 0];

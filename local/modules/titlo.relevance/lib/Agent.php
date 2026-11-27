@@ -674,9 +674,9 @@ class Agent
 			'url' => (string) ($row['URL'] ?? ''),
 			'phrase' => (string) ($row['PHRASE'] ?? ''),
 			'preview_chars' => $entityType === 'S'
-				? mb_strlen($detail)
-				: ($preview !== null ? mb_strlen($preview) : 0),
-			'detail_chars' => $entityType === 'S' ? 0 : mb_strlen($detail),
+				? CatalogRepository::plainTextLength($detail)
+				: ($preview !== null ? CatalogRepository::plainTextLength($preview) : 0),
+			'detail_chars' => $entityType === 'S' ? 0 : CatalogRepository::plainTextLength($detail),
 			'run_mode' => BatchQueue::normalizeRunMode((string) ($row['RUN_MODE'] ?? BatchQueue::MODE_FULL)),
 			'prompt_detail_id' => (int) ($row['PROMPT_DETAIL_ID'] ?? 0),
 			'prompt_preview_id' => (int) ($row['PROMPT_PREVIEW_ID'] ?? 0),

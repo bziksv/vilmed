@@ -334,8 +334,10 @@ try {
 					'name' => trim((string) ($_POST['name'] ?? '')),
 					'url' => trim((string) ($_POST['url'] ?? '')),
 					'phrase' => $phrase !== null ? $phrase : '',
-					'preview_chars' => $type === 'S' ? mb_strlen($description) : mb_strlen($preview),
-					'detail_chars' => $type === 'S' ? 0 : mb_strlen($detail),
+					'preview_chars' => $type === 'S'
+						? CatalogRepository::plainTextLength($description)
+						: CatalogRepository::plainTextLength($preview),
+					'detail_chars' => $type === 'S' ? 0 : CatalogRepository::plainTextLength($detail),
 					'run_mode' => (string) ($_POST['run_mode'] ?? BatchQueue::MODE_FULL),
 					'prompt_detail_id' => (int) ($_POST['prompt_detail_id'] ?? 0),
 					'prompt_preview_id' => (int) ($_POST['prompt_preview_id'] ?? 0),

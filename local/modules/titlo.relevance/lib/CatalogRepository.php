@@ -232,6 +232,14 @@ class CatalogRepository
 		return trim(html_entity_decode(strip_tags($raw), ENT_QUOTES, 'UTF-8'));
 	}
 
+	/**
+	 * Длина текста в символах БЕЗ HTML-разметки (счётчики «до/после» в истории и сохранениях).
+	 */
+	public static function plainTextLength(string $raw): int
+	{
+		return mb_strlen(self::plainCatalogText($raw));
+	}
+
 	protected static function catalogTextLooksLikeHtml(string $value): bool
 	{
 		return (bool) preg_match('/<\s*\/?\s*[a-z][a-z0-9]*\b[^>]*>/i', $value);
