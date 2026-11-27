@@ -568,7 +568,11 @@ class Agent
 			$next['PREVIEW_TEXT'] = $text;
 			$next['STEP'] = BatchQueue::STEP_SAVE;
 		} else {
-			$next['DETAIL_TEXT'] = $text;
+			$vmd = CatalogRepository::extractValidVmdArticle($text);
+			if (!$vmd['ok']) {
+				throw new \RuntimeException($vmd['error']);
+			}
+			$next['DETAIL_TEXT'] = $vmd['html'];
 			$entityType = strtoupper((string) ($row['ENTITY_TYPE'] ?? 'E')) === 'S' ? 'S' : 'E';
 			$wantPreview = $entityType !== 'S' && (($row['GEN_PREVIEW'] ?? 'N') === 'Y');
 			$next['STEP'] = $wantPreview
@@ -655,6 +659,11 @@ class Agent
 		if ($detail === null || trim($detail) === '') {
 			throw new \RuntimeException('Nothing to save');
 		}
+		$vmd = CatalogRepository::extractValidVmdArticle($detail);
+		if (!$vmd['ok']) {
+			throw new \RuntimeException($vmd['error']);
+		}
+		$detail = $vmd['html'];
 		if ($entityType === 'S') {
 			if (!CatalogRepository::saveSectionDescription($entityId, $detail)) {
 				throw new \RuntimeException('saveSectionDescription failed');

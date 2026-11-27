@@ -240,6 +240,74 @@ class CatalogRepository
 		return mb_strlen(self::plainCatalogText($raw));
 	}
 
+	/**
+	 * Извлекает и валидирует единственный блок <article class="vmd-desc">…</article> из ответа нейросети.
+	 * Всё, что за пределами этого блока (markdown-обёртки, пояснения и т.п.), отбрасывается.
+	 * Если блоков 0, больше 1, тег не закрыт или внутри нет видимого текста — возвращает ok=false.
+	 *
+	 * @return array{ok:bool,html:string,error:string}
+	 */
+	public static function extractValidVmdArticle(string $raw): array
+	{
+		$openRe = '/<article\b[^>]*\bclass\s*=\s*(?:"[^"]*\bvmd-desc\b[^"]*"|\'[^\']*\bvmd-desc\b[^\']*\')[^>]*>/i';
+		$count = preg_match_all($openRe, $raw, $openMatches, PREG_OFFSET_CAPTURE);
+		if ($count === false || $count === 0) {
+			return [
+				'ok' => false,
+				'html' => '',
+				'error' => 'Невалидный ответ нейросети: отсутствует <article class="vmd-desc">',
+			];
+		}
+		if ($count > 1) {
+			return [
+				'ok' => false,
+				'html' => '',
+				'error' => 'Невалидный ответ нейросети: найдено несколько <article class="vmd-desc"> (' . $count . ')',
+			];
+		}
+
+		$startPos = (int) $openMatches[0][0][1];
+		$openTagLen = strlen((string) $openMatches[0][0][0]);
+		$cursor = $startPos + $openTagLen;
+		$depth = 1;
+		$endPos = null;
+
+		while (preg_match('/<(\/?)article\b[^>]*>/i', $raw, $m, PREG_OFFSET_CAPTURE, $cursor)) {
+			$isClose = ($m[1][0] === '/');
+			$tagPos = (int) $m[0][1];
+			$tagLen = strlen((string) $m[0][0]);
+			$cursor = $tagPos + $tagLen;
+			$depth += $isClose ? -1 : 1;
+			if ($depth === 0) {
+				$endPos = $cursor;
+				break;
+			}
+		}
+
+		if ($endPos === null) {
+			return [
+				'ok' => false,
+				'html' => '',
+				'error' => 'Невалидный ответ нейросети: незакрытый тег <article class="vmd-desc">',
+			];
+		}
+
+		$html = substr($raw, $startPos, $endPos - $startPos);
+		if (self::plainTextLength($html) === 0) {
+			return [
+				'ok' => false,
+				'html' => '',
+				'error' => 'Невалидный ответ нейросети: пустой блок <article class="vmd-desc">',
+			];
+		}
+
+		return [
+			'ok' => true,
+			'html' => $html,
+			'error' => '',
+		];
+	}
+
 	protected static function catalogTextLooksLikeHtml(string $value): bool
 	{
 		return (bool) preg_match('/<\s*\/?\s*[a-z][a-z0-9]*\b[^>]*>/i', $value);
